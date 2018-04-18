@@ -1,6 +1,7 @@
 #include "manager.hpp"
 #include "client.hpp"
 #include "router.hpp"
+#include "modules/hello.hpp"
 #include <boost/assert.hpp>
 
 manager::manager(options &&opt):
@@ -11,10 +12,11 @@ manager::manager(options &&opt):
 	sock{service},
 	signal_set{service, SIGTERM, SIGINT},
 	workers{},
-	opt{opt}, //TODO move?
-	rhman{},
-	rout{std::make_shared<router>(rhman, opt)}
+	opt{opt} //TODO move?
 {
+	rhman.add(std::make_shared<rh_hello>());
+	rout = std::make_shared<router>(rhman, opt);
+
 	signal_set.async_wait([this](const boost::system::error_code&, int sig)
 	{
 		lg.info("caught termination signal #", sig);

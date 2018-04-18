@@ -11,7 +11,7 @@
 1. Boost
 
 Debian/Ubuntu:
-    # apt-get install liboost-system-dev libboost-log-dev libboost-regex-dev
+    # apt-get install liboost-system-dev libboost-log-dev libboost-regex-dev libboost-test-dev
 
 FreeBSD:
     # pkg add boost-libs
@@ -42,6 +42,10 @@ To link with boost dynamically, add:
 If you have another URL for http-parser, local or remote, you can add:
 
     -DHTTP_PARSER_URL=<http-parser archive or directory URL>
+
+If you do not want to build tests, add:
+
+	-DBUILD_TESTING=OFF
 
 === Building ===
 

@@ -7,6 +7,7 @@
 #include <list>
 #include <stdexcept>
 #include <boost/variant/variant.hpp>
+class logger;
 
 class options /*: noncopyable */ {
 public:
@@ -18,7 +19,7 @@ public:
 		~error() = default;
 	};
 
-	options(int argc, char *argv[]);
+	options(int argc, char *argv[], logger &lg);
 	~options() = default;
 
 	unsigned n_workers;

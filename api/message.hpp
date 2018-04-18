@@ -21,11 +21,17 @@ struct message: noncopyable
 		string_view value;
 
 		explicit header(string_view name) noexcept:
-			name{ name }
+			name{ name }, lcase_name{ name }
 		{}
 		constexpr header(string_view name, string_view value) noexcept:
-			name{ name }, value{ value }
+			name{ name }, lcase_name{ name }, value{ value }
 		{}
+
+		bool operator==(const header &rhs) const noexcept
+		{
+			return lcase_name == rhs.lcase_name
+				&& value == rhs.value;
+		}
 
 		static constexpr string_view SEP = ": "_w;
 	};

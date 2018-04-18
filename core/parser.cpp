@@ -25,6 +25,12 @@ inline request::method_s method_from(http_method m)
 	BOOST_UNREACHABLE_RETURN({});
 }
 
+inline void prolong(string_view &original, string_view added)
+{
+	BOOST_ASSERT(original.end() == added.begin());
+	original = { original.data(), original.size() + added.size() };
+}
+
 inline string_view url_field(const http_parser_url &url,
 	http_parser_url_fields f, string_view s)
 {
@@ -38,12 +44,11 @@ struct parser_internal: parser
 	template<typename cb>
 	static int parser_cb(http_parser *p) noexcept
 	{
-		const http_parser *cp = p;
-		context &ctx = *static_cast<context*>(cp->data);
+		context &ctx = *static_cast<context*>(p->data);
 		request &r = *ctx.r;
-		static_assert(noexcept(cb::f(cp, ctx, r)),
+		static_assert(noexcept(cb::f(p, ctx, r)),
 			"parser callback should be noexcept");
-		return cb::f(cp, ctx, r);
+		return cb::f(p, ctx, r);
 	}
 
 	template<typename cb>
@@ -71,20 +76,11 @@ http_parser_settings parser_internal::make_settings()
 		static auto f(const http_parser *p, context &ctx,
 		              request &r, string_view s) noexcept
 		{
-			auto method = static_cast<http_method>(p->method);
-			r.method = method_from(method);
-
-			r.url.all = s;
-			http_parser_url url;
-			http_parser_url_init(&url);
-			auto err = http_parser_parse_url(s.data(), s.length(),
-				method == HTTP_CONNECT, &url);
-			if (BOOST_UNLIKELY(err)) {
-				ctx.error.emplace(response_status::BAD_REQUEST, "bad URL"_w);
-				return ERR;
+			if (r.url.all.empty())
+				r.url.all = s;
+			else {
+				prolong(r.url.all, s);
 			}
-			r.url.path = url_field(url, UF_PATH, s);
-			r.url.query = url_field(url, UF_QUERY, s);
 			return OK;
 		}
 	};
@@ -92,10 +88,16 @@ http_parser_settings parser_internal::make_settings()
 
 	struct on_header_field
 	{
-		static auto f(const http_parser *, context&,
+		static auto f(const http_parser *, context &ctx,
 		              request &r, string_view s) noexcept
 		{
-			r.headers.emplace_back(s);
+			if (BOOST_LIKELY(ctx.hdr_state == context::hdr::VAL)) {
+				r.headers.emplace_back(s);
+				ctx.hdr_state = context::hdr::KEY;
+			} else {
+				prolong(r.headers.back().name, s);
+				prolong(r.headers.back().lcase_name, s);
+			}
 			return OK;
 		}
 	};
@@ -103,10 +105,15 @@ http_parser_settings parser_internal::make_settings()
 
 	struct on_header_value
 	{
-		static auto f(const http_parser *, context &,
+		static auto f(const http_parser *, context &ctx,
 		              request &r, string_view s) noexcept
 		{
-			r.headers.back().value = s;
+			if (BOOST_LIKELY(ctx.hdr_state == context::hdr::KEY)) {
+				r.headers.back().value = s;
+				ctx.hdr_state = context::hdr::VAL;
+			} else {
+				prolong(r.headers.back().value, s);
+			}
 			return OK;
 		}
 	};
@@ -122,6 +129,20 @@ http_parser_settings parser_internal::make_settings()
 				return ERR;
 			}
 			r.http_version = static_cast<message::http_version_type>(p->http_minor);
+
+			auto method = static_cast<http_method>(p->method);
+			r.method = method_from(method);
+
+			http_parser_url url;
+			http_parser_url_init(&url);
+			auto err = http_parser_parse_url(r.url.all.data(), r.url.all.length(),
+				method == HTTP_CONNECT, &url);
+			if (BOOST_UNLIKELY(err)) {
+				ctx.error.emplace(response_status::BAD_REQUEST, "bad URL"_w);
+				return ERR;
+			}
+			r.url.path = url_field(url, UF_PATH, r.url.all);
+			r.url.query = url_field(url, UF_QUERY, r.url.all);
 			return OK;
 		}
 	};
@@ -140,12 +161,13 @@ http_parser_settings parser_internal::make_settings()
 
 	struct on_message_complete
 	{
-		static auto f(const http_parser *p, context &ctx,
+		static auto f(http_parser *p, context &ctx,
 		              request &r) noexcept
 		{
 			r.keep_alive = http_should_keep_alive(p) != 0;
 			r.content_length = static_cast<size_t>(p->content_length);
 			ctx.comp = true;
+			http_parser_pause(p, 1);
 			return OK;
 		}
 	};
@@ -161,6 +183,7 @@ void parser::reset(request &req, arena &a) noexcept
 	http_parser_init(&p, HTTP_REQUEST);
 	ctx.r = &req;
 	ctx.a = &a;
+	ctx.hdr_state = context::hdr::VAL;
 	ctx.error = boost::none;
 	ctx.comp = false;
 	p.data = &ctx;
@@ -168,23 +191,28 @@ void parser::reset(request &req, arena &a) noexcept
 
 auto parser::parse_chunk(buffer buf) noexcept -> result
 {
-	using namespace boost::asio;
-
-	auto data = buffer_cast<const char*>(buf);
-	auto len = buffer_size(buf);
-	auto nparsed = http_parser_execute(&p, &settings, data, len);
+	auto nparsed = http_parser_execute(&p, &settings, buf.data(), buf.size());
 
 	auto err = HTTP_PARSER_ERRNO(&p);
-	if (BOOST_UNLIKELY(err)) {
-		return ctx.error
-			? *ctx.error
-			: http_error{response_status::BAD_REQUEST,
-				http_errno_description(err)};
+	switch (err)
+	{
+	case HPE_OK:
+		break;
+	case HPE_PAUSED:
+		http_parser_pause(&p, 0);
+		break;
+	default:
+		return ctx.error.value_or(
+			http_error{ response_status::BAD_REQUEST, http_errno_description(err) });
 	}
 
 	if (p.upgrade) {
 		//TODO
 	}
 
-	return buf + nparsed;
+	if (ctx.comp)
+		return complete_request{ buf.substr(nparsed) };
+
+	BOOST_ASSERT(nparsed == buf.size());
+	return incomplete_request{};
 }

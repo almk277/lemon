@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(lemon)
 
+include(CTest)
 set(HTTP_PARSER_URL https://github.com/nodejs/http-parser/archive/v2.7.1.zip
 	CACHE STRING "http-parser source archive (local or remote) or directory")
 option(LINK_SHARED "link Boost dynamically")
@@ -26,7 +27,10 @@ function(find_boost)
 	else()
 		set(Boost_USE_STATIC_LIBS ON)
 	endif()
-	find_package(Boost REQUIRED COMPONENTS system log)
+	if(BUILD_TESTING)
+		set(BOOST_TEST_COMPONENT unit_test_framework)
+	endif()
+	find_package(Boost 1.62 REQUIRED COMPONENTS system log ${BOOST_TEST_COMPONENT})
 	if(WIN32)
 		list(APPEND BOOST_DEFS _WIN32_WINNT=0x0600)
 	endif()
@@ -63,7 +67,7 @@ function(build_http_parser)
 	add_dependencies(http_parser http-parser-ex)
 endfunction()
 
-set(api_src
+set(API_SRC
 	api/arena.hpp
 	api/logger.hpp
 	api/message.hpp
@@ -72,13 +76,14 @@ set(api_src
 	api/string_builder.hpp
 	api/utility.hpp
 )
-set(core_src
+set(CORE_SRC
 	core/arena.cpp
 	core/arena_ex.hpp
 	core/client.cpp
 	core/client.hpp
 	core/http_error.hpp
 	core/logger.cpp
+	core/logger_imp.cpp
 	core/logger_imp.hpp
 	core/logs.cpp
 	core/logs.hpp
@@ -101,7 +106,7 @@ set(core_src
 	core/task_builder.cpp
 	core/task_builder.hpp
 )
-set(module_src
+set(MODULE_SRC
 	modules/hello.cpp
 	modules/hello.hpp
 )
@@ -109,6 +114,39 @@ set(module_src
 find_boost()
 build_http_parser()
 
-add_executable(lemon ${api_src} ${core_src} ${module_src})
-target_include_directories(lemon PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/api")
-target_link_libraries(lemon PRIVATE http_parser Boost::boost Boost::system Boost::log)
+add_executable(lemon ${API_SRC} ${CORE_SRC} ${MODULE_SRC})
+target_include_directories(lemon PRIVATE
+	"${PROJECT_SOURCE_DIR}"
+	"${PROJECT_SOURCE_DIR}/api"
+)
+target_link_libraries(lemon PRIVATE
+	http_parser Boost::boost Boost::system Boost::log)
+
+if(BUILD_TESTING)
+	set(TEST_SRC
+		tests/stub_logger.cpp
+		tests/stub_logger.hpp
+		tests/test_main.cpp
+		tests/test_arena.cpp
+		tests/test_parser.cpp
+		tests/test_router.cpp
+		tests/util.hpp
+		core/arena.cpp
+		core/options.cpp
+		core/rh_manager.cpp
+		core/router.cpp
+		core/parser.cpp
+		core/request_handler.cpp
+	)
+
+	add_executable(test_lemon ${TEST_SRC})
+	target_include_directories(test_lemon PRIVATE
+		"${PROJECT_SOURCE_DIR}"
+		"${PROJECT_SOURCE_DIR}/api"
+		"${PROJECT_SOURCE_DIR}/core"
+	)
+	target_link_libraries(test_lemon PRIVATE
+		http_parser Boost::boost Boost::system Boost::unit_test_framework)
+	add_test(NAME test_lemon COMMAND test_lemon)
+	enable_testing()
+endif(BUILD_TESTING)

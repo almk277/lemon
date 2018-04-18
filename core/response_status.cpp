@@ -52,7 +52,8 @@ constexpr string_view m5[] = {
 	"505 HTTP Version Not Supported"_w,
 };
 
-constexpr string_list strings[] = {
+// MSVS may crash on constexpr here
+const string_list strings[] = {
 	m0, m1, m2, m3, m4, m5
 };
 

@@ -24,7 +24,6 @@ public:
 	};
 
 private:
-	
 	std::vector<std::tuple<std::unique_ptr<const matcher>,
 		std::shared_ptr<request_handler>>> matchers;
 };
