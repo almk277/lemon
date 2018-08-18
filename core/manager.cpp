@@ -1,7 +1,7 @@
 #include "manager.hpp"
 #include "client.hpp"
 #include "router.hpp"
-#include "modules/hello.hpp"
+#include "modules/testing.hpp"
 #include <boost/assert.hpp>
 
 manager::manager(options &&opt):
@@ -14,7 +14,7 @@ manager::manager(options &&opt):
 	workers{},
 	opt{opt} //TODO move?
 {
-	rhman.add(std::make_shared<rh_hello>());
+	rhman.add(std::make_shared<rh_testing>());
 	rout = std::make_shared<router>(rhman, opt);
 
 	signal_set.async_wait([this](const boost::system::error_code&, int sig)

@@ -107,8 +107,8 @@ set(CORE_SRC
 	core/task_builder.hpp
 )
 set(MODULE_SRC
-	modules/hello.cpp
-	modules/hello.hpp
+	modules/testing.cpp
+	modules/testing.hpp
 )
 
 find_boost()
@@ -124,13 +124,13 @@ target_link_libraries(lemon PRIVATE
 
 if(BUILD_TESTING)
 	set(TEST_SRC
-		tests/stub_logger.cpp
-		tests/stub_logger.hpp
-		tests/test_main.cpp
-		tests/test_arena.cpp
-		tests/test_parser.cpp
-		tests/test_router.cpp
-		tests/util.hpp
+		unittests/stub_logger.cpp
+		unittests/stub_logger.hpp
+		unittests/test_main.cpp
+		unittests/test_arena.cpp
+		unittests/test_parser.cpp
+		unittests/test_router.cpp
+		unittests/util.hpp
 		core/arena.cpp
 		core/options.cpp
 		core/rh_manager.cpp
