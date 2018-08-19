@@ -43,6 +43,7 @@ private:
 	response resp;
 	buffer_list resp_buf;
 	const std::shared_ptr<const router> rout;
+	bool done = false;
 
 	friend class task_builder;
 	friend class task_result;

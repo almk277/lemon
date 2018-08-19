@@ -119,7 +119,7 @@ void client::on_recv(const error_code &ec,
 
 	} catch (std::exception &re) {
 		lg.error(re.what());
-		run(builder.make_error_task(shared_from_this()));
+		run(builder.make_error_task(it));
 	}
 }
 

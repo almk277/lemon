@@ -75,10 +75,11 @@ void task_builder::feed(std::size_t bytes_recv, bool last) noexcept
 		feed_again_or_stop = status::STOP;
 }
 
-ready_task task_builder::make_error_task(std::shared_ptr<client> cl) const
+ready_task task_builder::make_error_task(incomplete_task it) const
 {
-	auto t = task::make(task_id, cl);
+	auto t = move(it.t);
 	t->make_error(response_status::INTERNAL_SERVER_ERROR);
+	t->done = true;
 	return { t };
 }
 
@@ -87,6 +88,7 @@ task_builder::result task_builder::make_error(incomplete_task& it, const http_er
 	lg.info("HTTP error ", error.code, " ", error.details);
 	auto error_task = move(it.t);
 	error_task->make_error(error.code);
+	error_task->done = true;
 	return { ready_task{error_task}, status::STOP };
 }
 

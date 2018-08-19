@@ -31,7 +31,7 @@ public:
 		status s;
 	};
 	result try_make_task(incomplete_task &it, std::shared_ptr<client> cl);
-	ready_task make_error_task(std::shared_ptr<client> cl) const;
+	ready_task make_error_task(incomplete_task it) const;
 
 private:
 	result make_task(incomplete_task& it, std::shared_ptr<client> cl);
