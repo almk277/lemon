@@ -24,6 +24,7 @@ struct parse_result_visitor : boost::static_visitor<task_builder::result>
 	}
 	auto operator()(parser::incomplete_request) const
 	{
+		builder.data_buf.clear();
 		return builder.make_feed_again();
 	}
 	auto operator()(const parser::complete_request &result) const
