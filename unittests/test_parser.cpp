@@ -1,13 +1,12 @@
 #include "parser.hpp"
+#include "arena_imp.hpp"
 #include "stub_logger.hpp"
 #include "message.hpp"
-#include "util.hpp"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/variant/get.hpp>
-#include <memory>
 #include <deque>
 #include <utility>
 
@@ -22,8 +21,8 @@ namespace {
 
 	struct parser_fixture
 	{
-		arena_ptr a = make_arena();
-		request req{*a};
+		arena_imp a{ slg };
+		request req{a};
 		parser p;
 
 		void reset()
@@ -31,7 +30,7 @@ namespace {
 			req.url = {};
 			req.headers.clear();
 			req.body.clear();
-			p.reset(req, *a);
+			p.reset(req, a);
 		}
 		parser_fixture()
 		{

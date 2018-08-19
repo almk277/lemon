@@ -4,6 +4,7 @@
 #include "task.hpp"
 #include "task_builder.hpp"
 #include "logger_imp.hpp"
+#include "leak_checked.hpp"
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/system/error_code.hpp>
@@ -17,7 +18,8 @@ class router;
 
 class client:
 	public std::enable_shared_from_this<client>,
-	noncopyable
+	noncopyable,
+	leak_checked<client>
 {
 public:
 	using socket = boost::asio::ip::tcp::socket;

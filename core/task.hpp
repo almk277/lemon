@@ -2,8 +2,9 @@
 
 #include "utility.hpp"
 #include "logger_imp.hpp"
+#include "arena_imp.hpp"
 #include "message.hpp"
-#include "arena.hpp"
+#include "leak_checked.hpp"
 #include <boost/asio/buffer.hpp>
 #include <memory>
 #include <vector>
@@ -14,11 +15,15 @@ class client;
 class router;
 
 class task:
-	noncopyable
+	noncopyable,
+	leak_checked<task>
 {
 public:
 	using ident = std::uint32_t;
 	static constexpr ident start_id = 1;
+
+	task(ident id, std::shared_ptr<client> cl) noexcept;
+	~task();
 
 private:
 	using buffer = boost::asio::const_buffer;
@@ -27,8 +32,6 @@ private:
 
 	static std::shared_ptr<task> make(ident id, std::shared_ptr<client> cl);
 
-	task(ident id, std::shared_ptr<client> cl, arena &a) noexcept;
-	~task();
 
 	void run();
 	void handle_request(request_handler &h);
@@ -38,7 +41,7 @@ private:
 	const ident id;
 	const std::shared_ptr<client> cl; // keep client alive
 	logger_imp lg;
-	arena &a;
+	arena_imp a;
 	request req;
 	response resp;
 	buffer_list resp_buf;

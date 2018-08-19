@@ -1,29 +1,27 @@
 #pragma once
 
 #include <cstddef>
-class logger;
 
 class arena
 {
 public:
+	using size_t = std::size_t;
+
 	arena(const arena&) = delete;
 	arena(arena&&) = delete;
 	arena &operator=(const arena&) = delete;
 	arena &operator=(arena&&) = delete;
 
-	static arena *make(logger *lg);
-	static void remove(arena *a) noexcept;
-
 	template <typename T>
 	void *alloc(const char *msg = "");
 
-	void *alloc(std::size_t size, const char *msg = "");
-	void free(void *ptr, std::size_t size, const char *msg = "") noexcept;
+	void *alloc(size_t size, const char *msg = "");
+	void free(void *ptr, size_t size, const char *msg = "") noexcept;
 
-	void *aligned_alloc(std::size_t alignment, std::size_t size, const char *msg = "");
+	void *aligned_alloc(size_t alignment, size_t size, const char *msg = "");
 
-	std::size_t n_blocks_allocated() const noexcept;
-	std::size_t n_bytes_allocated() const noexcept;
+	size_t n_blocks_allocated() const noexcept;
+	size_t n_bytes_allocated() const noexcept;
 	
 	template <typename T> class allocator;
 
@@ -36,10 +34,10 @@ protected:
 	~arena() = default;
 
 private:
-	void *aligned_alloc_imp(std::size_t alignment, std::size_t size);
+	void *aligned_alloc_imp(size_t alignment, size_t size);
 
-	void log_alloc(std::size_t size, const char *msg) const;
-	void log_free(std::size_t size, const char *msg) const;
+	void log_alloc(size_t size, const char *msg) const;
+	void log_free(size_t size, const char *msg) const;
 };
 
 template <typename T>
@@ -48,7 +46,7 @@ void *arena::alloc(const char *msg)
 	return aligned_alloc(alignof(T), sizeof(T), msg);
 }
 
-inline void *arena::alloc(std::size_t size, const char *msg)
+inline void *arena::alloc(size_t size, const char *msg)
 {
 	return aligned_alloc(alignof(std::max_align_t), size, msg);
 }
@@ -58,7 +56,7 @@ inline void arena::free(void*, size_t s, const char *msg) noexcept
 	log_free(s, msg);
 }
 
-inline void *arena::aligned_alloc(std::size_t alignment, std::size_t size, const char *msg)
+inline void *arena::aligned_alloc(size_t alignment, size_t size, const char *msg)
 {
 	log_alloc(size, msg);
 	return aligned_alloc_imp(alignment, size);

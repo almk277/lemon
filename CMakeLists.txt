@@ -78,10 +78,11 @@ set(API_SRC
 )
 set(CORE_SRC
 	core/arena.cpp
-	core/arena_ex.hpp
+	core/arena_imp.hpp
 	core/client.cpp
 	core/client.hpp
 	core/http_error.hpp
+	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp
 	core/logger_imp.hpp
@@ -130,7 +131,6 @@ if(BUILD_TESTING)
 		unittests/test_arena.cpp
 		unittests/test_parser.cpp
 		unittests/test_router.cpp
-		unittests/util.hpp
 		core/arena.cpp
 		core/options.cpp
 		core/rh_manager.cpp

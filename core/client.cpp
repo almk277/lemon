@@ -11,7 +11,7 @@
 using boost::system::error_code;
 using std::size_t;
 
-static boost::fast_pool_allocator<task,
+static boost::fast_pool_allocator<client,
 	boost::default_user_allocator_malloc_free,
 	boost::details::pool::null_mutex> client_allocator;
 

@@ -4,15 +4,18 @@
 #include "request_handler.hpp"
 #include "router.hpp"
 #include "string_builder.hpp"
-#include "arena_ex.hpp"
 #include <boost/log/attributes/constant.hpp>
+#include <boost/pool/pool_alloc.hpp>
 #include <boost/scope_exit.hpp>
 
-task::task(ident id, std::shared_ptr<client> cl, arena &a) noexcept:
+static boost::fast_pool_allocator<task,
+	boost::default_user_allocator_malloc_free> task_allocator;
+
+task::task(ident id, std::shared_ptr<client> cl) noexcept:
 	id{id},
 	cl{cl},
 	lg{ cl->get_logger() },
-	a{a},
+	a{lg},
 	req{a},
 	resp{a},
 	resp_buf{a.make_allocator<buffer>("task::resp_buf")},
@@ -29,28 +32,7 @@ task::~task()
 
 std::shared_ptr<task> task::make(ident id, std::shared_ptr<client> cl)
 {
-	class task_ptr_allocator: public arena::allocator<task>
-	{
-		task *const t;
-	public:
-		explicit task_ptr_allocator(task *t):
-			allocator<task>(t->a, "shared_ptr<task>"), t{ t } {}
-
-		void deallocate(task *p, std::size_t n) noexcept
-		{
-			auto a = &t->a;
-			auto cl = t->cl;
-			t->~task();
-			arena_set_logger(a, &cl->get_logger());
-			allocator<task>::deallocate(p, n);
-			arena::remove(a);
-		}
-	};
-
-	auto a = arena::make(&cl->get_logger());
-	auto t = new (a->alloc<task>("task")) task{ id, cl, *a };
-	arena_set_logger(a, &t->lg);
-	return { t, [](task *){}, task_ptr_allocator{t} };
+	return std::allocate_shared<task>(task_allocator, id, cl);
 }
 
 void task::run()
