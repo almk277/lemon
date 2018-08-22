@@ -6,6 +6,7 @@ set(HTTP_PARSER_URL https://github.com/nodejs/http-parser/archive/v2.7.1.zip
 	CACHE STRING "http-parser source archive (local or remote) or directory")
 option(LINK_SHARED "link Boost dynamically")
 option(DEVELOPER_MODE "developer build settings")
+set(SANITIZER "" CACHE STRING "enables sanitizer of this type")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,10 +14,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(DEVELOPER_MODE)
 	if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU|Clang")
-		list(APPEND CMAKE_CXX_FLAGS -Wall)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 		set(CMAKE_VERBOSE_MAKEFILE ON)
 	elseif(MSVC)
-		list(APPEND CMAKE_CXX_FLAGS /W3)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
 	endif()
 endif(DEVELOPER_MODE)
 
@@ -65,6 +66,13 @@ function(build_http_parser)
 		IMPORTED_LOCATION_DEBUG "${HP_LIB_DIR}/${HP_LIB_NAME_DEBUG}"
 	)
 	add_dependencies(http_parser http-parser-ex)
+endfunction()
+
+function(enable_sanitizer target)
+	if(SANITIZER)
+		target_compile_options(${target} PRIVATE -fsanitize=${SANITIZER})
+		target_link_libraries(${target} PRIVATE -fsanitize=${SANITIZER})
+	endif()
 endfunction()
 
 set(API_SRC
@@ -122,6 +130,7 @@ target_include_directories(lemon PRIVATE
 )
 target_link_libraries(lemon PRIVATE
 	http_parser Boost::boost Boost::system Boost::log)
+enable_sanitizer(lemon)
 
 if(BUILD_TESTING)
 	set(TEST_SRC
@@ -147,6 +156,7 @@ if(BUILD_TESTING)
 	)
 	target_link_libraries(test_lemon PRIVATE
 		http_parser Boost::boost Boost::system Boost::unit_test_framework)
+	enable_sanitizer(test_lemon)
 	add_test(NAME test_lemon COMMAND test_lemon)
 	enable_testing()
 endif(BUILD_TESTING)
