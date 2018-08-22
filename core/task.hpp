@@ -1,12 +1,13 @@
 #pragma once
 
-#include "utility.hpp"
 #include "logger_imp.hpp"
 #include "arena_imp.hpp"
 #include "message.hpp"
 #include "leak_checked.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <boost/asio/buffer.hpp>
 #include <memory>
+#include <utility>
 #include <vector>
 #include <cstdint>
 
@@ -15,7 +16,7 @@ class client;
 class router;
 
 class task:
-	noncopyable,
+	boost::noncopyable,
 	leak_checked<task>
 {
 public:
@@ -57,10 +58,10 @@ private:
 class task_result
 // implements boost::asio::ConstBufferSequence
 {
+	task_result(std::shared_ptr<task> t) : t{ move(t) } {}
 	std::shared_ptr<task> t;
 	friend class ready_task;
 public:
-	task_result(std::shared_ptr<task> t) : t{ move(t) } {}
 	task_result(const task_result&) = default;
 	task_result(task_result&&) = default;
 	task_result &operator=(const task_result&) = default;
@@ -89,7 +90,6 @@ class ready_task
 {
 	ready_task(std::shared_ptr<task> t) : t{ move(t) } {}
 	std::shared_ptr<task> t;
-	friend class task;
 	friend class task_builder;
 public:
 	ready_task(const ready_task&) = default;

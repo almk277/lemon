@@ -1,12 +1,11 @@
 #include "client.hpp"
 #include "manager.hpp"
 #include <boost/asio/write.hpp>
-#include <boost/asio/placeholders.hpp>
 #include <boost/log/attributes/constant.hpp>
 #include <boost/pool/pool_alloc.hpp>
-#include <boost/bind/bind.hpp>
 #include <exception>
 #include <algorithm>
+#include <utility>
 
 using boost::system::error_code;
 using std::size_t;
@@ -15,10 +14,11 @@ static boost::fast_pool_allocator<client,
 	boost::default_user_allocator_malloc_free,
 	boost::details::pool::null_mutex> client_allocator;
 
+//TODO use memory pool instead of arena
 template <typename Handler>
 struct arena_handler
 {
-	arena_handler(arena &a, Handler h): a{ a }, h { h } {}
+	arena_handler(arena &a, Handler h): a{ a }, h {std::move(h)} {}
 
 	template <typename ...Args>
 	void operator()(Args &&...args)
@@ -39,7 +39,7 @@ struct arena_handler
 	}
 
 	arena &a;
-	Handler h;
+	const Handler h;
 };
 
 template <typename Handler>
@@ -48,26 +48,28 @@ arena_handler<Handler> make_arena_handler(arena &a, Handler h)
 	return{ a, h };
 }
 
-client::client(manager &man, socket &&s) noexcept:
-	sock{std::move(s)},
+client::client(manager &man, socket &&sock) noexcept:
+	sock{std::move(sock)},
 	opt{man.get_options()},
-	lg{},
 	builder{start_task_id, opt, lg},
 	next_send_id{start_task_id},
 	send_barrier{sock.get_io_service()},
 	rout{man.get_router()}
 {
 	lg.add(logger_imp::attr_name.address, boost::log::attributes::make_constant(
-		sock.remote_endpoint().address()));
-
+		this->sock.remote_endpoint().address()));
 	lg.info("connection established"_w);
-
 }
 
 client::~client()
 {
 	if (sock.is_open())
-		sock.shutdown(socket::shutdown_both); //TODO noexcept version
+	{
+		error_code ec;
+		sock.shutdown(socket::shutdown_both, ec);
+		if (ec)
+			lg.error("socket shutdown failed: ", ec);
+	}
 	lg.info("connection closed"_w);
 }
 
@@ -80,11 +82,12 @@ void client::make(manager &man, socket &&sock)
 
 void client::start_recv(incomplete_task it)
 {
-	using namespace boost::asio::placeholders;
-
 	const auto b = builder.get_memory(it);
 	sock.async_read_some(buffer(b), make_arena_handler(it.get_arena(),
-		boost::bind(&client::on_recv, this, error, bytes_transferred, it)));
+		[this, it](const error_code &ec, size_t bytes_transferred)
+		{
+			on_recv(ec, bytes_transferred, it);
+		}));
 }
 
 void client::on_recv(const error_code &ec,
@@ -108,7 +111,10 @@ void client::on_recv(const error_code &ec,
 			res = builder.try_make_task(it, shared_this);
 			if (res.t)
 				sock.get_io_service().post(make_arena_handler(it.get_arena(),
-					boost::bind(&client::run, this, *res.t)));
+					[this, t = std::move(*res.t)]
+					{
+						run(t);
+					}));
 		}
 
 		if (res.s == task_builder::status::FEED_AGAIN)
@@ -126,9 +132,12 @@ void client::on_recv(const error_code &ec,
 void client::run(ready_task t) noexcept
 {
 	try {
-		auto ft = t.run();
+		auto tr = t.run();
 		send_barrier.dispatch(make_arena_handler(t.get_arena(),
-			boost::bind(&client::start_send, this, ft)));
+			[this, tr = std::move(tr)]
+			{
+				start_send(tr);
+			}));
 	} catch (std::exception &e) {
 		lg.error("send response error: "_w, e.what());
 	} catch (...) {
@@ -138,12 +147,13 @@ void client::run(ready_task t) noexcept
 
 void client::start_send(task_result tr)
 {
-	using namespace boost::asio::placeholders;
-
 	if (BOOST_LIKELY(tr.get_id() == next_send_id)) {
 		lg.debug("sending task #", tr.get_id(), " result...");
 		async_write(sock, tr, make_arena_handler(tr.get_arena(),
-			boost::bind(&client::on_sent, this, error, tr)));
+			[this, tr](const error_code &ec, size_t)
+			{
+				on_sent(ec, tr);
+			}));
 	} else {
 		lg.debug("queueing task #", tr.get_id(), " result");
 		BOOST_ASSERT(std::find(send_q.begin(), send_q.end(), tr) == send_q.end());
@@ -165,7 +175,7 @@ void client::on_sent(const error_code &ec, task_result tr) noexcept
 			lg.debug("task #", id, " result sent");
 			++next_send_id;
 			if (BOOST_UNLIKELY(!send_q.empty())
-				&& send_q.front().get_id() == next_send_id) {
+					&& send_q.front().get_id() == next_send_id) {
 				lg.debug("dequeueing task #", next_send_id);
 				start_send(send_q.front());
 				send_q.pop_front();

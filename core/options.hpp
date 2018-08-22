@@ -1,6 +1,5 @@
 #pragma once
 
-#include "utility.hpp"
 #include <cstdint>
 #include <cstddef>
 #include <string>

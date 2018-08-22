@@ -67,7 +67,7 @@ boost::asio::mutable_buffer task_builder::get_memory(const incomplete_task &it)
 
 void task_builder::feed(std::size_t bytes_recv, bool last) noexcept
 {
-	BOOST_ASSERT(data_buf.size() == 0);
+	BOOST_ASSERT(data_buf.empty());
 	data_buf = { boost::asio::buffer_cast<char*>(recv_buf), bytes_recv };
 	recv_buf = recv_buf + bytes_recv;
 	last_buf = last;

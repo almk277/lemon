@@ -3,6 +3,7 @@
 #include "router.hpp"
 #include "modules/testing.hpp"
 #include <boost/assert.hpp>
+#include <boost/range/counting_range.hpp>
 
 manager::manager(options &&opt):
 	n_workers{opt.n_workers},
@@ -11,7 +12,6 @@ manager::manager(options &&opt):
 	acceptor{service, tcp::endpoint{tcp::v4(), opt.listen_port}},
 	sock{service},
 	signal_set{service, SIGTERM, SIGINT},
-	workers{},
 	opt{opt} //TODO move?
 {
 	rhman.add(std::make_shared<rh_testing>());
@@ -42,7 +42,7 @@ void manager::run()
 	start_accept();
 
 	BOOST_ASSERT(n_workers > 0);
-	for (unsigned i = 0; i != n_workers - 1; ++i)
+	for (auto _: boost::counting_range(0u, n_workers))
 		add_worker();
 	service.run();
 }

@@ -12,11 +12,13 @@ struct http_error
 		details{details}
 	{}
 	http_error(const http_error&) noexcept = default;
+	http_error(http_error&&) noexcept = default;
 	~http_error() = default;
 	http_error &operator=(const http_error&) noexcept = default;
+	http_error &operator=(http_error&&) noexcept = default;
 
-	const response_status code;
-	const string_view details;
+	response_status code;
+	string_view details;
 };
 
 class http_exception: public std::runtime_error

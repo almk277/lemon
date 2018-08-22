@@ -3,13 +3,14 @@
 #include "utility.hpp"
 #include "parser.hpp"
 #include "task.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/optional/optional.hpp>
 
 class options;
 class client;
 
-class task_builder: noncopyable
+class task_builder: boost::noncopyable
 {
 public:
 	task_builder(task::ident start_id, const options &opt, logger &lg) noexcept;

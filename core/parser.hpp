@@ -3,12 +3,13 @@
 #include "utility.hpp"
 #include "http_parser.h"
 #include "http_error.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <boost/variant/variant.hpp>
 #include <boost/optional/optional.hpp>
 struct request;
 class arena;
 
-class parser: noncopyable
+class parser: boost::noncopyable
 {
 public:
 	using buffer = string_view;

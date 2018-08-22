@@ -1,11 +1,12 @@
 #pragma once
 
 #include "utility.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <memory>
 #include <map>
 struct request_handler;
 
-class rh_manager: noncopyable
+class rh_manager: boost::noncopyable
 {
 public:
 	rh_manager() = default;

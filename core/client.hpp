@@ -1,10 +1,10 @@
 #pragma once
 
-#include "utility.hpp"
 #include "task.hpp"
 #include "task_builder.hpp"
 #include "logger_imp.hpp"
 #include "leak_checked.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/system/error_code.hpp>
@@ -18,7 +18,7 @@ class router;
 
 class client:
 	public std::enable_shared_from_this<client>,
-	noncopyable,
+	boost::noncopyable,
 	leak_checked<client>
 {
 public:
@@ -42,7 +42,7 @@ private:
 	logger_imp lg;
 	task_builder builder;
 	task::ident next_send_id;
-	boost::container::list<const task_result> send_q;
+	boost::container::list<task_result> send_q;
 	boost::asio::io_service::strand send_barrier;
 	const std::shared_ptr<const router> rout;
 
@@ -52,6 +52,5 @@ private:
 		         incomplete_task it) noexcept;
 	void run(ready_task t) noexcept;
 	void start_send(task_result tr);
-	void on_sent(const boost::system::error_code &ec,
-	             task_result tr) noexcept;
+	void on_sent(const boost::system::error_code &ec, task_result tr) noexcept;
 };

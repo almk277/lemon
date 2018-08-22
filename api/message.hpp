@@ -12,7 +12,7 @@ struct url_s
 	string_view query;
 };
 
-struct message: noncopyable
+struct message
 {
 	struct header
 	{
@@ -50,6 +50,11 @@ struct message: noncopyable
 		body{a.make_allocator<string_view>("message::body")},
 		a{a}
 	{}
+
+	message(const message&) = delete;
+	message(message&&) = delete;
+	message &operator=(const message&) = delete;
+	message &operator=(message&&) = delete;
 
 	// HTTP new line
 	static constexpr string_view NL = "\r\n"_w;

@@ -129,6 +129,7 @@ struct task::buffer_builder
 	buffer_list &bufs;
 };
 
+//TODO avoid this
 void task::serialize_resp()
 {
 	auto n_chunks = 4 * resp.headers.size() + resp.body.size() + 7;

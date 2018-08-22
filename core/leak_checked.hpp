@@ -11,7 +11,7 @@ template <typename> class leak_checked {};
 template <typename T>
 class leak_checked
 {
-public:
+protected:
 	leak_checked() { ++d.counter; }
 	leak_checked(const leak_checked&) { ++d.counter; }
 	leak_checked(leak_checked&&) noexcept { ++d.counter; }

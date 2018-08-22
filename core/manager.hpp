@@ -1,9 +1,9 @@
 #pragma once
 
-#include "utility.hpp"
 #include "options.hpp"
 #include "logger_imp.hpp"
 #include "rh_manager.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
@@ -13,13 +13,13 @@
 
 class router;
 
-class manager: noncopyable {
+class manager: boost::noncopyable
+{
 public:
 	explicit manager(options &&opt);
 	~manager();
 
 	void run();
-	//void async_run(std::function<void()> fn);
 	
 	const options &get_options() const noexcept { return opt; }
 	std::shared_ptr<const router> get_router() const noexcept { return rout; }

@@ -10,7 +10,7 @@
 
 using std::size_t;
 
-constexpr size_t BLOCK_SIZE = 4 * 1024;
+constexpr size_t BLOCK_SIZE = 4 * 1024; //TODO adjust to fit block here
 constexpr size_t BLOCK_ALIGN_WANTED = 16;
 constexpr size_t BLOCK_ALIGN = std::max(BLOCK_ALIGN_WANTED, alignof(std::max_align_t));
 constexpr size_t MIN_BLOCK_USEFUL_SIZE = 32;

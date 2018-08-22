@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utility.hpp"
+#include <boost/core/noncopyable.hpp>
 #include <vector>
 #include <memory>
 #include <tuple>
@@ -8,7 +9,7 @@ struct request_handler;
 class options;
 class rh_manager;
 
-class router: noncopyable
+class router: boost::noncopyable
 {
 public:
 	explicit router(const rh_manager &rhman, const options &opts);
