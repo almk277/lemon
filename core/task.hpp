@@ -6,9 +6,9 @@
 #include "leak_checked.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/iterator/transform_iterator.hpp>
 #include <memory>
 #include <utility>
-#include <vector>
 #include <cstdint>
 
 struct request_handler;
@@ -27,16 +27,10 @@ public:
 	~task();
 
 private:
-	using buffer = boost::asio::const_buffer;
-	using buffer_list = std::vector<buffer, arena::allocator<buffer>>;
-	struct buffer_builder;
-
 	static std::shared_ptr<task> make(ident id, std::shared_ptr<client> cl);
-
 
 	void run();
 	void handle_request(request_handler &h);
-	void serialize_resp();
 	void make_error(response_status code) noexcept;
 
 	const ident id;
@@ -45,7 +39,6 @@ private:
 	arena_imp a;
 	request req;
 	response resp;
-	buffer_list resp_buf;
 	const std::shared_ptr<const router> rout;
 	bool done = false;
 
@@ -61,6 +54,17 @@ class task_result
 	task_result(std::shared_ptr<task> t) : t{ move(t) } {}
 	std::shared_ptr<task> t;
 	friend class ready_task;
+
+	struct buffer_adapter
+	{
+		const boost::asio::const_buffer &operator()(string_view s) const
+		{
+			buffer = { s.data(), s.size() };
+			return buffer;
+		}
+	private:
+		mutable boost::asio::const_buffer buffer;
+	};
 public:
 	task_result(const task_result&) = default;
 	task_result(task_result&&) = default;
@@ -79,11 +83,12 @@ public:
 	}
 	arena &get_arena() const { return t->a; }
 
-	using value_type = task::buffer_list::value_type;
-	using const_iterator = task::buffer_list::const_iterator;
+	using value_type = boost::asio::const_buffer;
+	using const_iterator = boost::transform_iterator<buffer_adapter,
+		response::const_iterator>;
 
-	const_iterator begin() const { return t->resp_buf.cbegin(); }
-	const_iterator end() const { return t->resp_buf.cend(); }
+	const_iterator begin() const { return const_iterator{ t->resp.begin() }; }
+	const_iterator end()   const { return const_iterator{ t->resp.end() }; }
 };
 
 class ready_task

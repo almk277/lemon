@@ -30,7 +30,7 @@ enum class response_status
 	HTTP_VERSION_NOT_SUPPORTED = 505,
 };
 
-string_view response_status_string(response_status status) noexcept;
+const string_view &response_status_string(response_status status) noexcept;
 
 inline std::ostream &operator<<(std::ostream &strm, response_status status)
 {

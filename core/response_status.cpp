@@ -57,7 +57,7 @@ const string_list strings[] = {
 	m0, m1, m2, m3, m4, m5
 };
 
-string_view response_status_string(response_status status) noexcept
+const string_view &response_status_string(response_status status) noexcept
 {
 	auto dv = std::div(static_cast<int>(status), 100);
 	

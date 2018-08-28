@@ -7,6 +7,7 @@
 #include <boost/log/attributes/constant.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/scope_exit.hpp>
+#include <boost/concept_check.hpp>
 
 static boost::fast_pool_allocator<task,
 	boost::default_user_allocator_malloc_free> task_allocator;
@@ -18,7 +19,6 @@ task::task(ident id, std::shared_ptr<client> cl) noexcept:
 	a{lg},
 	req{a},
 	resp{a},
-	resp_buf{a.make_allocator<buffer>("task::resp_buf")},
 	rout{cl->get_router()}
 {
 	lg.add(logger_imp::attr_name.task, boost::log::attributes::make_constant(id));
@@ -66,8 +66,6 @@ void task::run()
 		}
 		done = true;
 	}
-
-	serialize_resp();
 }
 
 void task::handle_request(request_handler &h)
@@ -106,43 +104,4 @@ void task::make_error(response_status code) noexcept
 	resp.headers.emplace_back("Content-Length"_w, clen_str);
 }
 
-static string_view http_version_string(message::http_version_type v)
-{
-	static constexpr string_view strings[] = {
-		"HTTP/1.0 "_w,
-		"HTTP/1.1 "_w
-	};
-	return strings[static_cast<int>(v)];
-}
-
-struct task::buffer_builder
-{
-	explicit buffer_builder(buffer_list &bufs):
-		bufs{ bufs }
-	{}
-	buffer_builder &operator<<(string_view s)
-	{
-		bufs.emplace_back(s.data(), s.length());
-		return *this;
-	}
-
-	buffer_list &bufs;
-};
-
-//TODO avoid this
-void task::serialize_resp()
-{
-	auto n_chunks = 4 * resp.headers.size() + resp.body.size() + 7;
-	resp_buf.reserve(n_chunks);
-	buffer_builder builder{resp_buf};
-
-	builder
-		<< http_version_string(resp.http_version)
-		<< response_status_string(resp.code)
-		<< response::NL;
-	for (auto &h: resp.headers)
-		builder << h.name << response::header::SEP << h.value << response::NL;
-	builder << response::NL;
-	for (auto &chunk: resp.body)
-		builder << chunk;
-}
+BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<task_result::const_iterator>));

@@ -139,13 +139,16 @@ if(BUILD_TESTING)
 		unittests/test_main.cpp
 		unittests/test_arena.cpp
 		unittests/test_parser.cpp
+		unittests/test_resp_it.cpp
 		unittests/test_router.cpp
 		core/arena.cpp
+		core/message.cpp
 		core/options.cpp
 		core/rh_manager.cpp
 		core/router.cpp
 		core/parser.cpp
 		core/request_handler.cpp
+		core/response_status.cpp
 	)
 
 	add_executable(test_lemon ${TEST_SRC})
