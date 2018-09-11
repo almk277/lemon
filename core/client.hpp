@@ -5,6 +5,7 @@
 #include "logger_imp.hpp"
 #include "leak_checked.hpp"
 #include <boost/core/noncopyable.hpp>
+#include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/system/error_code.hpp>

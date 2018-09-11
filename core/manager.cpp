@@ -42,7 +42,7 @@ void manager::run()
 	start_accept();
 
 	BOOST_ASSERT(n_workers > 0);
-	for (auto _: boost::counting_range(0u, n_workers))
+	for (auto _: boost::counting_range(0u, n_workers - 1))
 		add_worker();
 	service.run();
 }
@@ -59,6 +59,7 @@ void manager::add_worker()
 
 void manager::start_accept()
 {
+	//TODO allocate handler in pool
 	acceptor.async_accept(
 		sock,
 		[this](const boost::system::error_code &ec)
