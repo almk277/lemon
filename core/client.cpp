@@ -1,7 +1,6 @@
 #include "client.hpp"
 #include "manager.hpp"
 #include <boost/asio/write.hpp>
-#include <boost/log/attributes/constant.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <exception>
 #include <algorithm>
@@ -51,13 +50,12 @@ arena_handler<Handler> make_arena_handler(arena &a, Handler h)
 client::client(manager &man, socket &&sock) noexcept:
 	sock{std::move(sock)},
 	opt{man.get_options()},
+	lg{man.get_logger(), this->sock.remote_endpoint().address()},
 	builder{start_task_id, opt, lg},
 	next_send_id{start_task_id},
 	send_barrier{sock.get_io_service()},
 	rout{man.get_router()}
 {
-	lg.add(logger_imp::attr_name.address, boost::log::attributes::make_constant(
-		this->sock.remote_endpoint().address()));
 	lg.info("connection established"_w);
 }
 

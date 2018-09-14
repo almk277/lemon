@@ -4,9 +4,7 @@
 #include "request_handler.hpp"
 #include "router.hpp"
 #include "string_builder.hpp"
-#include <boost/log/attributes/constant.hpp>
 #include <boost/pool/pool_alloc.hpp>
-#include <boost/scope_exit.hpp>
 #include <boost/concept_check.hpp>
 
 static boost::fast_pool_allocator<task,
@@ -15,13 +13,12 @@ static boost::fast_pool_allocator<task,
 task::task(ident id, std::shared_ptr<client> cl) noexcept:
 	id{id},
 	cl{cl},
-	lg{ cl->get_logger() },
+	lg{ cl->get_logger(), id},
 	a{lg},
 	req{a},
 	resp{a},
 	rout{cl->get_router()}
 {
-	lg.add(logger_imp::attr_name.task, boost::log::attributes::make_constant(id));
 	lg.debug("task created");
 }
 
@@ -70,13 +67,9 @@ void task::run()
 
 void task::handle_request(request_handler &h)
 {
-	auto module_attr = lg.add(logger_imp::attr_name.module,
-		boost::log::attributes::make_constant(h.get_name()));
-	BOOST_SCOPE_EXIT(&lg, &module_attr) {
-		lg.remove(module_attr);
-	} BOOST_SCOPE_EXIT_END
-
+	module_logger_guard mlg{ lg, h.get_name() };
 	request_handler::context ctx{ a, lg };
+	
 	switch (req.method.type) {
 	using method = request::method_s::type_e;
 	case method::GET: h.get(req, resp, ctx); break;

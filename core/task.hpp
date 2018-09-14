@@ -1,5 +1,6 @@
 #pragma once
 
+#include "task_ident.hpp"
 #include "logger_imp.hpp"
 #include "arena_imp.hpp"
 #include "message.hpp"
@@ -9,7 +10,6 @@
 #include <boost/iterator/transform_iterator.hpp>
 #include <memory>
 #include <utility>
-#include <cstdint>
 
 struct request_handler;
 class client;
@@ -20,7 +20,7 @@ class task:
 	leak_checked<task>
 {
 public:
-	using ident = std::uint32_t;
+	using ident = task_ident;
 	static constexpr ident start_id = 1;
 
 	task(ident id, std::shared_ptr<client> cl) noexcept;
@@ -35,7 +35,7 @@ private:
 
 	const ident id;
 	const std::shared_ptr<client> cl; // keep client alive
-	logger_imp lg;
+	task_logger lg;
 	arena_imp a;
 	request req;
 	response resp;

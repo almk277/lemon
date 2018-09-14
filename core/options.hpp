@@ -30,11 +30,11 @@ public:
 	struct log_types
 	{
 		enum class severity {
-			trace,
-			debug,
-			info,
+			error = 1,
 			warning,
-			error,
+			info,
+			debug,
+			trace,
 		};
 
 		struct null {};

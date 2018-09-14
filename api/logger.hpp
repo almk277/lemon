@@ -3,32 +3,31 @@
 #include <utility>
 #include <ostream>
 
+#ifndef LEMON_LOG_LEVEL
+#  define LEMON_LOG_LEVEL 3
+#endif
+
+static_assert(LEMON_LOG_LEVEL >= 1 && LEMON_LOG_LEVEL <= 5,
+	"log level should be in [1(error), 5(trace)]");
+
 class logger
 {
 public:
-	enum class channel
-	{
-		message,
-		access,
-	};
-
 	enum class severity
 	{
-		trace,
-		debug,
-		info,
-		warning,
+		pass,
 		error,
-		pass
+		warning,
+		info,
+		debug,
+		trace,
 	};
 
-	template <typename ...Args> void trace(Args ...args);
-	template <typename ...Args> void debug(Args ...args);
-	template <typename ...Args> void info(Args ...args);
-	template <typename ...Args> void warning(Args ...args);
 	template <typename ...Args> void error(Args ...args);
-
-	template <typename ...Args> void access(Args ...args);
+	template <typename ...Args> void warning(Args ...args);
+	template <typename ...Args> void info(Args ...args);
+	template <typename ...Args> void debug(Args ...args);
+	template <typename ...Args> void trace(Args ...args);
 
 	struct base_printer
 	{
@@ -39,57 +38,40 @@ public:
 	};
 	template <typename T> class printer;
 
+	logger(logger &&rhs) = delete;
+
+	logger &operator=(const logger &rhs) = delete;
+	logger &operator=(logger &&rhs) = delete;
+
 protected:
 	logger() = default;
 	logger(const logger &rhs) = default;
 	~logger() = default;
 
-private:
-	bool open(channel c, severity s);
-	void push(base_printer &c) noexcept;
-	void finalize();
-	void attach_time();
-
-	template <typename ...Args> void log(channel c, severity s, Args ...args)
-	{
-		if (open(c, s))
-			log1(std::forward<Args>(args)...);
-	}
-	template <typename ...Args> void message(severity s, Args ...args)
-	{
-		log(channel::message, s, std::forward<Args>(args)...);
-	}
-
 	template <typename ...Args> void log1(Args ...);
 	template <typename T, typename ...Args>
 	void log1(T &&a, Args ...args);
+
+private:
+	bool open(severity s);
+	void push(base_printer &c) noexcept;
+	void finalize();
+
+	template <typename ...Args> void message(severity s, Args ...args)
+	{
+		if (s <= severity_barrier) {
+			if (open(s))
+				log1(std::forward<Args>(args)...);
+		}
+	}
+
+	static constexpr severity severity_barrier = static_cast<severity>(LEMON_LOG_LEVEL);
 };
 
 template <typename ... Args>
-void logger::access(Args... args)
+void logger::error(Args... args)
 {
-	if (open(channel::access, severity::pass)) {
-		attach_time();
-		log1(std::forward<Args>(args)...);
-	}
-}
-
-template <typename ... Args>
-void logger::trace(Args... args)
-{
-	message(severity::trace, std::forward<Args>(args)...);
-}
-
-template <typename ... Args>
-void logger::debug(Args... args)
-{
-	message(severity::debug, std::forward<Args>(args)...);
-}
-
-template <typename ... Args>
-void logger::info(Args... args)
-{
-	message(severity::info, std::forward<Args>(args)...);
+	message(severity::error, std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
@@ -99,9 +81,21 @@ void logger::warning(Args... args)
 }
 
 template <typename ... Args>
-void logger::error(Args... args)
+void logger::info(Args... args)
 {
-	message(severity::error, std::forward<Args>(args)...);
+	message(severity::info, std::forward<Args>(args)...);
+}
+
+template <typename ... Args>
+void logger::debug(Args... args)
+{
+	message(severity::debug, std::forward<Args>(args)...);
+}
+
+template <typename ... Args>
+void logger::trace(Args... args)
+{
+	message(severity::trace, std::forward<Args>(args)...);
 }
 
 template <typename T, typename ... Args>

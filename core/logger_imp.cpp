@@ -1,9 +1,12 @@
 #include "logger_imp.hpp"
 #include <boost/log/attributes/attribute_value_impl.hpp>
+#include <boost/log/attributes/constant.hpp>
 #include <boost/log/attributes/clock.hpp>
 
+using boost::log::attributes::make_attribute_value;
+
 const logger_imp::attr_name_type logger_imp::attr_name{};
-thread_local const boost::log::attributes::local_clock clock_attr{};
+const boost::log::attributes::local_clock clock_attr{};
 
 auto logger_imp::add(const boost::log::attribute_name &name,
 	const boost::log::attribute &attr) -> attribute
@@ -12,14 +15,14 @@ auto logger_imp::add(const boost::log::attribute_name &name,
 	return r.first;
 }
 
-void logger_imp::remove(attribute &attr)
+void logger_imp::remove(const attribute &attr)
 {
 	lg.remove_attribute(attr);
 }
 
 void logger_imp::attach_time()
 {
-	rec.attribute_values().insert(attr_name.time, clock_attr.get_value());
+	attributes().insert(attr_name.time, clock_attr.get_value());
 }
 
 bool logger_imp::open(channel c, severity s)
@@ -30,6 +33,7 @@ bool logger_imp::open(channel c, severity s)
 	));
 	if (!rec)
 		return false;
+	insert_attributes();
 	msg = {};
 	return true;
 }
@@ -46,9 +50,24 @@ void logger_imp::push(base_printer &c) noexcept
 
 void logger_imp::finalize()
 {
-	rec.attribute_values().insert(attr_name.lazy_message,
-		boost::log::attributes::make_attribute_value(msg));
+	attributes().insert(attr_name.lazy_message, make_attribute_value(msg));
 	lg.push_record(std::move(rec));
+}
+
+void client_logger::insert_attributes()
+{
+	common_logger::insert_attributes();
+
+	attributes().insert(attr_name.address, make_attribute_value(address));
+}
+
+void task_logger::insert_attributes()
+{
+	client_logger::insert_attributes();
+
+	attributes().insert(attr_name.task, make_attribute_value(id));
+	if (!module_name.empty())
+		attributes().insert(attr_name.module, make_attribute_value(module_name));
 }
 
 logger_imp::attr_name_type::attr_name_type():

@@ -1,5 +1,4 @@
 #include "task_builder.hpp"
-#include "task.hpp"
 #include "options.hpp"
 #include "http_error.hpp"
 #include <boost/assert.hpp>

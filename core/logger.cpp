@@ -6,14 +6,9 @@ inline logger_imp *impl(logger *lg)
 	return static_cast<logger_imp*>(lg);
 }
 
-void logger::attach_time()
+bool logger::open(severity s)
 {
-	impl(this)->attach_time();
-}
-
-bool logger::open(channel c, severity s)
-{
-	return impl(this)->open(c, s);
+	return impl(this)->open(logger_imp::channel::message, s);
 }
 
 void logger::push(base_printer &c) noexcept

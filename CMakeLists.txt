@@ -1,18 +1,27 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 project(lemon)
 
 include(CTest)
+set(LEMON_LOG_LEVEL 3 CACHE STRING "maximal supported log level: from 1 (error) to 5 (trace)")
+set_property(CACHE LEMON_LOG_LEVEL PROPERTY STRINGS 1 2 3 4 5)
+option(LEMON_NO_ACCESS_LOG "disable access.log")
+set(BOOST_ROOT "" CACHE PATH "specific boost installation path")
 set(HTTP_PARSER_URL https://github.com/nodejs/http-parser/archive/v2.7.1.zip
 	CACHE STRING "http-parser source archive (local or remote) or directory")
 option(LINK_SHARED "link Boost dynamically")
 option(DEVELOPER_MODE "developer build settings")
 set(SANITIZER "" CACHE STRING "enables sanitizer of this type")
+set_property(CACHE SANITIZER PROPERTY STRINGS "" address memory thread undefined)
+set(CLANG_TIDY_EXE "" CACHE FILEPATH "clang-tidy program")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(DEVELOPER_MODE)
+	if(CLANG_TIDY_EXE)
+		set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
+	endif()
 	if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU|Clang")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 		set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -112,6 +121,7 @@ set(CORE_SRC
 	core/router.hpp
 	core/task.cpp
 	core/task.hpp
+	core/task_ident.hpp
 	core/task_builder.cpp
 	core/task_builder.hpp
 )
@@ -131,6 +141,10 @@ target_include_directories(lemon PRIVATE
 target_link_libraries(lemon PRIVATE
 	http_parser Boost::boost Boost::system Boost::log)
 enable_sanitizer(lemon)
+target_compile_definitions(lemon PRIVATE LEMON_LOG_LEVEL=${LEMON_LOG_LEVEL})
+if(LEMON_NO_ACCESS_LOG)
+	target_compile_definitions(lemon PRIVATE LEMON_NO_ACCESS_LOG)
+endif()
 
 if(BUILD_TESTING)
 	set(TEST_SRC

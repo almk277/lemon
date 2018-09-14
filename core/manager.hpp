@@ -22,6 +22,7 @@ public:
 	void run();
 	
 	const options &get_options() const noexcept { return opt; }
+	common_logger &get_logger() { return lg; }
 	std::shared_ptr<const router> get_router() const noexcept { return rout; }
 
 private:
@@ -35,10 +36,10 @@ private:
 	boost::asio::signal_set signal_set;
 	std::vector<std::thread> workers;
 	options opt;
-	logger_imp lg;
+	common_logger lg;
 	rh_manager rhman;
 	std::shared_ptr<router> rout;
 
 	void start_accept();
-	void add_worker();
+	void add_worker(unsigned idx);
 };

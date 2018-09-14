@@ -1,6 +1,6 @@
 #pragma once
 
-#include "task.hpp"
+#include "task_ident.hpp"
 #include "task_builder.hpp"
 #include "logger_imp.hpp"
 #include "leak_checked.hpp"
@@ -31,18 +31,18 @@ public:
 	static void make(manager &man, socket &&sock);
 
 	const options &get_options() const noexcept { return opt; }
-	logger_imp &get_logger() noexcept { return lg; }
+	client_logger &get_logger() noexcept { return lg; }
 	const logger_imp &get_logger() const noexcept { return lg; }
 	std::shared_ptr<const router> get_router() const noexcept { return rout; }
 
 private:
-	static constexpr task::ident start_task_id = task::start_id;
+	static constexpr task_ident start_task_id = task::start_id;
 
 	socket sock;
 	const options &opt;
-	logger_imp lg;
+	client_logger lg;
 	task_builder builder;
-	task::ident next_send_id;
+	task_ident next_send_id;
 	boost::container::list<task_result> send_q;
 	boost::asio::io_service::strand send_barrier;
 	const std::shared_ptr<const router> rout;

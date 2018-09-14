@@ -42,18 +42,18 @@ void manager::run()
 	start_accept();
 
 	BOOST_ASSERT(n_workers > 0);
-	for (auto _: boost::counting_range(0u, n_workers - 1))
-		add_worker();
+	for (auto i: boost::counting_range(1u, n_workers))
+		add_worker(i);
 	service.run();
 }
 
-void manager::add_worker()
+void manager::add_worker(unsigned idx)
 {
-	workers.emplace_back([this]
+	workers.emplace_back([this, idx]
 	{
-		lg.debug("worker thread created");
+		lg.debug("started worker thread #", idx);
 		auto n = service.run();
-		lg.debug("worker thread done, events handled: ", n);
+		lg.debug("finished worker thread #", idx, ", events handled: ", n);
 	});
 }
 

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "logger.hpp"
 boost::string_view rh_testing::get_name() const noexcept
 {
 	return "Testing"_w;
@@ -12,6 +13,8 @@ boost::string_view rh_testing::get_name() const noexcept
 
 void rh_testing::get(request& req, response& resp, context& ctx)
 {
+	ctx.lg.debug("Testing get");
+
 	const auto path = req.url.path;
 	if (path == "/index") {
 		resp.body = { "It works!"_w };

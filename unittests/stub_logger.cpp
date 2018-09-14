@@ -1,6 +1,6 @@
 #include "stub_logger.hpp"
 
-bool logger::open(channel, severity)
+bool logger::open(severity)
 {
 	return true;
 }
@@ -8,7 +8,5 @@ bool logger::open(channel, severity)
 void logger::push(base_printer&) noexcept {}
 
 template<> void logger::log1<>() {}
-
-void logger::attach_time() {}
 
 stub_logger slg;
