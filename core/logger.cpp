@@ -8,7 +8,13 @@ inline logger_imp *impl(logger *lg)
 
 bool logger::open(severity s)
 {
-	return impl(this)->open(logger_imp::channel::message, s);
+	extern severity log_severity_level;
+
+	if (s > log_severity_level)
+		return false;
+	
+	impl(this)->open_message(s);
+	return true;
 }
 
 void logger::push(base_printer &c) noexcept
@@ -16,12 +22,7 @@ void logger::push(base_printer &c) noexcept
 	impl(this)->push(c);
 }
 
-void logger::finalize()
-{
-	impl(this)->finalize();
-}
-
 template <> void logger::log1<>()
 {
-	finalize();
+	impl(this)->finalize();
 }

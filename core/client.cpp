@@ -51,7 +51,7 @@ client::client(manager &man, socket &&sock) noexcept:
 	sock{std::move(sock)},
 	opt{man.get_options()},
 	lg{man.get_logger(), this->sock.remote_endpoint().address()},
-	builder{start_task_id, opt, lg},
+	builder{start_task_id, opt},
 	next_send_id{start_task_id},
 	send_barrier{sock.get_io_service()},
 	rout{man.get_router()}
@@ -93,9 +93,9 @@ void client::on_recv(const error_code &ec,
 	                 incomplete_task it) noexcept
 {
 	const bool eof = ec == boost::asio::error::eof;
-	lg.debug("received ", bytes_transferred, " bytes, EOF=", eof);
+	it.lg().debug("received ", bytes_transferred, " bytes, EOF=", eof);
 	if (BOOST_UNLIKELY(ec && !eof)) {
-		lg.error("failed to read request:"_w, ec);
+		it.lg().error("failed to read request: "_w, ec);
 		return;
 	}
 
@@ -122,7 +122,7 @@ void client::on_recv(const error_code &ec,
 			run(*first_task);
 
 	} catch (std::exception &re) {
-		lg.error(re.what());
+		it.lg().error(re.what());
 		run(builder.make_error_task(it));
 	}
 }
@@ -137,23 +137,23 @@ void client::run(ready_task t) noexcept
 				start_send(tr);
 			}));
 	} catch (std::exception &e) {
-		lg.error("send response error: "_w, e.what());
+		t.lg().error("send response error: "_w, e.what());
 	} catch (...) {
-		lg.error("send response unknown error"_w);
+		t.lg().error("send response unknown error"_w);
 	}
 }
 
 void client::start_send(task_result tr)
 {
 	if (BOOST_LIKELY(tr.get_id() == next_send_id)) {
-		lg.debug("sending task #", tr.get_id(), " result...");
+		tr.lg().debug("sending task result..."_w);
 		async_write(sock, tr, make_arena_handler(tr.get_arena(),
 			[this, tr](const error_code &ec, size_t)
 			{
 				on_sent(ec, tr);
 			}));
 	} else {
-		lg.debug("queueing task #", tr.get_id(), " result");
+		tr.lg().debug("queueing task result"_w);
 		BOOST_ASSERT(std::find(send_q.begin(), send_q.end(), tr) == send_q.end());
 		auto it = std::upper_bound(send_q.begin(), send_q.end(), tr);
 		send_q.insert(it, std::move(tr));
@@ -164,22 +164,21 @@ void client::start_send(task_result tr)
 void client::on_sent(const error_code &ec, task_result tr) noexcept
 {
 	try {
-		auto id = tr.get_id();
 		if (ec) {
-			lg.error("failed to send task #"_w, id, " result: ", ec);
+			tr.lg().error("failed to send task result: "_w, ec);
 			send_q.clear();  //TODO cancel tasks
 		}
 		else {
-			lg.debug("task #", id, " result sent");
+			tr.lg().debug("task result sent"_w);
 			++next_send_id;
 			if (BOOST_UNLIKELY(!send_q.empty())
 					&& send_q.front().get_id() == next_send_id) {
-				lg.debug("dequeueing task #", next_send_id);
+				tr.lg().debug("dequeueing task", next_send_id);
 				start_send(send_q.front());
 				send_q.pop_front();
 			}
 		}
 	} catch (std::exception &e) {
-		lg.error("response queue error: "_w, e.what());
+		tr.lg().error("response queue error: "_w, e.what());
 	}
 }

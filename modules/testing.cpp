@@ -13,7 +13,7 @@ boost::string_view rh_testing::get_name() const noexcept
 
 void rh_testing::get(request& req, response& resp, context& ctx)
 {
-	ctx.lg.debug("Testing get");
+	ctx.lg.debug("Handling get...");
 
 	const auto path = req.url.path;
 	if (path == "/index") {

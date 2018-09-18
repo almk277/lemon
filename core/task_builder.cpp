@@ -37,9 +37,8 @@ private:
 	std::shared_ptr<client> cl;
 };
 
-task_builder::task_builder(task::ident start_id, const options &opt, logger &lg) noexcept:
+task_builder::task_builder(task::ident start_id, const options &opt) noexcept:
 	opt{opt},
-	lg{lg},
 	task_id{start_id}
 {
 	BOOST_ASSERT(OPTIMUM_BUF_SIZE <= opt.headers_size);
@@ -47,7 +46,6 @@ task_builder::task_builder(task::ident start_id, const options &opt, logger &lg)
 
 incomplete_task task_builder::prepare_task(std::shared_ptr<client> cl)
 {
-	lg.debug("prepare new task #", task_id);
 	auto t = task::make(task_id, cl);
 	++task_id;
 	auto size = opt.headers_size;
@@ -84,7 +82,7 @@ ready_task task_builder::make_error_task(incomplete_task it) const
 
 task_builder::result task_builder::make_error(incomplete_task& it, const http_error& error) const
 {
-	lg.info("HTTP error ", error.code, " ", error.details);
+	it.t->lg.info("HTTP error ", error.code, " ", error.details);
 	auto error_task = move(it.t);
 	error_task->make_error(error.code);
 	error_task->done = true;
@@ -101,7 +99,7 @@ task_builder::result task_builder::make_task(incomplete_task& it, std::shared_pt
 		complete_task->req.url.all);
 	if (!complete_task->req.keep_alive) {
 		if (BOOST_UNLIKELY(bytes_rest != 0))
-			lg.warning("non-keep-alive request, ", bytes_rest, " bytes beyond");
+			complete_task->lg.warning("non-keep-alive request, ", bytes_rest, " bytes beyond");
 		return { ready_task{complete_task}, status::STOP };
 	}
 

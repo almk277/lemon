@@ -42,7 +42,7 @@ void task::run()
 			if (BOOST_LIKELY(static_cast<bool>(h))) {
 				lg.debug("handler found: ", h->get_name());
 				handle_request(*h);
-				lg.debug("handler finished");
+				lg.debug("handler finished: ", h->get_name());
 			}
 			else {
 				lg.debug("HTTP error 404");

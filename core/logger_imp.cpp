@@ -20,22 +20,25 @@ void logger_imp::remove(const attribute &attr)
 	lg.remove_attribute(attr);
 }
 
-void logger_imp::attach_time()
+void logger_imp::open_internal()
 {
-	attributes().insert(attr_name.time, clock_attr.get_value());
-}
+	rec = lg.open_record();
+	BOOST_ASSERT(static_cast<bool>(rec));
 
-bool logger_imp::open(channel c, severity s)
-{
-	rec = lg.open_record((
-		boost::log::keywords::channel = c,
-		boost::log::keywords::severity = s
-	));
-	if (!rec)
-		return false;
 	insert_attributes();
 	msg = {};
-	return true;
+}
+
+void logger_imp::open_message(severity s)
+{
+	open_internal();
+	attributes().insert(attr_name.severity, make_attribute_value(s));
+}
+
+void logger_imp::open_access()
+{
+	open_internal();
+	attributes().insert(attr_name.time, clock_attr.get_value());
 }
 
 void logger_imp::push(base_printer &c) noexcept
@@ -74,7 +77,6 @@ logger_imp::attr_name_type::attr_name_type():
 	lazy_message{"LazyMessage"},
 	time{"TimeStamp"},
 	severity{"Severity"},
-	channel{"Channel"},
 	task{"TaskID"},
 	address{"ClientAddress"},
 	module{"Module"}

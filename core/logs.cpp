@@ -10,45 +10,25 @@
 #include <boost/log/expressions/formatters/if.hpp>
 #include <boost/log/expressions/formatters/stream.hpp>
 #include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/log/expressions/predicates/has_attr.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/attributes/clock.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <boost/phoenix/operator.hpp>
-#include <boost/container/vector.hpp>
 #include <stdexcept>
 #include <iostream>
 #include <array>
 
-constexpr std::array<string_view, 6> severity_strings = {
-	"!!! "_w,
+logger::severity log_severity_level = logger::severity::info;
+bool log_access_enabled = true;
+
+constexpr std::array<string_view, 5> severity_strings = {
 	"ERR "_w,
 	"WRN "_w,
 	"INF "_w,
 	"DBG "_w,
 	"TRC "_w,
-};
-
-class channel_states
-{
-public:
-	bool &operator[](logger_imp::channel c)
-	{
-		const auto idx = static_cast<size_type>(c);
-		if (idx >= states.size())
-			states.resize(idx + 1);
-		return states.at(idx);
-	}
-	bool operator[](logger_imp::channel c) const
-	{
-		const auto idx = static_cast<size_type>(c);
-		return states[idx];
-	}
-private:
-	using container = boost::container::vector<bool>;
-	using size_type = container::size_type;
-
-	container states;
 };
 
 static std::ostream &operator<<(std::ostream &s, logger::severity sev)
@@ -75,22 +55,18 @@ static logger_imp::severity convert(options::log_types::severity s)
 	case opt::error: return lg::error;
 	default: BOOST_ASSERT(0);
 	}
-	return lg::pass;
+	return lg::error;
 }
 
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_lazymessage, logger_imp::attr_name.lazy_message,
 	logger_imp::message_type)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_severity, logger_imp::attr_name.severity, logger::severity)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_channel, logger_imp::attr_name.channel, logger_imp::channel)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_taskid, logger_imp::attr_name.task, task_ident)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_address, logger_imp::attr_name.address,
 	boost::asio::ip::address)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_module, logger_imp::attr_name.module, string_view)
-
-#ifndef LEMON_NO_ACCESS_LOG
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_time, logger_imp::attr_name.time,
 	boost::log::attributes::local_clock::value_type)
-#endif
 
 template <typename Filter, typename Fmt>
 struct log_adder: boost::static_visitor<bool>
@@ -131,7 +107,7 @@ static bool add_messages_sink(const options::log_types::messages_log &log)
 
 	return boost::apply_visitor(make_adder(
 		keywords::filter =
-			kw_channel == logger_imp::channel::message,
+			!has_attr(kw_time),
 		keywords::format = expressions::stream
 			<< kw_severity
 			<< if_(has_attr(kw_address))
@@ -157,7 +133,7 @@ static bool add_access_sink(const options::log_types::access_log &log)
 
 	return boost::apply_visitor(make_adder(
 		keywords::filter =
-			kw_channel == logger_imp::channel::access,
+			has_attr(kw_time),
 		keywords::format = expressions::stream
 			<< format_date_time(kw_time, "%y-%m-%d %T") << " "
 			<< kw_address << " "
@@ -181,25 +157,16 @@ void logs::init(const options &opt)
 {
 	using namespace boost::log;
 
-	const auto message_level = convert(opt.log.messages.level);
+	log_severity_level = convert(opt.log.messages.level);
 
-	if (message_level > static_cast<logger::severity>(LEMON_LOG_LEVEL))
+	if (log_severity_level > static_cast<logger::severity>(LEMON_LOG_LEVEL))
 		throw std::runtime_error{ "requested log level ("
-			+ std::to_string(static_cast<int>(message_level))
+			+ std::to_string(static_cast<int>(log_severity_level))
 			+ ") is too high, supported: "
 			+ std::to_string(LEMON_LOG_LEVEL)};
 
-	const auto core = core::get();
+	core::get()->remove_all_sinks();
 
-	core->remove_all_sinks();
-
-	channel_states channels;
-	channels[logger_imp::channel::message] = add_messages_sink(opt.log.messages);
-	channels[logger_imp::channel::access] = add_access_sink(opt.log.access);
-
-	core->set_filter([message_level, channels = std::move(channels)](
-		const attribute_value_set &attrs)
-		{
-			return *attrs[kw_severity] <= message_level && channels[*attrs[kw_channel]];
-		});
+	add_messages_sink(opt.log.messages);
+	log_access_enabled = add_access_sink(opt.log.access);
 }

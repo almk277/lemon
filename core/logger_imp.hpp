@@ -4,7 +4,7 @@
 #include "task_ident.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/log/core/record.hpp>
-#include <boost/log/sources/severity_channel_logger.hpp>
+#include <boost/log/sources/logger.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <utility.hpp>
 
@@ -26,7 +26,6 @@ public:
 		boost::log::attribute_name lazy_message;
 		boost::log::attribute_name time;
 		boost::log::attribute_name severity;
-		boost::log::attribute_name channel;
 		boost::log::attribute_name task;
 		boost::log::attribute_name address;
 		boost::log::attribute_name module;
@@ -47,8 +46,9 @@ public:
 	template <typename ...Args> void access(Args ...args)
 	{
 #ifndef LEMON_NO_ACCESS_LOG
-		if (open(channel::access, severity::pass)) {
-			attach_time();
+		extern bool log_access_enabled;
+		if (log_access_enabled) {
+			open_access();
 			log1(std::forward<Args>(args)...);
 		}
 #endif
@@ -57,8 +57,8 @@ public:
 	attribute add(const boost::log::attribute_name &name,
 		const boost::log::attribute &attr);
 	void remove(const attribute &attr);
-	void attach_time();
-	bool open(channel c, severity s);
+	void open_message(severity s);
+	void open_access();
 	void push(base_printer &c) noexcept;
 	void finalize();
 
@@ -73,7 +73,9 @@ protected:
 	}
 
 private:
-	boost::log::sources::severity_channel_logger_mt<severity, channel> lg;
+	void open_internal();
+
+	boost::log::sources::logger lg;
 	boost::log::record rec;
 	message_type msg{};
 };

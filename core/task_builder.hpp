@@ -13,7 +13,7 @@ class client;
 class task_builder: boost::noncopyable
 {
 public:
-	task_builder(task::ident start_id, const options &opt, logger &lg) noexcept;
+	task_builder(task::ident start_id, const options &opt) noexcept;
 	~task_builder() = default;
 
 	incomplete_task prepare_task(std::shared_ptr<client> cl);
@@ -41,7 +41,6 @@ private:
 
 	parser p;
 	const options &opt;
-	logger &lg;
 	task::ident task_id;
 	boost::asio::mutable_buffer recv_buf;
 	string_view data_buf;

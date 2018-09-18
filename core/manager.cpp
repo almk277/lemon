@@ -51,6 +51,8 @@ void manager::add_worker(unsigned idx)
 {
 	workers.emplace_back([this, idx]
 	{
+		common_logger lg;
+
 		lg.debug("started worker thread #", idx);
 		auto n = service.run();
 		lg.debug("finished worker thread #", idx, ", events handled: ", n);

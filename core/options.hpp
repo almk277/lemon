@@ -30,7 +30,7 @@ public:
 	struct log_types
 	{
 		enum class severity {
-			error = 1,
+			error,
 			warning,
 			info,
 			debug,

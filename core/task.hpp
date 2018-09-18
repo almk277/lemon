@@ -21,6 +21,16 @@ class task:
 {
 public:
 	using ident = task_ident;
+
+	struct ptr
+	{
+		explicit ptr(std::shared_ptr<task> t): t{move(t)} {}
+
+		task_logger &lg() const { return t->lg; }
+
+		std::shared_ptr<task> t;
+	};
+
 	static constexpr ident start_id = 1;
 
 	task(ident id, std::shared_ptr<client> cl) noexcept;
@@ -48,11 +58,10 @@ private:
 	friend class incomplete_task;
 };
 
-class task_result
+class task_result: public task::ptr
 // implements boost::asio::ConstBufferSequence
 {
-	task_result(std::shared_ptr<task> t) : t{ move(t) } {}
-	std::shared_ptr<task> t;
+	task_result(std::shared_ptr<task> t) : ptr{ move(t) } {}
 	friend class ready_task;
 
 	struct buffer_adapter
@@ -91,10 +100,9 @@ public:
 	const_iterator end()   const { return const_iterator{ t->resp.end() }; }
 };
 
-class ready_task
+class ready_task : public task::ptr
 {
-	ready_task(std::shared_ptr<task> t) : t{ move(t) } {}
-	std::shared_ptr<task> t;
+	ready_task(std::shared_ptr<task> t) : ptr{ move(t) } {}
 	friend class task_builder;
 public:
 	ready_task(const ready_task&) = default;
@@ -108,10 +116,9 @@ public:
 	task_result run() { t->run(); return { t }; }
 };
 
-class incomplete_task
+class incomplete_task : public task::ptr
 {
-	incomplete_task(std::shared_ptr<task> t): t{ move(t) } {}
-	std::shared_ptr<task> t;
+	incomplete_task(std::shared_ptr<task> t): ptr{ move(t) } {}
 	friend class task_builder;
 public:
 	incomplete_task(const incomplete_task&) = default;

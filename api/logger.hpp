@@ -15,7 +15,6 @@ class logger
 public:
 	enum class severity
 	{
-		pass,
 		error,
 		warning,
 		info,
@@ -23,11 +22,15 @@ public:
 		trace,
 	};
 
+	static constexpr severity severity_barrier = static_cast<severity>(LEMON_LOG_LEVEL);
+
 	template <typename ...Args> void error(Args ...args);
 	template <typename ...Args> void warning(Args ...args);
 	template <typename ...Args> void info(Args ...args);
 	template <typename ...Args> void debug(Args ...args);
 	template <typename ...Args> void trace(Args ...args);
+
+	template <typename ...Args> void message(severity s, Args ...args);
 
 	struct base_printer
 	{
@@ -55,17 +58,6 @@ protected:
 private:
 	bool open(severity s);
 	void push(base_printer &c) noexcept;
-	void finalize();
-
-	template <typename ...Args> void message(severity s, Args ...args)
-	{
-		if (s <= severity_barrier) {
-			if (open(s))
-				log1(std::forward<Args>(args)...);
-		}
-	}
-
-	static constexpr severity severity_barrier = static_cast<severity>(LEMON_LOG_LEVEL);
 };
 
 template <typename ... Args>
@@ -96,6 +88,18 @@ template <typename ... Args>
 void logger::trace(Args... args)
 {
 	message(severity::trace, std::forward<Args>(args)...);
+}
+
+template <typename ... Args>
+void logger::message(severity s, Args ... args)
+{
+	if (s <= severity_barrier)
+	{
+		if (open(s))
+		{
+			log1(std::forward<Args>(args)...);
+		}
+	}
 }
 
 template <typename T, typename ... Args>
