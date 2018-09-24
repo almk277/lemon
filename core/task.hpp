@@ -24,9 +24,10 @@ public:
 
 	struct ptr
 	{
-		explicit ptr(std::shared_ptr<task> t): t{move(t)} {}
+		explicit ptr(std::shared_ptr<task> t) noexcept: t{move(t)} {}
 
-		task_logger &lg() const { return t->lg; }
+		task_logger &lg() const noexcept { return t->lg; }
+		arena &get_arena() const noexcept { return t->a; }
 
 		std::shared_ptr<task> t;
 	};
@@ -44,13 +45,12 @@ private:
 	void make_error(response_status code) noexcept;
 
 	const ident id;
-	const std::shared_ptr<client> cl; // keep client alive
+	const std::shared_ptr<const client> cl; // keep client alive
 	task_logger lg;
 	arena_imp a;
 	request req;
 	response resp;
 	const std::shared_ptr<const router> rout;
-	bool done = false;
 
 	friend class task_builder;
 	friend class task_result;
@@ -61,12 +61,13 @@ private:
 class task_result: public task::ptr
 // implements boost::asio::ConstBufferSequence
 {
-	task_result(std::shared_ptr<task> t) : ptr{ move(t) } {}
+	task_result(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
+	friend class task_builder;
 	friend class ready_task;
 
 	struct buffer_adapter
 	{
-		const boost::asio::const_buffer &operator()(string_view s) const
+		const boost::asio::const_buffer &operator()(string_view s) const noexcept
 		{
 			buffer = { s.data(), s.size() };
 			return buffer;
@@ -90,7 +91,6 @@ public:
 	{
 		return t == rhs.t;
 	}
-	arena &get_arena() const { return t->a; }
 
 	using value_type = boost::asio::const_buffer;
 	using const_iterator = boost::transform_iterator<buffer_adapter,
@@ -102,7 +102,7 @@ public:
 
 class ready_task : public task::ptr
 {
-	ready_task(std::shared_ptr<task> t) : ptr{ move(t) } {}
+	ready_task(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
 	friend class task_builder;
 public:
 	ready_task(const ready_task&) = default;
@@ -111,14 +111,12 @@ public:
 	ready_task &operator=(ready_task&&) = default;
 	~ready_task() = default;
 
-	arena &get_arena() const { return t->a; }
-
-	task_result run() { t->run(); return { t }; }
+	task_result run() const { t->run(); return { t }; }
 };
 
 class incomplete_task : public task::ptr
 {
-	incomplete_task(std::shared_ptr<task> t): ptr{ move(t) } {}
+	incomplete_task(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
 	friend class task_builder;
 public:
 	incomplete_task(const incomplete_task&) = default;
@@ -126,5 +124,4 @@ public:
 	incomplete_task &operator=(const incomplete_task&) = default;
 	incomplete_task &operator=(incomplete_task&&) = default;
 	~incomplete_task() = default;
-	arena &get_arena() const { return t->a; }
 };

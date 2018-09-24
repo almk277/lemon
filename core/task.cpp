@@ -34,34 +34,31 @@ std::shared_ptr<task> task::make(ident id, std::shared_ptr<client> cl)
 
 void task::run()
 {
-	if (!done) {
-		const auto path = req.url.path;
-		lg.debug("resolving: ", path);
-		auto h = rout->resolve(path);
-		try {
-			if (BOOST_LIKELY(static_cast<bool>(h))) {
-				lg.debug("handler found: ", h->get_name());
-				handle_request(*h);
-				lg.debug("handler finished: ", h->get_name());
-			}
-			else {
-				lg.debug("HTTP error 404");
-				make_error(response_status::NOT_FOUND);
-			}
+	const auto path = req.url.path;
+	lg.debug("resolving: ", path);
+	auto h = rout->resolve(path);
+	try {
+		if (BOOST_LIKELY(static_cast<bool>(h))) {
+			lg.debug("handler found: ", h->get_name());
+			handle_request(*h);
+			lg.debug("handler finished: ", h->get_name());
 		}
-		catch (http_exception &he) {
-			lg.debug("HTTP error ", he.status_code(), " ", he.detail_string());
-			make_error(he.status_code());
+		else {
+			lg.debug("HTTP error 404");
+			make_error(response_status::NOT_FOUND);
 		}
-		catch (std::exception &e) {
-			lg.error("internal error in module: ", h->get_name(), ": ", e.what());
-			make_error(response_status::INTERNAL_SERVER_ERROR);
-		}
-		catch (...) {
-			lg.error("unknown exception in module: ", h->get_name());
-			make_error(response_status::INTERNAL_SERVER_ERROR);
-		}
-		done = true;
+	}
+	catch (http_exception &he) {
+		lg.debug("HTTP error ", he.status_code(), " ", he.detail_string());
+		make_error(he.status_code());
+	}
+	catch (std::exception &e) {
+		lg.error("internal error in module: ", h->get_name(), ": ", e.what());
+		make_error(response_status::INTERNAL_SERVER_ERROR);
+	}
+	catch (...) {
+		lg.error("unknown exception in module: ", h->get_name());
+		make_error(response_status::INTERNAL_SERVER_ERROR);
 	}
 }
 

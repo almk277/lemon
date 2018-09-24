@@ -47,11 +47,13 @@ private:
 	boost::asio::io_service::strand send_barrier;
 	const std::shared_ptr<const router> rout;
 
-	void start_recv(incomplete_task it);
+	void start_recv(const incomplete_task &it);
 	void on_recv(const boost::system::error_code &ec,
 		         std::size_t bytes_transferred,
-		         incomplete_task it) noexcept;
-	void run(ready_task t) noexcept;
-	void start_send(task_result tr);
-	void on_sent(const boost::system::error_code &ec, task_result tr) noexcept;
+		         const incomplete_task &it) noexcept;
+	void run(const ready_task &rt) noexcept;
+	void start_send(const task_result &tr);
+	void on_sent(const boost::system::error_code &ec, const task_result &tr) noexcept;
+
+	struct task_visitor;
 };

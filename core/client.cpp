@@ -2,8 +2,10 @@
 #include "manager.hpp"
 #include <boost/asio/write.hpp>
 #include <boost/pool/pool_alloc.hpp>
+#include <boost/range/algorithm/find.hpp>
+#include <boost/range/algorithm/upper_bound.hpp>
+#include <boost/range/algorithm_ext/is_sorted.hpp>
 #include <exception>
-#include <algorithm>
 #include <utility>
 
 using boost::system::error_code;
@@ -47,6 +49,26 @@ arena_handler<Handler> make_arena_handler(arena &a, Handler h)
 	return{ a, h };
 }
 
+struct client::task_visitor : boost::static_visitor<>
+{
+	explicit task_visitor(client &cl) noexcept: cl{ cl } {}
+
+	auto operator()(const incomplete_task &it) const
+	{
+		cl.start_recv(it);
+	}
+	auto operator()(const ready_task &rt) const
+	{
+		cl.run(rt);
+	}
+	auto operator()(const task_result &tr) const
+	{
+		cl.start_send(tr);
+	}
+private:
+	client & cl;
+};
+
 client::client(manager &man, socket &&sock) noexcept:
 	sock{std::move(sock)},
 	opt{man.get_options()},
@@ -61,8 +83,7 @@ client::client(manager &man, socket &&sock) noexcept:
 
 client::~client()
 {
-	if (sock.is_open())
-	{
+	if (sock.is_open()) {
 		error_code ec;
 		sock.shutdown(socket::shutdown_both, ec);
 		if (ec)
@@ -78,7 +99,7 @@ void client::make(manager &man, socket &&sock)
 	c->start_recv(it);
 }
 
-void client::start_recv(incomplete_task it)
+void client::start_recv(const incomplete_task &it)
 {
 	const auto b = builder.get_memory(it);
 	sock.async_read_some(buffer(b), make_arena_handler(it.get_arena(),
@@ -90,86 +111,71 @@ void client::start_recv(incomplete_task it)
 
 void client::on_recv(const error_code &ec,
                      size_t bytes_transferred,
-	                 incomplete_task it) noexcept
+	                 const incomplete_task &it) noexcept
 {
-	const bool eof = ec == boost::asio::error::eof;
-	it.lg().debug("received ", bytes_transferred, " bytes, EOF=", eof);
+	const auto eof = ec == boost::asio::error::eof;
+	it.lg().debug("received bytes: "_w, bytes_transferred, eof ? ", and EOF"_w : ""_w);
 	if (BOOST_UNLIKELY(ec && !eof)) {
 		it.lg().error("failed to read request: "_w, ec);
 		return;
 	}
 
 	try {
-		auto shared_this = shared_from_this();
-		builder.feed(bytes_transferred, eof);
-		auto res = builder.try_make_task(it, shared_this);
-		const auto first_task = res.t;
-		while (res.s == task_builder::status::TRY_MAKE_AGAIN)
-		{
-			res = builder.try_make_task(it, shared_this);
-			if (res.t)
-				sock.get_io_service().post(make_arena_handler(it.get_arena(),
-					[this, t = std::move(*res.t)]
-					{
-						run(t);
-					}));
-		}
-
-		if (res.s == task_builder::status::FEED_AGAIN)
-			start_recv(it);
-
-		if (first_task)
-			run(*first_task);
-
+		task_visitor v{ *this };
+		for (auto &&t : builder.make_tasks(shared_from_this(), it, bytes_transferred, eof))
+			apply_visitor(v, t);
 	} catch (std::exception &re) {
+		//TODO check if 'it' is actual task
 		it.lg().error(re.what());
-		run(builder.make_error_task(it));
+		start_send(task_builder::make_error_task(it, response_status::INTERNAL_SERVER_ERROR));
 	}
 }
 
-void client::run(ready_task t) noexcept
+void client::run(const ready_task &rt) noexcept
 {
-	try {
-		auto tr = t.run();
-		send_barrier.dispatch(make_arena_handler(t.get_arena(),
-			[this, tr = std::move(tr)]
-			{
-				start_send(tr);
-			}));
-	} catch (std::exception &e) {
-		t.lg().error("send response error: "_w, e.what());
-	} catch (...) {
-		t.lg().error("send response unknown error"_w);
-	}
+	sock.get_io_service().post(make_arena_handler(rt.get_arena(), [this, rt]
+	{
+		try {
+			auto tr = rt.run();
+			start_send(tr);
+		} catch (std::exception &e) {
+			rt.lg().error("send response error: "_w, e.what());
+		} catch (...) {
+			rt.lg().error("send response unknown error"_w);
+		}
+	}));
 }
 
-void client::start_send(task_result tr)
+void client::start_send(const task_result &tr)
 {
-	if (BOOST_LIKELY(tr.get_id() == next_send_id)) {
-		tr.lg().debug("sending task result..."_w);
-		async_write(sock, tr, make_arena_handler(tr.get_arena(),
-			[this, tr](const error_code &ec, size_t)
+	send_barrier.dispatch(make_arena_handler(tr.get_arena(), [this, tr]
+	{
+		if (BOOST_LIKELY(tr.get_id() == next_send_id)) {
+			tr.lg().debug("sending task result..."_w);
+			async_write(sock, tr, make_arena_handler(tr.get_arena(),
+				[this, tr](const error_code &ec, size_t)
 			{
 				on_sent(ec, tr);
 			}));
-	} else {
-		tr.lg().debug("queueing task result"_w);
-		BOOST_ASSERT(std::find(send_q.begin(), send_q.end(), tr) == send_q.end());
-		auto it = std::upper_bound(send_q.begin(), send_q.end(), tr);
-		send_q.insert(it, std::move(tr));
-		BOOST_ASSERT(std::is_sorted(send_q.begin(), send_q.end()));
-	}
+		} else {
+			tr.lg().debug("queueing task result"_w);
+			BOOST_ASSERT(boost::find(send_q, tr) == send_q.end());
+			auto it = boost::upper_bound(send_q, tr);
+			send_q.insert(it, tr);
+			BOOST_ASSERT(boost::is_sorted(send_q));
+		}
+	}));
 }
 
-void client::on_sent(const error_code &ec, task_result tr) noexcept
+void client::on_sent(const error_code &ec, const task_result &tr) noexcept
 {
 	try {
 		if (ec) {
 			tr.lg().error("failed to send task result: "_w, ec);
 			send_q.clear();  //TODO cancel tasks
-		}
-		else {
+		} else {
 			tr.lg().debug("task result sent"_w);
+			//TODO check if tr was error task
 			++next_send_id;
 			if (BOOST_UNLIKELY(!send_q.empty())
 					&& send_q.front().get_id() == next_send_id) {
