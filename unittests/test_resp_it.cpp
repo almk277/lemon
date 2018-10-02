@@ -27,7 +27,7 @@ namespace {
 		void fill(const test_case &c)
 		{
 			r.http_version = message::http_version_type::HTTP_1_1;
-			r.code = response_status::OK;
+			r.code = response::status::OK;
 			for (auto &h : c.headers)
 				r.headers.emplace_back(h.first, h.second);
 			for (auto &b : c.body)

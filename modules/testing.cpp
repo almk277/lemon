@@ -36,11 +36,11 @@ void rh_testing::get(request& req, response& resp, context& ctx)
 		if (it != req.headers.end())
 			resp.body = { it->value };
 	} else if (path == "/notimp") {
-		throw http_exception{ response_status::NOT_IMPLEMENTED };
+		throw http_exception{ response::status::NOT_IMPLEMENTED };
 	} else if (path == "/oom") {
 		throw std::bad_alloc{};
 	} else {
-		throw http_exception{ response_status::NOT_FOUND };
+		throw http_exception{ response::status::NOT_FOUND };
 	}
 
 	finalize(req, resp, ctx);
@@ -51,7 +51,7 @@ void rh_testing::post(request& req, response& resp, context& ctx)
 	if (req.url.path == "/echo") {
 		resp.body = move(req.body);
 	} else {
-		throw http_exception{ response_status::NOT_FOUND };
+		throw http_exception{ response::status::NOT_FOUND };
 	}
 
 	finalize(req, resp, ctx);
@@ -63,10 +63,10 @@ void rh_testing::method(boost::string_view method_name, request &req, response &
 		if (req.url.path == "/index") {
 			resp.body = { "del"_w };
 		} else {
-			throw http_exception{ response_status::NOT_FOUND };
+			throw http_exception{ response::status::NOT_FOUND };
 		}
 	} else {
-		throw http_exception{ response_status::METHOD_NOT_ALLOWED };
+		throw http_exception{ response::status::METHOD_NOT_ALLOWED };
 	}
 
 	finalize(req, resp, ctx);
@@ -75,7 +75,7 @@ void rh_testing::method(boost::string_view method_name, request &req, response &
 void rh_testing::finalize(request& req, response& resp, context& ctx) const
 {
 	resp.http_version = req.http_version;
-	resp.code = response_status::OK;
+	resp.code = response::status::OK;
 	resp.headers.emplace_back("Content-Type", "text/plain");
 
 	auto content_length = accumulate(resp.body.begin(), resp.body.end(),

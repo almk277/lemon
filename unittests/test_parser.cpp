@@ -59,7 +59,7 @@ namespace {
 	{
 		int no;
 		std::string request;
-		boost::optional<response_status> code;
+		boost::optional<response::status> code;
 	};
 
 	std::ostream &operator<<(std::ostream &s, const bad_test_case &t)
@@ -174,7 +174,7 @@ const std::vector<bad_test_case> bad_request_samples = {
 	{
 		202,
 		"POST / HTTP/2.0\r\n\r\n",
-		response_status::HTTP_VERSION_NOT_SUPPORTED
+		response::status::HTTP_VERSION_NOT_SUPPORTED
 	},
 	{
 		203,
@@ -347,7 +347,7 @@ BOOST_DATA_TEST_CASE(test_errors, boost::unit_test::data::make(bad_request_sampl
 
 	auto r = boost::get<http_error>(&result);
 	BOOST_TEST_REQUIRE(r);
-	BOOST_TEST(r->code == sample.code.value_or(response_status::BAD_REQUEST));
+	BOOST_TEST(r->code == sample.code.value_or(response::status::BAD_REQUEST));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

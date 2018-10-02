@@ -25,7 +25,7 @@ public:
 			iterator, value, std::input_iterator_tag, value>
 		{
 		public:
-			explicit iterator(results &r) noexcept: r{r} {}
+			explicit iterator(results *r) noexcept: r{r} {}
 
 		private:
 			auto dereference() const
@@ -38,7 +38,7 @@ public:
 			}
 			auto increment() -> void;
 
-			results &r;
+			results *r;
 			boost::optional<value> current;
 
 			friend class boost::iterator_core_access;
@@ -68,7 +68,7 @@ public:
 	auto get_memory(const incomplete_task &it) -> boost::asio::mutable_buffer;
 	auto make_tasks(const std::shared_ptr<client> &cl, const incomplete_task &it,
 		std::size_t bytes_recv, bool stop) -> results;
-	static auto make_error_task(incomplete_task it, response_status error) -> task_result;
+	static auto make_error_task(incomplete_task it, response::status error) -> task_result;
 
 private:
 	parser p;

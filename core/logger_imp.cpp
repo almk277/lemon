@@ -15,11 +15,6 @@ auto logger_imp::add(const boost::log::attribute_name &name,
 	return r.first;
 }
 
-void logger_imp::remove(const attribute &attr)
-{
-	lg.remove_attribute(attr);
-}
-
 void logger_imp::open_internal()
 {
 	rec = lg.open_record();

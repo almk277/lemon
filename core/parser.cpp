@@ -125,7 +125,7 @@ http_parser_settings parser_internal::make_settings()
 		              request &r) noexcept
 		{
 			if (BOOST_UNLIKELY(p->http_major != 1 || p->http_minor > 1)) {
-				ctx.error.emplace(response_status::HTTP_VERSION_NOT_SUPPORTED);
+				ctx.error.emplace(response::status::HTTP_VERSION_NOT_SUPPORTED);
 				return ERR;
 			}
 			r.http_version = static_cast<message::http_version_type>(p->http_minor);
@@ -138,7 +138,7 @@ http_parser_settings parser_internal::make_settings()
 			auto err = http_parser_parse_url(r.url.all.data(), r.url.all.length(),
 				method == HTTP_CONNECT, &url);
 			if (BOOST_UNLIKELY(err)) {
-				ctx.error.emplace(response_status::BAD_REQUEST, "bad URL"_w);
+				ctx.error.emplace(response::status::BAD_REQUEST, "bad URL"_w);
 				return ERR;
 			}
 			r.url.path = url_field(url, UF_PATH, r.url.all);
@@ -203,7 +203,7 @@ auto parser::parse_chunk(buffer buf) noexcept -> result
 		break;
 	default:
 		return ctx.error.value_or(
-			http_error{ response_status::BAD_REQUEST, http_errno_description(err) });
+			http_error{ response::status::BAD_REQUEST, http_errno_description(err) });
 	}
 
 	if (p.upgrade) {

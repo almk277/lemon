@@ -19,7 +19,7 @@ static boost::fast_pool_allocator<client,
 template <typename Handler>
 struct arena_handler
 {
-	arena_handler(arena &a, Handler h): a{ a }, h {std::move(h)} {}
+	arena_handler(arena &a, Handler h) noexcept: a{ a }, h {std::move(h)} {}
 
 	template <typename ...Args>
 	void operator()(Args &&...args)
@@ -34,7 +34,7 @@ struct arena_handler
 	}
 
 	friend void asio_handler_deallocate(void *p, std::size_t size,
-		arena_handler<Handler> *handler)
+		arena_handler<Handler> *handler) noexcept
 	{
 		handler->a.free(p, size, "asio handler");
 	}
@@ -44,7 +44,7 @@ struct arena_handler
 };
 
 template <typename Handler>
-arena_handler<Handler> make_arena_handler(arena &a, Handler h)
+arena_handler<Handler> make_arena_handler(arena &a, Handler h) noexcept
 {
 	return{ a, h };
 }
@@ -127,7 +127,7 @@ void client::on_recv(const error_code &ec,
 	} catch (std::exception &re) {
 		//TODO check if 'it' is actual task
 		it.lg().error(re.what());
-		start_send(task_builder::make_error_task(it, response_status::INTERNAL_SERVER_ERROR));
+		start_send(task_builder::make_error_task(it, response::status::INTERNAL_SERVER_ERROR));
 	}
 }
 

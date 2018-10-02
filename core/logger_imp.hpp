@@ -56,7 +56,6 @@ public:
 
 	attribute add(const boost::log::attribute_name &name,
 		const boost::log::attribute &attr);
-	void remove(const attribute &attr);
 	void open_message(severity s);
 	void open_access();
 	void push(base_printer &c) noexcept;
@@ -67,7 +66,7 @@ public:
 protected:
 	virtual void insert_attributes() = 0;
 
-	boost::log::attribute_value_set &attributes()
+	boost::log::attribute_value_set &attributes() noexcept
 	{
 		return rec.attribute_values();
 	}
@@ -87,7 +86,7 @@ struct common_logger: logger_imp
 
 struct client_logger: common_logger
 {
-	client_logger(const common_logger&, boost::asio::ip::address address):
+	client_logger(const common_logger&, boost::asio::ip::address address) noexcept:
 		address{std::move(address)}
 	{}
 
@@ -98,7 +97,7 @@ struct client_logger: common_logger
 
 struct task_logger: client_logger
 {
-	task_logger(const client_logger &logger, task_ident id):
+	task_logger(const client_logger &logger, task_ident id) noexcept:
 		client_logger{ logger, logger.address },
 		id{ id }
 	{}
@@ -111,7 +110,7 @@ struct task_logger: client_logger
 
 struct module_logger_guard: boost::noncopyable
 {
-	module_logger_guard(task_logger &lg, string_view name):
+	module_logger_guard(task_logger &lg, string_view name) noexcept:
 		lg{lg}
 	{
 		lg.module_name = name;

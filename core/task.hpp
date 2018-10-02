@@ -42,7 +42,7 @@ private:
 
 	void run();
 	void handle_request(request_handler &h);
-	void make_error(response_status code) noexcept;
+	void make_error(response::status code) noexcept;
 
 	const ident id;
 	const std::shared_ptr<const client> cl; // keep client alive

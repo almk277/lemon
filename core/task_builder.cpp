@@ -40,16 +40,16 @@ private:
 
 auto task_builder::results::iterator::increment() -> void
 {
-	if (r.data.empty()) {
-		if (r.stop) {
+	if (r->data.empty()) {
+		if (r->stop) {
 			current = boost::none;
 		} else {
-			r.stop = true;
-			current.emplace(r.it);
+			r->stop = true;
+			current.emplace(r->it);
 		}
 	} else {
-		auto result = r.builder.p.parse_chunk(r.data);
-		current = apply_visitor(parse_result_visitor{ r }, result);
+		auto result = r->builder.p.parse_chunk(r->data);
+		current = apply_visitor(parse_result_visitor{ *r }, result);
 	}
 }
 
@@ -65,12 +65,12 @@ task_builder::results::results(task_builder &builder, const std::shared_ptr<clie
 
 auto task_builder::results::begin() -> iterator
 {
-	return ++iterator{ *this };
+	return ++iterator{ this };
 }
 
 auto task_builder::results::end() -> iterator
 {
-	return iterator{ *this };
+	return iterator{ this };
 }
 
 auto task_builder::results::make_ready_task(const std::shared_ptr<client> &cl,
@@ -133,7 +133,7 @@ auto task_builder::make_tasks(const std::shared_ptr<client> &cl,
 }
 
 auto task_builder::make_error_task(incomplete_task it,
-	response_status error) -> task_result
+	response::status error) -> task_result
 {
 	auto t = move(it.t);
 	t->make_error(error);

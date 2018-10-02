@@ -89,7 +89,6 @@ set(API_SRC
 	api/logger.hpp
 	api/message.hpp
 	api/request_handler.hpp
-	api/response_status.hpp
 	api/string_builder.hpp
 	api/utility.hpp
 )
@@ -114,7 +113,6 @@ set(CORE_SRC
 	core/parser.cpp
 	core/parser.hpp
 	core/request_handler.cpp
-	core/response_status.cpp
 	core/rh_manager.cpp
 	core/rh_manager.hpp
 	core/router.cpp
@@ -162,7 +160,6 @@ if(BUILD_TESTING)
 		core/router.cpp
 		core/parser.cpp
 		core/request_handler.cpp
-		core/response_status.cpp
 	)
 
 	add_executable(test_lemon ${TEST_SRC})

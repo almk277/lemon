@@ -2,7 +2,11 @@
 #include <boost/assert.hpp>
 #include <boost/concept_check.hpp>
 #include <array>
+#include <unordered_map>
 #include <stdexcept>
+#include <cstdlib>
+
+using namespace std::string_literals;
 
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<response::const_iterator>));
 
@@ -29,7 +33,7 @@ auto response::cend() const noexcept -> const_iterator
 	return end();
 }
 
-static const string_view &http_version_string(message::http_version_type v)
+static const string_view &to_string_ref(message::http_version_type v)
 {
 	static const std::array<string_view, 2> strings = {
 		"HTTP/1.0 "_w,
@@ -39,6 +43,144 @@ static const string_view &http_version_string(message::http_version_type v)
 	auto idx = static_cast<std::size_t>(v);
 	BOOST_ASSERT(idx < strings.size());
 	return strings[idx];
+}
+
+struct string_list
+{
+	const string_view *data;
+	int size;
+
+	template <int N>
+	constexpr string_list(const string_view(&a)[N]) :
+		data{a},
+		size{N}
+	{}
+};
+
+constexpr string_view m0[] = { ""_w };
+
+constexpr string_view m1[] = {
+	"100 Continue"_w,
+	"101 Switching Protocols"_w,
+	"102 Processing"_w,
+};
+
+constexpr string_view m2[] = {
+	"200 OK"_w,
+	"201 Created"_w,
+	"202 Accepted"_w,
+	"203 Non-Authoritative Information"_w,
+	"204 No Content"_w,
+	"205 Reset Content"_w,
+	"206 Partial Content"_w,
+	"207 Multi-Status"_w,
+	"208 Already Reported"_w,
+};
+
+constexpr string_view m3[] = {
+	"300 Multiple Choices"_w,
+	"301 Moved Permanently"_w,
+	"302 Found"_w,
+	"303 See Other"_w,
+	"304 Not Modified"_w,
+	"305 Use Proxy"_w,
+	"306 Switch Proxy"_w,
+	"307 Temporary Redirect"_w,
+	"308 Permanent Redirect"_w,
+};
+
+constexpr string_view m4[] = {
+	"400 Bad Request"_w,
+	"401 Unauthorized"_w,
+	"402 Payment Required"_w,
+	"403 Forbidden"_w,
+	"404 Not Found"_w,
+	"405 Method Not Allowed"_w,
+	"406 Not Acceptable"_w,
+	"407 Proxy Authentication Required"_w,
+	"408 Request Timeout"_w,
+	"409 Conflict"_w,
+	"410 Gone"_w,
+	"411 Length Required"_w,
+	"412 Precondition Failed"_w,
+	"413 Payload Too Large"_w,
+	"414 URI Too Long"_w,
+	"415 Unsupported Media Type"_w,
+	"416 Range Not Satisfiable"_w,
+	"417 Expectation Failed"_w,
+	"418 I'm a teapot"_w,
+	"419 419"_w,
+	"420 420"_w,
+	"421 Misdirected Request"_w,
+	"422 Unprocessable Entity"_w,
+	"423 Locked"_w,
+	"424 Failed Dependency"_w,
+	"425 425"_w,
+	"426 Upgrade Required"_w,
+	"427 427"_w,
+	"428 Precondition Required"_w,
+	"429 Too Many Requests"_w,
+	"430 430"_w,
+	"431 Request Header Fields Too Large"_w,
+};
+
+constexpr string_view m5[] = {
+	"500 Internal Server Error"_w,
+	"501 Not Implemented"_w,
+	"502 Bad Gateway"_w,
+	"503 Service Unavailable"_w,
+	"504 Gateway Timeout"_w,
+	"505 HTTP Version Not Supported"_w,
+	"506 Variant Also Negotiates"_w,
+	"507 Insufficient Storage"_w,
+	"508 Loop Detected"_w,
+	"509 509"_w,
+	"510 Not Extended"_w,
+	"511 Network Authentication Required"_w,
+};
+
+constexpr string_list strings[] = {
+	m0, m1, m2, m3, m4, m5
+};
+
+[[noreturn]] static void bad_response(int n)
+{
+	throw std::runtime_error{ "bad response code: "s + std::to_string(n) };
+}
+
+static const string_view &to_string_other(int status)
+{
+	static const std::unordered_map<int, string_view> string_map = {
+		{ 226, "226 IM Used"_w },
+		{ 451, "451 Unavailable For Legal Reasons"_w },
+	};
+
+	auto status_it = string_map.find(status);
+	if (status_it == string_map.end())
+		bad_response(status);
+	return status_it->second;
+}
+
+static const string_view &to_string_ref(response::status status)
+{
+	const auto status_n = static_cast<int>(status);
+	auto dv = std::div(status_n, 100);
+
+	auto group = dv.quot;
+	if (BOOST_UNLIKELY(group < 1 || group > 5))
+		bad_response(status_n);
+
+	auto &sublist = strings[group];
+	auto subcode = dv.rem;
+	if (BOOST_LIKELY(subcode < sublist.size))
+		return sublist.data[subcode];
+
+	return to_string_other(status_n);
+}
+
+string_view to_string(response::status status)
+{
+	return to_string_ref(status);
 }
 
 enum class response::const_iterator::state
@@ -75,9 +217,9 @@ auto response::const_iterator::operator*() const -> reference
 	switch (s)
 	{
 	case state::HTTP_VERSION:
-		return http_version_string(r->http_version);
+		return to_string_ref(r->http_version);
 	case state::STATUS:
-		return response_status_string(r->code);
+		return to_string_ref(r->code);
 	case state::STATUS_NL:
 		return NL;
 	case state::HEADER_NAME:
@@ -231,7 +373,9 @@ auto response::const_iterator::operator--(int) -> const_iterator
 auto operator==(const response::const_iterator& it1,
 	const response::const_iterator& it2) -> bool
 {
-	BOOST_ASSERT(it1.r == it2.r);
+	if (BOOST_UNLIKELY(it1.r != it2.r))
+		throw std::logic_error{ "response::const_iterator::operator==: "
+			"comparing different containers iterators" };
 
 	if (it1.s != it2.s)
 		return false;
