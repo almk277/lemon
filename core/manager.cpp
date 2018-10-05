@@ -2,6 +2,7 @@
 #include "client.hpp"
 #include "router.hpp"
 #include "modules/testing.hpp"
+#include "modules/static_file.hpp"
 #include <boost/assert.hpp>
 #include <boost/range/counting_range.hpp>
 
@@ -15,6 +16,7 @@ manager::manager(options &&opt):
 	opt{opt} //TODO move?
 {
 	rhman.add(std::make_shared<rh_testing>());
+	rhman.add(std::make_shared<rh_static_file>());
 	rout = std::make_shared<router>(rhman, opt);
 
 	signal_set.async_wait([this](const boost::system::error_code&, int sig)

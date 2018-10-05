@@ -9,6 +9,7 @@ options::options(int, char *[], logger &lg) :
 	log.messages = { log_types::console{}, log_types::severity::debug };
 	log.access = { log_types::console{} };
 
+	routes.push_back({ route::prefix{"/file/"}, "StaticFile" });
 	routes.push_back({ route::prefix{"/"}, "Testing" });
 	lg.debug("options initialized");
 }

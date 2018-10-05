@@ -1,17 +1,17 @@
 #include "testing.hpp"
 #include "message.hpp"
-#include "core/http_error.hpp"
+#include "http_error.hpp"
 #include "string_builder.hpp"
+#include "logger.hpp"
 #include <algorithm>
 #include <numeric>
 
-#include "logger.hpp"
-boost::string_view rh_testing::get_name() const noexcept
+string_view rh_testing::get_name() const noexcept
 {
 	return "Testing"_w;
 }
 
-void rh_testing::get(request& req, response& resp, context& ctx)
+void rh_testing::get(request &req, response &resp, context &ctx)
 {
 	ctx.lg.debug("Handling get...");
 
@@ -46,7 +46,7 @@ void rh_testing::get(request& req, response& resp, context& ctx)
 	finalize(req, resp, ctx);
 }
 
-void rh_testing::post(request& req, response& resp, context& ctx)
+void rh_testing::post(request &req, response &resp, context &ctx)
 {
 	if (req.url.path == "/echo") {
 		resp.body = move(req.body);
@@ -72,17 +72,17 @@ void rh_testing::method(boost::string_view method_name, request &req, response &
 	finalize(req, resp, ctx);
 }
 
-void rh_testing::finalize(request& req, response& resp, context& ctx) const
+void rh_testing::finalize(request &req, response &resp, context &ctx)
 {
 	resp.http_version = req.http_version;
-	resp.code = response::status::OK;
-	resp.headers.emplace_back("Content-Type", "text/plain");
+	resp.headers.emplace_back("Content-Type"_w, "text/plain"_w);
 
 	auto content_length = accumulate(resp.body.begin(), resp.body.end(),
 		0, [](auto init, const auto &chunk)
 		{
 			return init + chunk.size();
 		});
-	resp.headers.emplace_back("Content-Length",
+	resp.headers.emplace_back("Content-Length"_w,
 		string_builder{ ctx.a }.convert(content_length));
+	resp.code = response::status::OK;
 }

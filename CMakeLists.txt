@@ -86,9 +86,11 @@ endfunction()
 
 set(API_SRC
 	api/arena.hpp
+	api/http_error.hpp
 	api/logger.hpp
 	api/message.hpp
 	api/request_handler.hpp
+	api/string.hpp
 	api/string_builder.hpp
 	api/utility.hpp
 )
@@ -97,7 +99,6 @@ set(CORE_SRC
 	core/arena_imp.hpp
 	core/client.cpp
 	core/client.hpp
-	core/http_error.hpp
 	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp
@@ -117,6 +118,7 @@ set(CORE_SRC
 	core/rh_manager.hpp
 	core/router.cpp
 	core/router.hpp
+	core/string_builder.cpp
 	core/task.cpp
 	core/task.hpp
 	core/task_ident.hpp
@@ -124,6 +126,8 @@ set(CORE_SRC
 	core/task_builder.hpp
 )
 set(MODULE_SRC
+	modules/static_file.cpp
+	modules/static_file.hpp
 	modules/testing.cpp
 	modules/testing.hpp
 )
