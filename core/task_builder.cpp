@@ -21,11 +21,14 @@ struct task_builder::results::parse_result_visitor : boost::static_visitor<value
 	auto operator()(const http_error &error) const
 	{
 		it.lg().info("HTTP error ", error.code, " ", error.details);
+		r.data.clear();
+		r.stop = true;
 		return value{ make_error_task(it, error.code) };
 	}
 	auto operator()(parser::incomplete_request) const
 	{
 		r.data.clear();
+		r.stop = true;
 		return value{ it };
 	}
 	auto operator()(const parser::complete_request &result) const
