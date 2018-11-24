@@ -1,0 +1,13 @@
+---
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,readability-*,google-runtime-int,google-global-names-in-headers,google-readability-casting,-readability-braces-around-statements,-hicpp-braces-around-statements'
+CheckOptions:
+  - key:             bugprone-assert-side-effect.AssertMacros
+    value:           'assert,BOOST_ASSERT'
+  - key:             bugprone-dangling-handle.HandleClasses
+    value:           'std::basic_string_view;boost::basic_string_view'
+  - key:             cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value:           '1'
+  - key:             readability-implicit-bool-conversion.AllowPointerConditions
+    value:           '1'
+...
+
