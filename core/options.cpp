@@ -1,7 +1,8 @@
 #include "options.hpp"
+#include "parameters.hpp"
 #include "logger.hpp"
 
-options::options(int, char *[], logger &lg) :
+options::options(const parameters &p, logger &lg) :
 	n_workers(2),
 	listen_port(8080),
 	headers_size(4 * 1024)

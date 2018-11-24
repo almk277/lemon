@@ -61,22 +61,21 @@ struct client::task_visitor : boost::static_visitor<>
 	{
 		cl.run(rt);
 	}
-	auto operator()(const task_result &tr) const
+	auto operator()(const task::result &tr) const
 	{
 		cl.start_send(tr);
 	}
 private:
-	client & cl;
+	client &cl;
 };
 
-client::client(manager &man, socket &&sock) noexcept:
+client::client(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg) noexcept:
 	sock{std::move(sock)},
-	opt{man.get_options()},
-	lg{man.get_logger(), this->sock.remote_endpoint().address()},
-	builder{start_task_id, opt},
+	env{move(env)},
+	lg{lg, this->sock.remote_endpoint().address()},
+	builder{start_task_id, *this->env->opt},
 	next_send_id{start_task_id},
-	send_barrier{sock.get_io_service()},
-	rout{man.get_router()}
+	send_barrier{sock.get_io_service()}
 {
 	lg.info("connection established"_w);
 }
@@ -92,9 +91,9 @@ client::~client()
 	lg.info("connection closed"_w);
 }
 
-void client::make(manager &man, socket &&sock)
+void client::make(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg)
 {
-	auto c = std::allocate_shared<client>(client_allocator, man, std::move(sock));
+	auto c = std::allocate_shared<client>(client_allocator, std::move(sock), move(env), lg);
 	auto it = c->builder.prepare_task(c);
 	c->start_recv(it);
 }
@@ -146,7 +145,7 @@ void client::run(const ready_task &rt) noexcept
 	}));
 }
 
-void client::start_send(const task_result &tr)
+void client::start_send(const task::result &tr)
 {
 	send_barrier.dispatch(make_arena_handler(tr.get_arena(), [this, tr]
 	{
@@ -167,7 +166,7 @@ void client::start_send(const task_result &tr)
 	}));
 }
 
-void client::on_sent(const error_code &ec, const task_result &tr) noexcept
+void client::on_sent(const error_code &ec, const task::result &tr) noexcept
 {
 	try {
 		if (ec) {
@@ -179,7 +178,7 @@ void client::on_sent(const error_code &ec, const task_result &tr) noexcept
 			++next_send_id;
 			if (BOOST_UNLIKELY(!send_q.empty())
 					&& send_q.front().get_id() == next_send_id) {
-				tr.lg().debug("dequeueing task", next_send_id);
+				tr.lg().debug("dequeuing task", next_send_id);
 				start_send(send_q.front());
 				send_q.pop_front();
 			}

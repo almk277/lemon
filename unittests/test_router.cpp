@@ -1,6 +1,7 @@
 #include "router.hpp"
 #include "rh_manager.hpp"
 #include "request_handler.hpp"
+#include "parameters.hpp"
 #include "options.hpp"
 #include "stub_logger.hpp"
 #include <boost/test/unit_test.hpp>
@@ -35,7 +36,7 @@ namespace {
 		const std::shared_ptr<request_handler> h2 = std::make_shared<handler2>();
 		rh_manager man;
 		stub_logger lg;
-		options opt{ 0, nullptr, lg };
+		options opt{ parameters{0, nullptr, lg}, lg };
 	};
 }
 
@@ -43,7 +44,7 @@ namespace {
 	do { \
 		const auto h = r.resolve(path); \
 		BOOST_TEST(h); \
-		BOOST_TEST(h == module); \
+		BOOST_TEST(h == module.get()); \
 	} while(0)
 
 #define  assert_no(r, path) \

@@ -99,6 +99,7 @@ set(CORE_SRC
 	core/arena_imp.hpp
 	core/client.cpp
 	core/client.hpp
+	core/environment.hpp
 	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp
@@ -111,6 +112,7 @@ set(CORE_SRC
 	core/message.cpp
 	core/options.cpp
 	core/options.hpp
+	core/parameters.hpp
 	core/parser.cpp
 	core/parser.hpp
 	core/request_handler.cpp
@@ -118,6 +120,8 @@ set(CORE_SRC
 	core/rh_manager.hpp
 	core/router.cpp
 	core/router.hpp
+	core/server.cpp
+	core/server.hpp
 	core/string_builder.cpp
 	core/task.cpp
 	core/task.hpp

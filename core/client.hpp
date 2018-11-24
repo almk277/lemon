@@ -4,6 +4,7 @@
 #include "task_builder.hpp"
 #include "logger_imp.hpp"
 #include "leak_checked.hpp"
+#include "environment.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -13,7 +14,9 @@
 #include <cstddef>
 #include <memory>
 
+struct environment;
 class manager;
+class server;
 class options;
 class router;
 
@@ -25,35 +28,32 @@ class client:
 public:
 	using socket = boost::asio::ip::tcp::socket;
 
-	client(manager &man, socket &&sock) noexcept;
+	client(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg) noexcept;
 	~client();
 
-	static void make(manager &man, socket &&sock);
+	static void make(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg);
 
-	const options &get_options() const noexcept { return opt; }
 	client_logger &get_logger() noexcept { return lg; }
-	const logger_imp &get_logger() const noexcept { return lg; }
-	std::shared_ptr<const router> get_router() const noexcept { return rout; }
+	const router &get_router() const noexcept { return env->rout; }
 
 private:
 	static constexpr task_ident start_task_id = task::start_id;
 
 	socket sock;
-	const options &opt;
+	const std::shared_ptr<const environment> env;
 	client_logger lg;
 	task_builder builder;
 	task_ident next_send_id;
-	boost::container::list<task_result> send_q;
+	boost::container::list<task::result> send_q;
 	boost::asio::io_service::strand send_barrier;
-	const std::shared_ptr<const router> rout;
 
 	void start_recv(const incomplete_task &it);
 	void on_recv(const boost::system::error_code &ec,
 		         std::size_t bytes_transferred,
 		         const incomplete_task &it) noexcept;
 	void run(const ready_task &rt) noexcept;
-	void start_send(const task_result &tr);
-	void on_sent(const boost::system::error_code &ec, const task_result &tr) noexcept;
+	void start_send(const task::result &tr);
+	void on_sent(const boost::system::error_code &ec, const task::result &tr) noexcept;
 
 	struct task_visitor;
 };

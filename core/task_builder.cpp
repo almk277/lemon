@@ -136,7 +136,7 @@ auto task_builder::make_tasks(const std::shared_ptr<client> &cl,
 }
 
 auto task_builder::make_error_task(incomplete_task it,
-	response::status error) -> task_result
+	response::status error) -> task::result
 {
 	auto t = move(it.t);
 	t->make_error(error);

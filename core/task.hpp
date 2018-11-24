@@ -32,6 +32,8 @@ public:
 		std::shared_ptr<task> t;
 	};
 
+	class result;
+
 	static constexpr ident start_id = 1;
 
 	task(ident id, std::shared_ptr<client> cl) noexcept;
@@ -50,24 +52,23 @@ private:
 	arena_imp a;
 	request req;
 	response resp;
-	const std::shared_ptr<const router> rout;
+	const router &rout;
 
 	friend class task_builder;
-	friend class task_result;
 	friend class ready_task;
 	friend class incomplete_task;
 };
 
-class task_result: public task::ptr
+class task::result: public ptr
 // implements boost::asio::ConstBufferSequence
 {
-	task_result(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
+	result(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
 	friend class task_builder;
 	friend class ready_task;
 
 	struct buffer_adapter
 	{
-		const boost::asio::const_buffer &operator()(string_view s) const noexcept
+		const auto &operator()(string_view s) const noexcept
 		{
 			buffer = { s.data(), s.size() };
 			return buffer;
@@ -76,18 +77,18 @@ class task_result: public task::ptr
 		mutable boost::asio::const_buffer buffer;
 	};
 public:
-	task_result(const task_result&) = default;
-	task_result(task_result&&) = default;
-	task_result &operator=(const task_result&) = default;
-	task_result &operator=(task_result&&) = default;
-	~task_result() = default;
+	result(const result&) = default;
+	result(result&&) = default;
+	result &operator=(const result&) = default;
+	result &operator=(result&&) = default;
+	~result() = default;
 
-	task::ident get_id() const noexcept { return t->id; }
-	bool operator<(const task_result &rhs) const noexcept
+	ident get_id() const noexcept { return t->id; }
+	bool operator<(const result &rhs) const noexcept
 	{
 		return get_id() < rhs.get_id();
 	}
-	bool operator==(const task_result &rhs) const noexcept
+	bool operator==(const result &rhs) const noexcept
 	{
 		return t == rhs.t;
 	}
@@ -111,7 +112,7 @@ public:
 	ready_task &operator=(ready_task&&) = default;
 	~ready_task() = default;
 
-	task_result run() const { t->run(); return { t }; }
+	task::result run() const { t->run(); return { t }; }
 };
 
 class incomplete_task : public task::ptr

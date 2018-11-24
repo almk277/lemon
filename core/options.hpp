@@ -1,31 +1,22 @@
 #pragma once
 
+#include <boost/core/noncopyable.hpp>
+#include <boost/variant/variant.hpp>
 #include <cstdint>
 #include <cstddef>
 #include <string>
 #include <list>
 #include <stdexcept>
-#include <boost/variant/variant.hpp>
+class parameters;
 class logger;
 
-class options /*: noncopyable */ {
+class options: boost::noncopyable {
 public:
-
 	struct error: std::runtime_error
 	{
 		explicit error(const std::string &s):
 			runtime_error("options error: " + s) {}
-		~error() = default;
 	};
-
-	options(int argc, char *argv[], logger &lg);
-	~options() = default;
-
-	unsigned n_workers;
-
-	std::uint16_t listen_port;
-
-	std::size_t headers_size;
 
 	struct log_types
 	{
@@ -40,15 +31,15 @@ public:
 		struct null {};
 		struct console {};
 		struct file { std::string path; };
-		using destination = boost::variant<null, console, file>;
+
 		struct messages_log
 		{
-			destination dest;
-			severity level;
+			boost::variant<console, file> dest;
+			severity level = severity::info;
 		};
 		struct access_log
 		{
-			destination dest;
+			boost::variant<console, file, null> dest;
 		};
 		struct logs
 		{
@@ -56,7 +47,6 @@ public:
 			access_log access;
 		};
 	};
-	log_types::logs log;
 
 	struct route
 	{
@@ -67,5 +57,12 @@ public:
 		boost::variant<equal, prefix, regex> matcher;
 		std::string handler;
 	};
+
+	options(const parameters &p, logger &lg);
+
+	unsigned n_workers;
+	std::uint16_t listen_port;
+	std::size_t headers_size;
+	log_types::logs log;
 	std::list<route> routes;
 };

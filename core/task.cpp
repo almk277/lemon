@@ -7,13 +7,15 @@
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/concept_check.hpp>
 
+BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<task::result::const_iterator>));
+
 static boost::fast_pool_allocator<task,
 	boost::default_user_allocator_malloc_free> task_allocator;
 
 task::task(ident id, std::shared_ptr<client> cl) noexcept:
 	id{id},
 	cl{cl},
-	lg{ cl->get_logger(), id},
+	lg{cl->get_logger(), id},
 	a{lg},
 	req{a},
 	resp{a},
@@ -36,9 +38,9 @@ void task::run()
 {
 	const auto path = req.url.path;
 	lg.debug("resolving: ", path);
-	auto h = rout->resolve(path);
+	auto h = rout.resolve(path);
 	try {
-		if (BOOST_LIKELY(static_cast<bool>(h))) {
+		if (BOOST_LIKELY(h)) {
 			lg.debug("handler found: ", h->get_name());
 			handle_request(*h);
 			lg.debug("handler finished: ", h->get_name());
@@ -93,5 +95,3 @@ void task::make_error(response::status code) noexcept
 	auto clen_str = string_builder{ a }.convert(resp.body.front().length());
 	resp.headers.emplace_back("Content-Length"_w, clen_str);
 }
-
-BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<task_result::const_iterator>));

@@ -19,7 +19,7 @@ public:
 	class results
 	{
 	public:
-		using value = boost::variant<incomplete_task, ready_task, task_result>;
+		using value = boost::variant<incomplete_task, ready_task, task::result>;
 
 		class iterator : public boost::iterator_facade<
 			iterator, value, std::input_iterator_tag, value>
@@ -68,7 +68,7 @@ public:
 	auto get_memory(const incomplete_task &it) -> boost::asio::mutable_buffer;
 	auto make_tasks(const std::shared_ptr<client> &cl, const incomplete_task &it,
 		std::size_t bytes_recv, bool stop) -> results;
-	static auto make_error_task(incomplete_task it, response::status error) -> task_result;
+	static auto make_error_task(incomplete_task it, response::status error) ->task::result;
 
 private:
 	parser p;

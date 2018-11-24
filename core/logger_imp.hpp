@@ -84,9 +84,19 @@ struct common_logger: logger_imp
 	void insert_attributes() override {}
 };
 
-struct client_logger: common_logger
+struct server_logger: common_logger
 {
-	client_logger(const common_logger&, boost::asio::ip::address address) noexcept:
+	explicit server_logger(std::uint16_t port) noexcept:
+		port{port}
+	{}
+
+	const std::uint16_t port;
+};
+
+struct client_logger: server_logger
+{
+	client_logger(const server_logger &logger, boost::asio::ip::address address) noexcept:
+		server_logger{logger.port},
 		address{std::move(address)}
 	{}
 

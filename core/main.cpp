@@ -1,5 +1,5 @@
 #include "logs.hpp"
-#include "options.hpp"
+#include "parameters.hpp"
 #include "manager.hpp"
 #include "logger_imp.hpp"
 #include <iostream>
@@ -10,9 +10,8 @@ int main(int argc, char *argv[])
 	try {
 		logs::preinit();
 		common_logger lg;
-		options opt{ argc, argv, lg };
-		logs::init(opt);
-		manager m{std::move(opt)};
+		const parameters params{ argc, argv, lg };
+		manager m{params};
 		m.run();
 	} catch(std::exception &error) {
 		std::cerr << error.what() << std::endl;
