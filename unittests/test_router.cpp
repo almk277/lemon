@@ -29,7 +29,7 @@ namespace {
 		{
 			man.add(h1);
 			man.add(h2);
-			opt.routes.clear();
+			routes.clear();
 		}
 
 		const std::shared_ptr<request_handler> h1 = std::make_shared<handler1>();
@@ -37,6 +37,7 @@ namespace {
 		rh_manager man;
 		stub_logger lg;
 		options opt{ parameters{0, nullptr, lg}, lg };
+		options::route_list &routes = opt.servers.at(0).routes;
 	};
 }
 
@@ -56,15 +57,15 @@ BOOST_FIXTURE_TEST_SUITE(router_tests, router_fixture)
 
 BOOST_AUTO_TEST_CASE(test_non_existent_module)
 {
-	opt.routes.push_back({ options::route::equal{"path"}, "bad_name" });
-	BOOST_CHECK_THROW(router(man, opt), std::exception);
+	routes.push_back({ options::route::equal{"path"}, "bad_name" });
+	BOOST_CHECK_THROW(router(man, routes), std::exception);
 }
 
 BOOST_AUTO_TEST_CASE(test_match_exact)
 {
-	opt.routes.push_back({ options::route::equal{"path1"}, "h1" });
-	opt.routes.push_back({ options::route::equal{"path2"}, "h2" });
-	const router r{ man, opt };
+	routes.push_back({ options::route::equal{"path1"}, "h1" });
+	routes.push_back({ options::route::equal{"path2"}, "h2" });
+	const router r{ man, routes };
 
 	assert_yes(r, "path1", h1);
 	assert_yes(r, "path2", h2);
@@ -75,9 +76,9 @@ BOOST_AUTO_TEST_CASE(test_match_exact)
 
 BOOST_AUTO_TEST_CASE(test_match_prefix)
 {
-	opt.routes.push_back({ options::route::prefix{"path1"}, "h1" });
-	opt.routes.push_back({ options::route::prefix{"path2"}, "h2" });
-	const router r{ man, opt };
+	routes.push_back({ options::route::prefix{"path1"}, "h1" });
+	routes.push_back({ options::route::prefix{"path2"}, "h2" });
+	const router r{ man, routes };
 
 	assert_yes(r, "path1", h1);
 	assert_yes(r, "path10", h1);
@@ -90,9 +91,9 @@ BOOST_AUTO_TEST_CASE(test_match_prefix)
 
 BOOST_AUTO_TEST_CASE(test_match_regex)
 {
-	opt.routes.push_back({ options::route::regex{"path[0-9]+"}, "h1" });
-	opt.routes.push_back({ options::route::regex{"v1|v2|[abc]"}, "h2" });
-	const router r{ man, opt };
+	routes.push_back({ options::route::regex{"path[0-9]+"}, "h1" });
+	routes.push_back({ options::route::regex{"v1|v2|[abc]"}, "h2" });
+	const router r{ man, routes };
 
 	assert_yes(r, "path0", h1);
 	assert_yes(r, "path9", h1);

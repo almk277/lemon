@@ -1,18 +1,18 @@
 #pragma once
 
 #include "utility.hpp"
+#include "options.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <vector>
 #include <memory>
 #include <utility>
 struct request_handler;
-class options;
 class rh_manager;
 
 class router: boost::noncopyable
 {
 public:
-	explicit router(const rh_manager &rhman, const options &opts);
+	explicit router(const rh_manager &rhman, const options::route_list &routes);
 
 	request_handler *resolve(string_view path) const;
 	

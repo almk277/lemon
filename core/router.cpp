@@ -58,10 +58,10 @@ struct match_builder: boost::static_visitor<std::unique_ptr<router::matcher>>
 	}
 };
 
-router::router(const rh_manager &rhman, const options &opts)
+router::router(const rh_manager &rhman, const options::route_list &routes)
 {
-	matchers.reserve(opts.routes.size());
-	for (auto &r: opts.routes) {
+	matchers.reserve(routes.size());
+	for (auto &r: routes) {
 		auto rh = rhman[r.handler];
 		if (!rh)
 			throw options::error(r.handler + ": module not found");

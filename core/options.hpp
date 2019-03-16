@@ -58,11 +58,18 @@ public:
 		std::string handler;
 	};
 
+	using route_list = std::list<route>;
+
+	struct server
+	{
+		std::uint16_t listen_port;
+		route_list routes;
+	};
+
 	options(const parameters &p, logger &lg);
 
 	unsigned n_workers;
-	std::uint16_t listen_port;
 	std::size_t headers_size;
 	log_types::logs log;
-	std::list<route> routes;
+	std::vector<server> servers;
 };

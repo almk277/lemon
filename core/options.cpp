@@ -2,15 +2,22 @@
 #include "parameters.hpp"
 #include "logger.hpp"
 
-options::options(const parameters &p, logger &lg) :
+options::options(const parameters &p, logger &lg):
 	n_workers(2),
-	listen_port(8080),
-	headers_size(4 * 1024)
+	headers_size(4 * 1024),
+	log{
+		{log_types::console{}, log_types::severity::debug},
+		{log_types::console{}}
+	},
+	servers{
+		{
+			8080,
+			{
+				{route::prefix{"/file/"}, "StaticFile"},
+				{route::prefix{"/"}, "Testing"},
+			}
+		},
+	}
 {
-	log.messages = { log_types::console{}, log_types::severity::debug };
-	log.access = { log_types::console{} };
-
-	routes.push_back({ route::prefix{"/file/"}, "StaticFile" });
-	routes.push_back({ route::prefix{"/"}, "Testing" });
 	lg.debug("options initialized");
 }

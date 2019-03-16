@@ -26,6 +26,7 @@ public:
 		boost::log::attribute_name lazy_message;
 		boost::log::attribute_name time;
 		boost::log::attribute_name severity;
+		boost::log::attribute_name server;
 		boost::log::attribute_name task;
 		boost::log::attribute_name address;
 		boost::log::attribute_name module;
@@ -89,6 +90,8 @@ struct server_logger: common_logger
 	explicit server_logger(std::uint16_t port) noexcept:
 		port{port}
 	{}
+
+	void insert_attributes() override;
 
 	const std::uint16_t port;
 };

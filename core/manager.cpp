@@ -1,9 +1,9 @@
 #include "manager.hpp"
 #include "options.hpp"
+#include "server.hpp"
 #include "client.hpp"
 #include "logs.hpp"
 #include "rh_manager.hpp"
-#include "environment.hpp"
 #include "modules/testing.hpp"
 #include "modules/static_file.hpp"
 #include <boost/assert.hpp>
@@ -31,12 +31,13 @@ void manager::init()
 	auto opts = std::make_shared<options>(params, lg);
 	logs::init(*opts);
 	n_workers = opts->n_workers;
-	auto rhman = std::make_shared<rh_manager>();
-	rhman->add(std::make_shared<rh_testing>());
-	rhman->add(std::make_shared<rh_static_file>());
-	auto env = std::make_shared<environment>(opts, rhman);
 
-	srv.push_back(std::make_unique<server>(service, opts->listen_port, env));
+	rh_manager rhman;
+	rhman.add(std::make_shared<rh_testing>());
+	rhman.add(std::make_shared<rh_static_file>());
+
+	for (auto &s: opts->servers)
+		srv.push_back(std::make_unique<server>(service, opts, s, rhman));
 }
 
 void manager::run()

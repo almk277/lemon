@@ -61,6 +61,7 @@ static logger_imp::severity convert(options::log_types::severity s)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_lazymessage, logger_imp::attr_name.lazy_message,
 	logger_imp::message_type)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_severity, logger_imp::attr_name.severity, logger::severity)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_server, logger_imp::attr_name.server, std::uint16_t)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_taskid, logger_imp::attr_name.task, task_ident)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_address, logger_imp::attr_name.address,
 	boost::asio::ip::address)
@@ -110,6 +111,10 @@ static bool add_messages_sink(const options::log_types::messages_log &log)
 			!has_attr(kw_time),
 		keywords::format = expressions::stream
 			<< kw_severity
+			<< if_(has_attr(kw_server))
+			[
+				expressions::stream << "$" << kw_server << " "
+			]
 			<< if_(has_attr(kw_address))
 			[
 				expressions::stream << kw_address << " "
@@ -136,6 +141,7 @@ static bool add_access_sink(const options::log_types::access_log &log)
 			has_attr(kw_time),
 		keywords::format = expressions::stream
 			<< format_date_time(kw_time, "%y-%m-%d %T") << " "
+			<< kw_server << " "
 			<< kw_address << " "
 			<< kw_lazymessage
 		), log.dest);

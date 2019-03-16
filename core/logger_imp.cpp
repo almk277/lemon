@@ -52,9 +52,16 @@ void logger_imp::finalize()
 	lg.push_record(std::move(rec));
 }
 
-void client_logger::insert_attributes()
+void server_logger::insert_attributes()
 {
 	common_logger::insert_attributes();
+
+	attributes().insert(attr_name.server, make_attribute_value(port));
+}
+
+void client_logger::insert_attributes()
+{
+	server_logger::insert_attributes();
 
 	attributes().insert(attr_name.address, make_attribute_value(address));
 }
@@ -72,6 +79,7 @@ logger_imp::attr_name_type::attr_name_type():
 	lazy_message{"LazyMessage"},
 	time{"TimeStamp"},
 	severity{"Severity"},
+	server{"Server"},
 	task{"TaskID"},
 	address{"ClientAddress"},
 	module{"Module"}

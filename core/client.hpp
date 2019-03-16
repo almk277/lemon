@@ -4,7 +4,6 @@
 #include "task_builder.hpp"
 #include "logger_imp.hpp"
 #include "leak_checked.hpp"
-#include "environment.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -14,9 +13,6 @@
 #include <cstddef>
 #include <memory>
 
-struct environment;
-class manager;
-class server;
 class options;
 class router;
 
@@ -28,19 +24,22 @@ class client:
 public:
 	using socket = boost::asio::ip::tcp::socket;
 
-	client(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg) noexcept;
+	client(socket &&sock, std::shared_ptr<const options> opt,
+		std::shared_ptr<const router> router, server_logger &lg) noexcept;
 	~client();
 
-	static void make(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg);
+	static void make(socket &&sock, std::shared_ptr<const options> opt,
+		std::shared_ptr<const router> rout, server_logger &lg);
 
 	client_logger &get_logger() noexcept { return lg; }
-	const router &get_router() const noexcept { return env->rout; }
+	const router &get_router() const noexcept { return *rout; }
 
 private:
 	static constexpr task_ident start_task_id = task::start_id;
 
 	socket sock;
-	const std::shared_ptr<const environment> env;
+	const std::shared_ptr<const options> opt;
+	const std::shared_ptr<const router> rout;
 	client_logger lg;
 	task_builder builder;
 	task_ident next_send_id;

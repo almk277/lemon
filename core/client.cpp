@@ -1,5 +1,4 @@
 #include "client.hpp"
-#include "manager.hpp"
 #include <boost/asio/write.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/range/algorithm/find.hpp>
@@ -69,11 +68,13 @@ private:
 	client &cl;
 };
 
-client::client(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg) noexcept:
+client::client(socket &&sock, std::shared_ptr<const options> opt,
+	std::shared_ptr<const router> router, server_logger &lg) noexcept:
 	sock{std::move(sock)},
-	env{move(env)},
+	opt(std::move(opt)),
+	rout(std::move(router)),
 	lg{lg, this->sock.remote_endpoint().address()},
-	builder{start_task_id, *this->env->opt},
+	builder{start_task_id, *this->opt},
 	next_send_id{start_task_id},
 	send_barrier{sock.get_io_service()}
 {
@@ -91,9 +92,11 @@ client::~client()
 	lg.info("connection closed"_w);
 }
 
-void client::make(socket &&sock, std::shared_ptr<const environment> env, server_logger &lg)
+void client::make(socket &&sock, std::shared_ptr<const options> opt,
+	std::shared_ptr<const router> rout, server_logger &lg)
 {
-	auto c = std::allocate_shared<client>(client_allocator, std::move(sock), move(env), lg);
+	auto c = std::allocate_shared<client>(client_allocator, std::move(sock),
+		move(opt), move(rout), lg);
 	auto it = c->builder.prepare_task(c);
 	c->start_recv(it);
 }

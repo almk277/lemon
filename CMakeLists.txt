@@ -99,7 +99,6 @@ set(CORE_SRC
 	core/arena_imp.hpp
 	core/client.cpp
 	core/client.hpp
-	core/environment.hpp
 	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp

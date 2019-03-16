@@ -1,7 +1,6 @@
 #pragma once
 
 #include "logger_imp.hpp"
-#include "server.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
@@ -10,8 +9,7 @@
 #include <thread>
 
 class parameters;
-class options;
-class router;
+class server;
 
 class manager: boost::noncopyable
 {
