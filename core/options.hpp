@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/core/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
 #include <boost/variant/variant.hpp>
 #include <cstdint>
 #include <cstddef>
@@ -68,8 +69,10 @@ public:
 
 	options(const parameters &p, logger &lg);
 
-	unsigned n_workers;
+	boost::optional<unsigned> n_workers;
 	std::size_t headers_size;
 	log_types::logs log;
 	std::vector<server> servers;
 };
+
+bool operator==(const options::server &lhs, const options::server &rhs);

@@ -16,7 +16,9 @@ public:
 		const options::server &server_opt, const rh_manager &rhman);
 	~server();
 
-	void run();
+	const options::server &get_options() const { return server_opt; }
+
+	server_logger lg;
 
 private:
 	using tcp = boost::asio::ip::tcp;
@@ -26,6 +28,6 @@ private:
 	tcp::acceptor acceptor;
 	tcp::socket sock;
 	const std::shared_ptr<const options> global_opt;
+	const options::server &server_opt;
 	const std::shared_ptr<const router> rout;
-	server_logger lg;
 };

@@ -95,6 +95,7 @@ set(API_SRC
 	api/utility.hpp
 )
 set(CORE_SRC
+	core/algorithm.hpp
 	core/arena.cpp
 	core/arena_imp.hpp
 	core/client.cpp

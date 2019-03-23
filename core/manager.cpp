@@ -1,74 +1,192 @@
 #include "manager.hpp"
 #include "options.hpp"
 #include "server.hpp"
-#include "client.hpp"
 #include "logs.hpp"
 #include "rh_manager.hpp"
+#include "algorithm.hpp"
 #include "modules/testing.hpp"
 #include "modules/static_file.hpp"
 #include <boost/assert.hpp>
-#include <boost/range/counting_range.hpp>
+#include <boost/range/adaptor/filtered.hpp>
+#include <stdexcept>
+#include <set>
+
+struct finish_worker: std::exception
+{
+	const char *what() const override { return "finish_worker"; }
+};
+
+static unsigned n_workers_default()
+{
+	auto n_cores = std::thread::hardware_concurrency();
+	return n_cores > 0 ? n_cores : 2;
+}
 
 manager::manager(const parameters &params):
-	work{service},
-	signal_set{service, SIGTERM, SIGINT},
-	params(params)
+	master_work{master_srv},
+	worker_work{worker_srv},
+	quit_signals{master_srv, SIGTERM, SIGINT},
+	params{params}
 {
+	quit_signals.async_wait([this](const boost::system::error_code&, int sig)
+	{
+		lg.info("caught termination signal #", sig);
+		worker_srv.stop();
+		if (workers.empty())
+			master_srv.stop();
+	});
+
 	init();
 
-	lg.debug("manager created");
+	lg.trace("manager created");
 }
 
 manager::~manager()
 {
-	lg.debug("manager destroyed");
+	lg.trace("manager destroyed");
+}
+
+void manager::run()
+{
+	lg.trace("manager started");
+
+	master_srv.run();
+
+	lg.trace("manager finished");
+}
+
+void manager::reinit()
+{
+	lg.trace("manager reinit");
+
+	master_srv.post([this] { init(); });
 }
 
 void manager::init()
 {
 	lg.debug("initializing manager");
 
-	auto opts = std::make_shared<options>(params, lg);
-	logs::init(*opts);
-	n_workers = opts->n_workers;
+	std::shared_ptr<options> opts;
+
+	try {
+		opts = std::make_shared<options>(params, lg);
+		if (opts->servers.empty())
+			throw std::runtime_error("no servers configured");
+	} catch (std::exception& e) {
+		lg.error("init: ", e.what());
+		lg.warning("init: reconfiguration failed, fallback");
+	}
+
+	if (opts) {
+		logs::init(*opts);
+		init_servers(opts);
+		init_workers(opts);
+	}
+}
+
+void manager::init_servers(const std::shared_ptr<const options> &opts)
+{
+	lg.trace("init_servers");
 
 	rh_manager rhman;
 	rhman.add(std::make_shared<rh_testing>());
 	rhman.add(std::make_shared<rh_static_file>());
 
-	for (auto &s: opts->servers)
-		srv.push_back(std::make_unique<server>(service, opts, s, rhman));
-}
-
-void manager::run()
-{
-	BOOST_ASSERT(n_workers > 0);
-
-	signal_set.async_wait([this](const boost::system::error_code&, int sig)
+	std::set<decltype(options::server::listen_port)> running_servers;
+	for (auto it = srv.begin(); it != srv.end();)
 	{
-		lg.info("caught termination signal #", sig);
-		service.stop();
-	});
-	for (auto &s : srv)
-		s->run();
+		auto &server = *it;
+		auto server_ok = contains(opts->servers, server->get_options());
+		if (server_ok) {
+			running_servers.insert(server->get_options().listen_port);
+			++it;
+		} else {
+			server->lg.trace("server not in config");
+			it = srv.erase(it);
+		}
+	}
 
-	workers.reserve(n_workers);
-	for (auto i: boost::counting_range(1u, n_workers))
-		workers.emplace_back([this, i] { run_worker(i); });
-
-	run_worker(0);
-
-	lg.debug("stopping threads...");
-	for (auto &t: workers)
-		t.join();
-	lg.debug("threads stopped");
+	auto not_running = [&running_servers](const auto &opt)
+	{
+		return !contains(running_servers, opt.listen_port);
+	};
+	for (auto &s : opts->servers | boost::adaptors::filtered(not_running))
+		srv.push_back(std::make_unique<server>(worker_srv, opts, s, rhman));
 }
 
-void manager::run_worker(unsigned n) noexcept
+void manager::init_workers(const std::shared_ptr<const options> &opts)
+{
+	lg.trace("init_workers");
+
+	const auto current_n_workers = n_workers;
+	const auto required_n_workers = opts->n_workers.value_or_eval(n_workers_default);
+	lg.trace("current worker number: ", current_n_workers, ", required: ", required_n_workers);
+
+	BOOST_ASSERT(required_n_workers > 0);
+
+	for (auto i = current_n_workers; i < required_n_workers; ++i)
+		add_worker();
+	for (auto i = current_n_workers; i > required_n_workers; --i)
+		remove_worker();
+
+	n_workers = required_n_workers;
+}
+
+void manager::add_worker()
+{
+	lg.trace("add worker");
+
+	auto worker = std::thread{ [this] { run_worker(); } };
+	auto id = worker.get_id();
+	BOOST_ASSERT(workers.find(id) == workers.end());
+	workers[id] = move(worker);
+}
+
+void manager::remove_worker()
+{
+	lg.trace("remove worker");
+
+	BOOST_ASSERT(!workers.empty());
+	worker_srv.post([] { throw finish_worker{}; });
+}
+
+void manager::run_worker() noexcept
 {
 	common_logger lg;
+	auto n = std::this_thread::get_id();
 
 	lg.debug("started worker thread #", n);
-	service.run();
+
+	while (!worker_srv.stopped()) {
+		try {
+			worker_srv.run();
+		} catch (finish_worker&) {
+			break;
+		} catch (std::exception &e) {
+			lg.error(e.what());
+		} catch (...) {
+			lg.error("unknown worker error");
+		}
+	}
+
 	lg.debug("finished worker thread #", n);
+
+	master_srv.post([this, n] { finalize_worker(n); });
+}
+
+void manager::finalize_worker(std::thread::id id)
+{
+	lg.debug("finalize worker #", id);
+
+	auto it = workers.find(id);
+	if (it == workers.end()) {
+		lg.warning("finalization: worker #", id, " not found");
+	} else {
+		it->second.join();
+		workers.erase(it);
+		lg.trace("finalized worker #", id, ", ", workers.size(), " workers left");
+
+		if (worker_srv.stopped() && workers.empty())
+			master_srv.stop();
+	}
 }
