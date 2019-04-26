@@ -1,27 +1,10 @@
 #include "options.hpp"
-#include "parameters.hpp"
-#include "logger.hpp"
+#include "config.hpp"
 #include <tuple>
+#include <unordered_map>
 
-options::options(const parameters &p, logger &lg):
-	n_workers{2},
-	headers_size{4 * 1024},
-	log{
-		{log_types::console{}, log_types::severity::debug},
-		{log_types::console{}}
-	},
-	servers{
-		{
-			8080,
-			{
-				{route::prefix{"/file/"}, "StaticFile"},
-				{route::prefix{"/"}, "Testing"},
-			}
-		}
-	}
-{
-	lg.debug("options initialized");
-}
+using std::string;
+using int_ = table::value::int_;
 
 static bool operator==(const options::route::equal& lhs, const options::route::equal& rhs)
 {
@@ -48,4 +31,86 @@ bool operator==(const options::server &lhs, const options::server &rhs)
 {
 	auto tie = [](const auto &s) { return std::tie(s.listen_port, s.routes); };
 	return tie(lhs) == tie(rhs);
+}
+
+namespace
+{
+decltype(options::route::matcher) parse_route(const string &s)
+{
+	if (s.at(0) == '=')
+		return options::route::equal{ s.substr(1) };
+	if (s.at(0) == '~')
+		return options::route::regex{ s.substr(1) };
+	return options::route::prefix{ s };
+}
+
+decltype(options::log_types::messages_log::dest) parse_msg_dest(const string &s)
+{
+	if (s == "console")
+		return options::log_types::console{};
+	return options::log_types::file{ s };
+}
+
+decltype(options::log_types::access_log::dest) parse_access_dest(const string &s)
+{
+	if (s == "null")
+		return options::log_types::null{};
+	if (s == "console")
+		return options::log_types::console{};
+	return options::log_types::file{ s };
+}
+
+options::log_types::severity parse_severity(const string &s)
+{
+	using severity = options::log_types::severity;
+	static const std::unordered_map<string, severity> severities = {
+		{ "error",   severity::error },
+		{ "warning", severity::warning },
+		{ "info",    severity::info },
+		{ "debug",   severity::debug },
+		{ "trace",   severity::trace },
+	};
+
+	auto it = severities.find(s);
+	if (it == severities.end())
+		throw options::error{ "unknown severity: " + s };
+	return it->second;
+}
+}
+
+options::options(const table &config)
+{
+	auto &n_workers_it = config["workers"];
+	if (n_workers_it)
+		n_workers = n_workers_it.as<int_>();
+
+	auto &headers_size_it = config["headers_size"];
+	if (headers_size_it)
+		headers_size = headers_size_it.as<int_>();
+
+	auto &log_messages_it = config["log.messages"];
+	if (log_messages_it)
+		log.messages.dest = parse_msg_dest(log_messages_it.as<string>());
+
+	auto &log_level_it = config["log.level"];
+	if (log_level_it)
+		log.messages.level = parse_severity(log_level_it.as<string>());
+
+	auto &log_access_it = config["log.access"];
+	if (log_access_it)
+		log.access.dest = parse_access_dest(log_access_it.as<string>());
+
+	for (auto &srv_val : config.get_all("server")) {
+		auto &srv = srv_val->as<table>();
+		servers.emplace_back();
+		auto &s = servers.back(); //TODO c++17
+		s.listen_port = srv["listen"].as<int_>();
+		auto &routes = srv["route"].as<table>();
+		for (auto &route : routes) {
+			options::route r{ parse_route(route.key()), route.as<string>() };
+			s.routes.push_back(std::move(r));
+		}
+	}
+
+	//TODO check unknown keys
 }

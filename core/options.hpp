@@ -8,10 +8,10 @@
 #include <string>
 #include <list>
 #include <stdexcept>
-class parameters;
-class logger;
+class table;
 
-class options: boost::noncopyable {
+class options: boost::noncopyable
+{
 public:
 	struct error: std::runtime_error
 	{
@@ -63,15 +63,18 @@ public:
 
 	struct server
 	{
-		std::uint16_t listen_port;
+		std::uint16_t listen_port = 80;
 		route_list routes;
 	};
 
-	options(const parameters &p, logger &lg);
+	explicit options(const table &config);
 
 	boost::optional<unsigned> n_workers;
-	std::size_t headers_size;
-	log_types::logs log;
+	std::size_t headers_size = 4 * 1024;
+	log_types::logs log = {
+		{ log_types::console{}, log_types::severity::debug },
+		{ log_types::console{} }
+	};
 	std::vector<server> servers;
 };
 

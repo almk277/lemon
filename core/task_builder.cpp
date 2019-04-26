@@ -102,11 +102,13 @@ auto task_builder::results::make_ready_task(const std::shared_ptr<client> &cl,
 	return { complete_task };
 }
 
-task_builder::task_builder(task::ident start_id, const options &opt) noexcept:
+task_builder::task_builder(task::ident start_id, const options &opt):
 	opt{opt},
 	task_id{start_id}
 {
-	BOOST_ASSERT(OPTIMUM_BUF_SIZE <= opt.headers_size);
+	//TODO verify settings on load
+	if (opt.headers_size < OPTIMUM_BUF_SIZE)
+		throw std::runtime_error{ "headers_size too small: " + std::to_string(opt.headers_size) };
 }
 
 auto task_builder::prepare_task(const std::shared_ptr<client> &cl) -> incomplete_task

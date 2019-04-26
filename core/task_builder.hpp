@@ -62,7 +62,7 @@ public:
 		struct parse_result_visitor;
 	};
 
-	task_builder(task::ident start_id, const options &opt) noexcept;
+	task_builder(task::ident start_id, const options &opt);
 
 	auto prepare_task(const std::shared_ptr<client> &cl) -> incomplete_task;
 	auto get_memory(const incomplete_task &it) -> boost::asio::mutable_buffer;

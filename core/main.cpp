@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 		manager m{params};
 		m.run();
 	} catch(std::exception &error) {
-		std::cerr << error.what() << std::endl;
+		std::cerr << argv[0] << ": " << error.what() << std::endl;
 		return 1;
 	}
 }

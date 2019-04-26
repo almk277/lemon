@@ -5,6 +5,7 @@ include(CTest)
 set(LEMON_LOG_LEVEL 3 CACHE STRING "maximal supported log level: from 1 (error) to 5 (trace)")
 set_property(CACHE LEMON_LOG_LEVEL PROPERTY STRINGS 1 2 3 4 5)
 option(LEMON_NO_ACCESS_LOG "disable access.log")
+set(LEMON_CONFIG_PATH "./lemon.ini" CACHE FILEPATH "config file path")
 set(BOOST_ROOT "" CACHE PATH "specific boost installation path")
 set(HTTP_PARSER_URL https://github.com/nodejs/http-parser/archive/v2.7.1.zip
 	CACHE STRING "http-parser source archive (local or remote) or directory")
@@ -86,6 +87,7 @@ endfunction()
 
 set(API_SRC
 	api/arena.hpp
+	api/config.hpp
 	api/http_error.hpp
 	api/logger.hpp
 	api/message.hpp
@@ -100,6 +102,9 @@ set(CORE_SRC
 	core/arena_imp.hpp
 	core/client.cpp
 	core/client.hpp
+	core/config.cpp
+	core/config_parser.cpp
+	core/config_parser.hpp
 	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp
@@ -148,6 +153,7 @@ target_link_libraries(lemon PRIVATE
 	http_parser Boost::boost Boost::system Boost::log)
 enable_sanitizer(lemon)
 target_compile_definitions(lemon PRIVATE LEMON_LOG_LEVEL=${LEMON_LOG_LEVEL})
+target_compile_definitions(lemon PRIVATE LEMON_CONFIG_PATH=${LEMON_CONFIG_PATH})
 if(LEMON_NO_ACCESS_LOG)
 	target_compile_definitions(lemon PRIVATE LEMON_NO_ACCESS_LOG)
 endif()
@@ -158,16 +164,21 @@ if(BUILD_TESTING)
 		unittests/stub_logger.hpp
 		unittests/test_main.cpp
 		unittests/test_arena.cpp
+		unittests/test_config.cpp
+		unittests/test_config.hpp
+		unittests/test_config_parser.cpp
 		unittests/test_parser.cpp
 		unittests/test_resp_it.cpp
 		unittests/test_router.cpp
 		core/arena.cpp
+		core/config.cpp
+		core/config_parser.cpp
 		core/message.cpp
 		core/options.cpp
-		core/rh_manager.cpp
-		core/router.cpp
 		core/parser.cpp
 		core/request_handler.cpp
+		core/rh_manager.cpp
+		core/router.cpp
 	)
 
 	add_executable(test_lemon ${TEST_SRC})

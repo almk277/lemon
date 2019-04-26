@@ -4,12 +4,18 @@
 #include "logs.hpp"
 #include "rh_manager.hpp"
 #include "algorithm.hpp"
+#include "config_parser.hpp"
+#include "config.hpp"
 #include "modules/testing.hpp"
 #include "modules/static_file.hpp"
 #include <boost/assert.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <stdexcept>
 #include <set>
+
+#ifndef LEMON_CONFIG_PATH
+# define LEMON_CONFIG_PATH ./lemon.ini
+#endif
 
 struct finish_worker: std::exception
 {
@@ -69,11 +75,14 @@ void manager::init()
 	std::shared_ptr<options> opts;
 
 	try {
-		opts = std::make_shared<options>(params, lg);
+		auto config = config::parse_file(BOOST_STRINGIZE(LEMON_CONFIG_PATH));
+		opts = std::make_shared<options>(config);
 		if (opts->servers.empty())
 			throw std::runtime_error("no servers configured");
 	} catch (std::exception& e) {
 		lg.error("init: ", e.what());
+		if (srv.empty())
+			throw;
 		lg.warning("init: reconfiguration failed, fallback");
 	}
 

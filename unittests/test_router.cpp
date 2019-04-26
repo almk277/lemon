@@ -1,9 +1,7 @@
 #include "router.hpp"
 #include "rh_manager.hpp"
 #include "request_handler.hpp"
-#include "parameters.hpp"
 #include "options.hpp"
-#include "stub_logger.hpp"
 #include <boost/test/unit_test.hpp>
 
 namespace {
@@ -35,9 +33,8 @@ namespace {
 		const std::shared_ptr<request_handler> h1 = std::make_shared<handler1>();
 		const std::shared_ptr<request_handler> h2 = std::make_shared<handler2>();
 		rh_manager man;
-		stub_logger lg;
-		options opt{ parameters{0, nullptr, lg}, lg };
-		options::route_list &routes = opt.servers.at(0).routes;
+		decltype(options::servers) servers = { {} };
+		options::route_list &routes = servers.at(0).routes;
 	};
 }
 
