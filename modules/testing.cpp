@@ -78,7 +78,7 @@ void rh_testing::finalize(request &req, response &resp, context &ctx)
 	resp.headers.emplace_back("Content-Type"_w, "text/plain"_w);
 
 	auto content_length = accumulate(resp.body.begin(), resp.body.end(),
-		0, [](auto init, const auto &chunk)
+		decltype(resp.body.front().size()){}, [](auto init, const auto &chunk)
 		{
 			return init + chunk.size();
 		});

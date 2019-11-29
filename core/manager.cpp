@@ -75,7 +75,9 @@ void manager::init()
 	std::shared_ptr<options> opts;
 
 	try {
-		auto config = config::parse_file(BOOST_STRINGIZE(LEMON_CONFIG_PATH));
+		auto config_path = boost::filesystem::path{ BOOST_STRINGIZE(LEMON_CONFIG_PATH) };
+		auto config_file = std::make_shared<config::file>(config_path);
+		auto config = parse(config_file);
 		opts = std::make_shared<options>(config);
 		if (opts->servers.empty())
 			throw std::runtime_error("no servers configured");

@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 using std::string;
-using int_ = table::value::int_;
 
 static bool operator==(const options::route::equal& lhs, const options::route::equal& rhs)
 {
@@ -78,15 +77,17 @@ options::log_types::severity parse_severity(const string &s)
 }
 }
 
-options::options(const table &config)
+options::options(const config::table &config)
 {
+	using namespace config;
+
 	auto &n_workers_it = config["workers"];
 	if (n_workers_it)
-		n_workers = n_workers_it.as<int_>();
+		n_workers = n_workers_it.as<integer>();
 
 	auto &headers_size_it = config["headers_size"];
 	if (headers_size_it)
-		headers_size = headers_size_it.as<int_>();
+		headers_size = headers_size_it.as<integer>();
 
 	auto &log_messages_it = config["log.messages"];
 	if (log_messages_it)
@@ -104,7 +105,7 @@ options::options(const table &config)
 		auto &srv = srv_val->as<table>();
 		servers.emplace_back();
 		auto &s = servers.back(); //TODO c++17
-		s.listen_port = srv["listen"].as<int_>();
+		s.listen_port = srv["listen"].as<integer>();
 		auto &routes = srv["route"].as<table>();
 		for (auto &route : routes) {
 			options::route r{ parse_route(route.key()), route.as<string>() };

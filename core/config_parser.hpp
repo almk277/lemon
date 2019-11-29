@@ -1,22 +1,49 @@
 #pragma once
-#include "utility.hpp"
-#include <string>
-#include <stdexcept>
-#include <cstddef>
-
-class table;
+#include "config.hpp"
+#include <boost/filesystem/path.hpp>
+#include <memory>
+#include <vector>
 
 namespace config
 {
-class error: public std::runtime_error
+class syntax_error : public error
 {
 public:
-	error(std::size_t position, const std::string& msg);
+	using position = std::size_t;
 
-	std::size_t position = 0;
+	syntax_error(position where, const std::string &what):
+		error{ what },
+		pos{ where }
+	{}
+
+	auto where() const noexcept -> position { return pos; }
+
+private:
+	const position pos;
 };
 
-table parse(string_view text);
+class text_view
+{
+public:
+	explicit text_view(string_view data, const std::string &filename = std::string{});
 
-table parse_file(const std::string& filename);
+	struct priv;
+	const std::shared_ptr<priv> p;
+};
+
+class text: public text_view
+{
+public:
+	explicit text(std::vector<char> data, const std::string& filename = std::string{});
+private:
+	const std::vector<char> data; //TODO c++17 string
+};
+
+class file : public text
+{
+public:
+	explicit file(const boost::filesystem::path &path);
+};
+
+auto parse(std::shared_ptr<text_view> text) -> table;
 }

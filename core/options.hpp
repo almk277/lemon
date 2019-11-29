@@ -8,7 +8,11 @@
 #include <string>
 #include <list>
 #include <stdexcept>
+
+namespace config
+{
 class table;
+}
 
 class options: boost::noncopyable
 {
@@ -67,7 +71,7 @@ public:
 		route_list routes;
 	};
 
-	explicit options(const table &config);
+	explicit options(const config::table &config);
 
 	boost::optional<unsigned> n_workers;
 	std::size_t headers_size = 4 * 1024;

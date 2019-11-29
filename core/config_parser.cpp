@@ -1,6 +1,5 @@
 #define BOOST_SPIRIT_X3_NO_FILESYSTEM
 #include "config_parser.hpp"
-#include "options.hpp"
 #include "config.hpp"
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -9,6 +8,7 @@
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/static_assert.hpp>
+#include <utility>
 #include <vector>
 #include <utility>
 #include <sstream>
@@ -20,15 +20,6 @@
 	table ::= stmt*
  */
 
-using int_ = table::value::int_;
-using real = table::value::real;
-
-config::error::error(std::size_t position, const std::string &msg):
-	runtime_error{ msg },
-	position{ position }
-{
-}
-
 namespace
 {
 namespace ast
@@ -36,12 +27,17 @@ namespace ast
 namespace x3 = boost::spirit::x3;
 struct table;
 
+struct key : x3::position_tagged
+{
+	std::string name;
+};
+
 struct value : x3::variant<
-		bool,
-		real,
-		int_,
+		config::boolean,
+		config::real,
+		config::integer,
 		x3::forward_ast<table>,
-		std::string
+		config::string
 	>,
 	x3::position_tagged
 {
@@ -50,7 +46,7 @@ struct value : x3::variant<
 
 struct stmt : x3::position_tagged
 {
-	std::string key;
+	key key;
 	value val;
 };
 
@@ -64,10 +60,12 @@ namespace grammar
 {
 using namespace boost::spirit::x3;
 
+struct key_id : annotate_on_success {};
 struct value_id : annotate_on_success {};
 struct stmt_id : annotate_on_success {};
 struct table_id : annotate_on_success {};
 
+const rule<key_id, ast::key> key = "key";
 const rule<value_id, ast::value> value = "value";
 const rule<stmt_id, ast::stmt>  stmt = "statement";
 const rule<table_id, ast::table> table = "table";
@@ -87,9 +85,10 @@ struct real_policy : strict_real_policies<T>
 };
 const auto real = real_parser<double, real_policy<double>>{};
 
-BOOST_STATIC_ASSERT(std::is_same_v<decltype(real)::attribute_type, table::value::real>);
-BOOST_STATIC_ASSERT(std::is_same_v<decltype(int32)::attribute_type, table::value::int_>);
+BOOST_STATIC_ASSERT(std::is_same_v<decltype(real)::attribute_type, config::real>);
+BOOST_STATIC_ASSERT(std::is_same_v<decltype(int32)::attribute_type, config::integer>);
 
+const auto key_def = string;
 const auto value_def =
 	  bool_kw
 	| real
@@ -97,98 +96,221 @@ const auto value_def =
 	| '{' > table > '}'
 	| string
 	;
-const auto stmt_def = string > '=' > value;
+const auto stmt_def = key > '=' > value;
 const auto table_def = *stmt;
 
-BOOST_SPIRIT_DEFINE(value, stmt, table);
+BOOST_SPIRIT_DEFINE(key, value, stmt, table);
 }
 
 using iterator = string_view::const_iterator;
-using positions_type = grammar::position_cache<std::vector<iterator>>;
-using error_handler_type = grammar::error_handler<iterator>;
 
-table make_table(const ast::table &t, const positions_type &positions);
-
-struct value_visitor: boost::static_visitor<table::value>
+auto read(const boost::filesystem::path &path)
 {
-	value_visitor(std::string key, const positions_type &positions):
-		key{ move(key) },
-		positions{ positions }
-	{}
+	auto name = path.string();
+	std::ifstream f{ name,  std::ios::in | std::ios::binary | std::ios::ate };
+	if (!f.is_open())
+		throw std::runtime_error{ "can't load config: " + name };
 
-	auto operator()(bool v) { return table::value{ move(key), v }; }
-	auto operator()(real v) { return table::value{ move(key), v }; }
-	auto operator()(int_ v) { return table::value{ move(key), v }; }
-	auto operator()(const ast::table &t) { return table::value{ move(key), make_table(t, positions) }; }
-	auto operator()(const std::string &v) { return table::value{ move(key), v }; }
-private:
-	std::string key;
-	const positions_type &positions;
+	auto size = f.tellg();
+	f.seekg(0, std::ios::beg);
+	std::vector<char> data(size);
+	if (!f.read(data.data(), size))
+		throw std::runtime_error{ "can't read config: " + name };
+
+	return data;
+}
+}
+
+BOOST_FUSION_ADAPT_STRUCT(ast::key, name);
+BOOST_FUSION_ADAPT_STRUCT(ast::stmt, key, val);
+BOOST_FUSION_ADAPT_STRUCT(ast::table, entries);
+
+//TODO proper tab handling
+struct config::text_view::priv
+{
+	priv(string_view data, const std::string &filename):
+		data{ data },
+		error_handler{ data.begin(), data.end(), error_stream, filename }
+	{
+	}
+
+	auto make_error_string(const grammar::position_tagged &where, const std::string& what) const
+	{
+		error_handler(where, what);
+		return error_stream.str();
+	}
+
+	auto make_error_string(iterator where, const std::string& what) const
+	{
+		error_handler(where, what);
+		return error_stream.str();
+	}
+
+	auto make_error(iterator where, const std::string &msg) const
+	{
+		return syntax_error{ static_cast<syntax_error::position>(where - data.begin()),
+			make_error_string(where, msg) };
+	}
+
+	const string_view data;
+	std::stringstream error_stream{ std::ios::out };
+	grammar::error_handler<iterator> error_handler;
+	ast::table ast;
 };
 
-table make_table(const ast::table &t, const positions_type &positions)
+config::text_view::text_view(string_view data, const std::string &filename):
+	p{ std::make_shared<priv>(data, filename) }
 {
-	table res;
-	for (auto &stmt: t.entries) {
-		value_visitor visitor{ stmt.key, positions };
-		auto pos = positions.position_of(stmt.val);
+}
+
+config::text::text(std::vector<char> data, const std::string& filename):
+	text_view{ string_view{ data.data(), data.size() }, filename },
+	data{ move(data) }
+{
+}
+
+config::file::file(const boost::filesystem::path &path):
+	text{ read(path), path.string() }
+{
+}
+
+namespace config
+{
+namespace
+{
+class property_error_handler : public property::error_handler
+{
+public:
+	property_error_handler(std::shared_ptr<const text_view> text,
+		const grammar::position_tagged &key, const grammar::position_tagged &value) :
+		key{ key },
+		value{ value },
+		text{ move(text) }
+	{
+	}
+
+	auto key_error(const std::string& msg) const -> std::string override
+	{
+		return text->p->make_error_string(key, msg);
+	}
+
+	auto value_error(const std::string& msg) const -> std::string override
+	{
+		return text->p->make_error_string(value, msg);
+	}
+
+private:
+	const grammar::position_tagged &key;
+	const grammar::position_tagged &value;
+	const std::shared_ptr<const text_view> text;
+};
+
+class empty_property_error_handler : public property::error_handler
+{
+public:
+	empty_property_error_handler(std::shared_ptr<const text_view> text,
+		const grammar::position_tagged &table) :
+		table{ table },
+		text{ move(text) }
+	{
+	}
+
+	auto key_error(const std::string& msg) const -> std::string override
+	{
+		return text->p->make_error_string(table, msg);
+	}
+
+	auto value_error(const std::string& msg) const -> std::string override
+	{
+		return text->p->make_error_string(table, msg);
+	}
+
+private:
+	const grammar::position_tagged &table;
+	const std::shared_ptr<const text_view> text;
+};
+
+class table_error_handler : public table::error_handler
+{
+public:
+	table_error_handler(std::shared_ptr<const text_view> text,
+		const grammar::position_tagged &table):
+		table{ table },
+		text{ move(text) }
+	{}
+
+	auto make_error_handler() -> std::unique_ptr<property::error_handler> override
+	{
+		return std::make_unique<empty_property_error_handler>(text, table);
+	}
+
+private:
+	const grammar::position_tagged &table;
+	const std::shared_ptr<const text_view> text;
+};
+
+auto make_table(const ast::table& t, std::shared_ptr<const text_view> text) -> table;
+
+struct property_visitor : boost::static_visitor<property>
+{
+	property_visitor(const ast::stmt &stmt, std::shared_ptr<const text_view> text):
+		eh{ std::make_unique<property_error_handler>(text, stmt.key, stmt.val) },
+		key{ stmt.key.name },
+		text{ text }
+	{}
+
+	auto operator()(bool v) { return property{ move(eh), move(key), v }; }
+	auto operator()(real v) { return property{ move(eh), move(key), v }; }
+	auto operator()(integer v) { return property{ move(eh), move(key), v }; }
+	auto operator()(const ast::table &t)
+	{
+		return property{ move(eh), move(key), make_table(t, move(text)) };
+	}
+	auto operator()(const std::string &v)
+	{
+		return property{ move(eh), move(key), v };
+	}
+private:
+	std::unique_ptr<property_error_handler> eh;
+	std::string key;
+	std::shared_ptr<const text_view> text;
+};
+
+auto make_table(const ast::table& t, std::shared_ptr<const text_view> text) -> table
+{
+	table res{ std::make_unique<table_error_handler>(text, t) };
+	for (const auto &stmt : t.entries) {
+		property_visitor visitor{ stmt, text };
 		res.add(apply_visitor(visitor, stmt.val));
 	}
 
 	return res;
 }
 
-auto make_error(string_view text, iterator where, const error_handler_type &error_handler,
-	const std::stringstream &stream, const std::string &msg)
-{
-	error_handler(where, msg);
-	return config::error{ static_cast<std::size_t>(where - text.begin()), stream.str() };
 }
 }
 
-BOOST_FUSION_ADAPT_STRUCT(ast::stmt, key, val);
-BOOST_FUSION_ADAPT_STRUCT(ast::table, entries);
-
-table config::parse(string_view text)
+auto config::parse(std::shared_ptr<text_view> text) -> table
 {
-	ast::table data;
-	auto begin = text.begin();
-	auto end = text.end();
+	auto &txt = *text->p;
+	auto begin = txt.data.begin();
+	auto end = txt.data.end();
 
-	std::stringstream error_stream{ std::ios::out };
-	error_handler_type error_handler{ begin, end, error_stream };
-	auto parser = grammar::with<grammar::error_handler_tag>(std::ref(error_handler))
+	auto parser = grammar::with<grammar::error_handler_tag>(std::ref(txt.error_handler))
 	[
 		grammar::table
 	];
 
 	try {
-		auto parsed = phrase_parse(begin, end, parser, grammar::space, data);
+		auto parsed = phrase_parse(begin, end, parser, grammar::space, txt.ast);
 		BOOST_ASSERT(parsed);
 	} catch (grammar::expectation_failure<iterator> &e) {
-		throw make_error(text, e.where(), error_handler, error_stream, 
-			"Error! Expecting " + e.which() + " here:");
+		throw txt.make_error(e.where(), "Error! Expecting " + e.which() + " here:");
 	}
 
 	auto consumed = begin == end;
 	if (!consumed)
-		throw make_error(text, begin, error_handler, error_stream, "can't parse:");
+		throw txt.make_error(begin, "can't parse:");
 
-	return make_table(data, error_handler.get_position_cache());
-}
-
-table config::parse_file(const std::string &filename)
-{
-	std::ifstream f{filename,  std::ios::in | std::ios::binary | std::ios::ate };
-	if (!f.is_open())
-		throw std::runtime_error{ "can't load config" };
-
-	auto filesize = f.tellg();
-	std::vector<char> filedata(filesize);
-	f.seekg(0, std::ios::beg);
-	if (!f.read(filedata.data(), filesize))
-		throw std::runtime_error{ "can't read config" };
-
-	string_view text{ &filedata.front(), filedata.size() };
-	return parse(text);
+	return make_table(txt.ast, move(text));
 }
