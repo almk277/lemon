@@ -19,7 +19,7 @@
 
 struct finish_worker: std::exception
 {
-	const char *what() const override { return "finish_worker"; }
+	const char *what() const noexcept override { return "finish_worker"; }
 };
 
 static unsigned n_workers_default()

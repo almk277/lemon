@@ -4,6 +4,7 @@
 #include <vector>
 #include <iterator>
 #include <stdexcept>
+#include <memory>
 #include <type_traits>
 #include <cstdint>
 
@@ -110,6 +111,7 @@ public:
 	};
 	
 	class const_iterator;
+	using value_type = property;
 
 	explicit table(std::unique_ptr<error_handler> eh);
 	table(const table &rhs) = delete;
@@ -125,6 +127,8 @@ public:
 	auto get_last(string_view name) const -> const property&;
 	auto operator[](string_view name) const -> const property&;
 	auto get_all(string_view name) const -> std::vector<const property*>;
+
+	auto size() const -> std::size_t;
 
 	auto begin() const -> const_iterator;
 	auto cbegin() const -> const_iterator;

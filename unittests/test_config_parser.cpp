@@ -350,16 +350,14 @@ const sample_list nested_config_samples = {
 
 void test(sample_list::const_reference sample)
 {
-	auto p = path{ sample.first.begin(), sample.first.end() };
-	auto f = std::make_shared<config::file>(p);
+	auto f = std::make_shared<config::text_view>(sample.first);
 	BOOST_TEST(config::parse(f) == *sample.second,
 		boost::test_tools::per_element());
 }
 
 void error(bad_sample_list::const_reference sample)
 {
-	auto p = path{ sample.text.begin(), sample.text.end() };
-	auto f = std::make_shared<config::file>(p);
+	auto f = std::make_shared<config::text_view>(sample.text);
 	BOOST_CHECK_EXCEPTION(config::parse(f), config::syntax_error,
 		[&sample](const config::syntax_error &exc)
 		{

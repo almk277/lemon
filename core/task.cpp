@@ -40,7 +40,7 @@ void task::run()
 	lg.debug("resolving: ", path);
 	auto h = rout.resolve(path);
 	try {
-		if (BOOST_LIKELY(h)) {
+		if (BOOST_LIKELY(h != nullptr)) {
 			lg.debug("handler found: ", h->get_name());
 			handle_request(*h);
 			lg.debug("handler finished: ", h->get_name());

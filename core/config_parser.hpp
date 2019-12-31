@@ -25,7 +25,7 @@ private:
 class text_view
 {
 public:
-	explicit text_view(string_view data, const std::string &filename = std::string{});
+	explicit text_view(string_view data, const std::string &filename = {});
 
 	struct priv;
 	const std::shared_ptr<priv> p;
@@ -34,7 +34,7 @@ public:
 class text: public text_view
 {
 public:
-	explicit text(std::vector<char> data, const std::string& filename = std::string{});
+	explicit text(std::vector<char> data, const std::string& filename = {});
 private:
 	const std::vector<char> data; //TODO c++17 string
 };

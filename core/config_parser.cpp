@@ -10,7 +10,6 @@
 #include <boost/static_assert.hpp>
 #include <utility>
 #include <vector>
-#include <utility>
 #include <sstream>
 #include <fstream>
 
@@ -36,8 +35,8 @@ struct value : x3::variant<
 		config::boolean,
 		config::real,
 		config::integer,
-		x3::forward_ast<table>,
-		config::string
+		config::string,
+		x3::forward_ast<table>
 	>,
 	x3::position_tagged
 {
@@ -46,8 +45,8 @@ struct value : x3::variant<
 
 struct stmt : x3::position_tagged
 {
-	key key;
-	value val;
+	ast::key key;
+	ast::value val;
 };
 
 struct table : x3::position_tagged
@@ -85,8 +84,8 @@ struct real_policy : strict_real_policies<T>
 };
 const auto real = real_parser<double, real_policy<double>>{};
 
-BOOST_STATIC_ASSERT(std::is_same_v<decltype(real)::attribute_type, config::real>);
-BOOST_STATIC_ASSERT(std::is_same_v<decltype(int32)::attribute_type, config::integer>);
+BOOST_STATIC_ASSERT(std::is_same<decltype(real)::attribute_type, config::real>::value);
+BOOST_STATIC_ASSERT(std::is_same<decltype(int32)::attribute_type, config::integer>::value);
 
 const auto key_def = string;
 const auto value_def =

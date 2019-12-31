@@ -15,7 +15,7 @@ set(SANITIZER "" CACHE STRING "enables sanitizer of this type")
 set_property(CACHE SANITIZER PROPERTY STRINGS "" address memory thread undefined)
 set(CLANG_TIDY_EXE "" CACHE FILEPATH "clang-tidy program")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

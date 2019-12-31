@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <string>
+#include <vector>
 #include <list>
 #include <stdexcept>
 

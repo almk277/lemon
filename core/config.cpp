@@ -289,6 +289,11 @@ auto table::get_all(string_view name) const -> std::vector<const property*>
 	return res;
 }
 
+auto table::size() const -> std::size_t
+{
+	return p->map.size();
+}
+
 auto table::operator[](string_view name) const -> const property&
 {
 	return get_unique(name);
