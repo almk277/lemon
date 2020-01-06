@@ -4,8 +4,10 @@
 #include "logs.hpp"
 #include "rh_manager.hpp"
 #include "algorithm.hpp"
-#include "config_parser.hpp"
-#include "config.hpp"
+#ifndef LEMON_NO_CONFIG
+# include "config_parser.hpp"
+# include "config.hpp"
+#endif
 #include "modules/testing.hpp"
 #include "modules/static_file.hpp"
 #include <boost/assert.hpp>
@@ -75,10 +77,14 @@ void manager::init()
 	std::shared_ptr<options> opts;
 
 	try {
+#ifdef LEMON_NO_CONFIG
+		opts = std::make_shared<options>();
+#else
 		auto config_path = boost::filesystem::path{ BOOST_STRINGIZE(LEMON_CONFIG_PATH) };
 		auto config_file = std::make_shared<config::file>(config_path);
 		auto config = parse(config_file);
 		opts = std::make_shared<options>(config);
+#endif
 		if (opts->servers.empty())
 			throw std::runtime_error("no servers configured");
 	} catch (std::exception& e) {

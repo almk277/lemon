@@ -1,8 +1,8 @@
 === Requirements ===
 
-* C++14 compiler (known to work: gcc 6.3, clang 3.8, MSVS 2015)
-* CMake 3.5+
-* Boost 1.62+
+* C++17 compiler (known to work: gcc 8.3, clang 4.0, MSVS 2017)
+* CMake 3.6+
+* Boost 1.65+
 * http-parser 2.7+: https://github.com/nodejs/http-parser
 
 
@@ -45,7 +45,11 @@ If you have another URL for http-parser, local or remote, you can add:
 
 If you do not want to build tests, add:
 
-	-DBUILD_TESTING=OFF
+    -DBUILD_TESTING=OFF
+
+If you want disable config file, add:
+
+    -DLEMON_NO_CONFIG=ON
 
 === Building ===
 

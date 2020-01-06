@@ -77,6 +77,19 @@ options::log_types::severity parse_severity(const string &s)
 }
 }
 
+options::options():
+	servers{
+		{8080, 
+			{
+			{route::prefix{"/"}, "Testing"},
+		},
+		},
+	}
+{
+	// Hardcoded options here
+}
+
+#ifndef LEMON_NO_CONFIG
 options::options(const config::table &config)
 {
 	using namespace config;
@@ -115,3 +128,4 @@ options::options(const config::table &config)
 
 	//TODO check unknown keys
 }
+#endif

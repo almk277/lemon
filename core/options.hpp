@@ -72,9 +72,13 @@ public:
 		route_list routes;
 	};
 
-	explicit options(const config::table &config);
+	options();
 
-	boost::optional<unsigned> n_workers;
+#ifndef LEMON_NO_CONFIG
+	explicit options(const config::table &config);
+#endif
+
+	boost::optional<unsigned> n_workers = 1;
 	std::size_t headers_size = 4 * 1024;
 	log_types::logs log = {
 		{ log_types::console{}, log_types::severity::debug },

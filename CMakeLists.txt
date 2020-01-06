@@ -5,6 +5,7 @@ include(CTest)
 set(LEMON_LOG_LEVEL 3 CACHE STRING "maximal supported log level: from 1 (error) to 5 (trace)")
 set_property(CACHE LEMON_LOG_LEVEL PROPERTY STRINGS 1 2 3 4 5)
 option(LEMON_NO_ACCESS_LOG "disable access.log")
+option(LEMON_NO_CONFIG "disable config file")
 set(LEMON_CONFIG_PATH "./lemon.ini" CACHE FILEPATH "config file path")
 set(BOOST_ROOT "" CACHE PATH "specific boost installation path")
 set(HTTP_PARSER_URL https://github.com/nodejs/http-parser/archive/v2.7.1.zip
@@ -41,7 +42,7 @@ function(find_boost)
 	if(BUILD_TESTING)
 		set(BOOST_TEST_COMPONENT unit_test_framework)
 	endif()
-	find_package(Boost 1.62 REQUIRED COMPONENTS system log filesystem ${BOOST_TEST_COMPONENT})
+	find_package(Boost 1.65 REQUIRED COMPONENTS system log filesystem ${BOOST_TEST_COMPONENT})
 	if(WIN32)
 		list(APPEND BOOST_DEFS _WIN32_WINNT=0x0600)
 	endif()
@@ -103,8 +104,6 @@ set(CORE_SRC
 	core/client.cpp
 	core/client.hpp
 	core/config.cpp
-	core/config_parser.cpp
-	core/config_parser.hpp
 	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp
@@ -134,6 +133,13 @@ set(CORE_SRC
 	core/task_builder.cpp
 	core/task_builder.hpp
 )
+if(NOT LEMON_NO_CONFIG)
+	set(CORE_SRC ${CORE_SRC}
+		core/config_parser.hpp
+		core/config_parser.cpp
+	)
+endif()
+
 set(MODULE_SRC
 	modules/static_file.cpp
 	modules/static_file.hpp
@@ -157,6 +163,9 @@ target_compile_definitions(lemon PRIVATE LEMON_CONFIG_PATH=${LEMON_CONFIG_PATH})
 if(LEMON_NO_ACCESS_LOG)
 	target_compile_definitions(lemon PRIVATE LEMON_NO_ACCESS_LOG)
 endif()
+if(LEMON_NO_CONFIG)
+	target_compile_definitions(lemon PRIVATE LEMON_NO_CONFIG)
+endif()
 
 if(BUILD_TESTING)
 	set(TEST_SRC
@@ -166,13 +175,11 @@ if(BUILD_TESTING)
 		unittests/test_arena.cpp
 		unittests/test_config.cpp
 		unittests/test_config.hpp
-		unittests/test_config_parser.cpp
 		unittests/test_parser.cpp
 		unittests/test_resp_it.cpp
 		unittests/test_router.cpp
 		core/arena.cpp
 		core/config.cpp
-		core/config_parser.cpp
 		core/message.cpp
 		core/options.cpp
 		core/parser.cpp
@@ -180,7 +187,13 @@ if(BUILD_TESTING)
 		core/rh_manager.cpp
 		core/router.cpp
 	)
-
+	if(NOT LEMON_NO_CONFIG)
+		set(TEST_SRC ${TEST_SRC}
+			core/config_parser.cpp
+			unittests/test_config_parser.cpp
+		)
+	endif()
+	
 	add_executable(test_lemon ${TEST_SRC})
 	target_include_directories(test_lemon PRIVATE
 		"${PROJECT_SOURCE_DIR}"
