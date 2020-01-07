@@ -24,11 +24,11 @@ class client:
 public:
 	using socket = boost::asio::ip::tcp::socket;
 
-	client(socket &&sock, std::shared_ptr<const options> opt,
+	client(boost::asio::io_service &service, socket &&sock, std::shared_ptr<const options> opt,
 		std::shared_ptr<const router> router, server_logger &lg) noexcept;
 	~client();
 
-	static void make(socket &&sock, std::shared_ptr<const options> opt,
+	static void make(boost::asio::io_service &service, socket &&sock, std::shared_ptr<const options> opt,
 		std::shared_ptr<const router> rout, server_logger &lg);
 
 	client_logger &get_logger() noexcept { return lg; }
@@ -37,6 +37,7 @@ public:
 private:
 	static constexpr task_ident start_task_id = task::start_id;
 
+	boost::asio::io_service &service;
 	socket sock;
 	const std::shared_ptr<const options> opt;
 	const std::shared_ptr<const router> rout;

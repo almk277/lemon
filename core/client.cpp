@@ -68,15 +68,16 @@ private:
 	client &cl;
 };
 
-client::client(socket &&sock, std::shared_ptr<const options> opt,
+client::client(boost::asio::io_service &service, socket &&sock, std::shared_ptr<const options> opt,
 	std::shared_ptr<const router> router, server_logger &lg) noexcept:
+	service{service},
 	sock{std::move(sock)},
 	opt(std::move(opt)),
 	rout(std::move(router)),
 	lg{lg, this->sock.remote_endpoint().address()},
 	builder{start_task_id, *this->opt},
 	next_send_id{start_task_id},
-	send_barrier{sock.get_io_service()}
+	send_barrier{service}
 {
 	lg.info("connection established"_w);
 }
@@ -92,10 +93,10 @@ client::~client()
 	lg.info("connection closed"_w);
 }
 
-void client::make(socket &&sock, std::shared_ptr<const options> opt,
+void client::make(boost::asio::io_service &service, socket &&sock, std::shared_ptr<const options> opt,
 	std::shared_ptr<const router> rout, server_logger &lg)
 {
-	auto c = std::allocate_shared<client>(client_allocator, std::move(sock),
+	auto c = std::allocate_shared<client>(client_allocator, service, std::move(sock),
 		move(opt), move(rout), lg);
 	auto it = c->builder.prepare_task(c);
 	c->start_recv(it);
@@ -135,7 +136,7 @@ void client::on_recv(const error_code &ec,
 
 void client::run(const ready_task &rt) noexcept
 {
-	sock.get_io_service().post(make_arena_handler(rt.get_arena(), [this, rt]
+	service.post(make_arena_handler(rt.get_arena(), [this, rt]
 	{
 		try {
 			auto tr = rt.run();

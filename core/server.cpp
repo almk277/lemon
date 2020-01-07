@@ -5,6 +5,7 @@
 server::server(boost::asio::io_service &service, std::shared_ptr<const options> global_opt,
 	const options::server &server_opt, const rh_manager &rhman):
 	lg{server_opt.listen_port},
+	service{service},
 	acceptor{service, tcp::endpoint{ tcp::v4(), server_opt.listen_port }},
 	sock{service},
 	global_opt{move(global_opt)},
@@ -28,7 +29,7 @@ void server::start_accept()
 	acceptor.async_accept(sock, [this](const boost::system::error_code &ec)
 	{
 		if (!ec)
-			client::make(std::move(sock), global_opt, rout, lg);
+			client::make(service, std::move(sock), global_opt, rout, lg);
 		else if (ec == boost::asio::error::operation_aborted)
 			return;
 		else

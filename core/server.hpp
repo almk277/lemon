@@ -25,6 +25,7 @@ private:
 
 	void start_accept();
 
+	boost::asio::io_service &service;
 	tcp::acceptor acceptor;
 	tcp::socket sock;
 	const std::shared_ptr<const options> global_opt;
