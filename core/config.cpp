@@ -3,9 +3,12 @@
 #include <boost/concept_check.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/adaptor/filtered.hpp>
+#include <cstdlib>
 #include <utility>
 
 BOOST_CONCEPT_ASSERT((boost::ForwardIterator<config::table::const_iterator>));
+
+constexpr auto REAL_EPS = 0.001;
 
 namespace config
 {
@@ -15,12 +18,27 @@ struct empty_value_t {};
 auto operator==(empty_value_t, empty_value_t) noexcept { return true; }
 auto operator!=(empty_value_t, empty_value_t) noexcept { return false; }
 
+struct rough_real
+{
+	real val;
+};
+
+auto operator==(rough_real lhs, rough_real rhs) noexcept
+{
+	return std::abs(lhs.val - rhs.val) < REAL_EPS;
+}
+
+auto operator!=(rough_real lhs, rough_real rhs) noexcept
+{
+	return std::abs(lhs.val - rhs.val) > REAL_EPS;
+}
+
 struct value_type_visitor : boost::static_visitor<string>
 {
 	auto operator()(empty_value_t) const { return "empty"; }
 	auto operator()(boolean) const { return "boolean"; }
 	auto operator()(integer) const { return "integer"; }
-	auto operator()(real) const { return "real"; }
+	auto operator()(rough_real) const { return "real"; }
 	auto operator()(const string&) const { return "string"; }
 	auto operator()(const table&) const { return "table"; }
 };
@@ -56,7 +74,7 @@ bad_value::bad_value(const std::string &key, const std::string &expected, const 
 struct property::priv
 {
 	const string k;
-	const boost::variant<empty_value_t, boolean, integer, real, string, table> val;
+	const boost::variant<empty_value_t, boolean, integer, rough_real, string, table> val;
 	const std::unique_ptr<const error_handler> eh;
 
 	template <typename T>
@@ -108,7 +126,7 @@ property::property(std::unique_ptr<const error_handler> eh,
 
 property::property(std::unique_ptr<const error_handler> eh,
 	std::string key, real val) :
-	p{ new priv{ move(key), val, move(eh) } }
+	p{ new priv{ move(key), rough_real{val}, move(eh) } }
 {
 }
 
@@ -169,7 +187,7 @@ auto property::is<integer>() const noexcept -> bool
 template <>
 auto property::is<real>() const noexcept -> bool
 {
-	return p->is<real>();
+	return p->is<rough_real>();
 }
 
 template <>
@@ -199,7 +217,7 @@ auto property::as<integer>() const -> const integer&
 template <>
 auto property::as<real>() const -> const real&
 {
-	return p->get<real>("real"_w);
+	return p->get<rough_real>("real"_w).val;
 }
 
 template <>
