@@ -51,6 +51,14 @@ If you want disable config file, add:
 
     -DLEMON_NO_CONFIG=ON
 
+If you have special config file path, add:
+
+    -DLEMON_CONFIG_PATH=path/to/config
+
+If you want disable access.log, add:
+
+    -DLEMON_NO_ACCESS_LOG=ON
+
 === Building ===
 
     cmake --build <build-dir> --config Release
