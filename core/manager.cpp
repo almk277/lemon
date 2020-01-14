@@ -11,6 +11,7 @@
 #include "modules/testing.hpp"
 #include "modules/static_file.hpp"
 #include <boost/assert.hpp>
+#include <boost/asio/post.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <stdexcept>
 #include <set>
@@ -30,18 +31,18 @@ static unsigned n_workers_default()
 	return n_cores > 0 ? n_cores : 2;
 }
 
-manager::manager(const parameters &params):
-	master_work{master_srv},
-	worker_work{worker_srv},
-	quit_signals{master_srv, SIGTERM, SIGINT},
-	params{params}
+manager::manager(const parameters &/*params*/):
+	master_ctx{ 1 },
+	master_work{ make_work_guard(master_ctx) },
+	worker_work{ make_work_guard(worker_ctx) },
+	quit_signals{ master_ctx, SIGTERM, SIGINT }
 {
 	quit_signals.async_wait([this](const boost::system::error_code&, int sig)
 	{
 		lg.info("caught termination signal #", sig);
-		worker_srv.stop();
+		worker_ctx.stop();
 		if (workers.empty())
-			master_srv.stop();
+			master_ctx.stop();
 	});
 
 	init();
@@ -58,7 +59,7 @@ void manager::run()
 {
 	lg.trace("manager started");
 
-	master_srv.run();
+	master_ctx.run();
 
 	lg.trace("manager finished");
 }
@@ -67,7 +68,7 @@ void manager::reinit()
 {
 	lg.trace("manager reinit");
 
-	master_srv.post([this] { init(); });
+	post(master_ctx, [this] { init(); });
 }
 
 void manager::init()
@@ -128,7 +129,7 @@ void manager::init_servers(const std::shared_ptr<const options> &opts)
 		return !contains(running_servers, opt.listen_port);
 	};
 	for (auto &s : opts->servers | boost::adaptors::filtered(not_running))
-		srv.push_back(std::make_unique<server>(worker_srv, opts, s, rhman));
+		srv.push_back(std::make_unique<server>(worker_ctx, opts, s, rhman));
 }
 
 void manager::init_workers(const std::shared_ptr<const options> &opts)
@@ -164,7 +165,7 @@ void manager::remove_worker()
 	lg.trace("remove worker");
 
 	BOOST_ASSERT(!workers.empty());
-	worker_srv.post([] { throw finish_worker{}; });
+	post(worker_ctx, [] { throw finish_worker{}; });
 }
 
 void manager::run_worker() noexcept
@@ -174,9 +175,9 @@ void manager::run_worker() noexcept
 
 	lg.debug("started worker thread #", n);
 
-	while (!worker_srv.stopped()) {
+	while (!worker_ctx.stopped()) {
 		try {
-			worker_srv.run();
+			worker_ctx.run();
 		} catch (finish_worker&) {
 			break;
 		} catch (std::exception &e) {
@@ -188,7 +189,7 @@ void manager::run_worker() noexcept
 
 	lg.debug("finished worker thread #", n);
 
-	master_srv.post([this, n] { finalize_worker(n); });
+	post(master_ctx, [this, n] { finalize_worker(n); });
 }
 
 void manager::finalize_worker(std::thread::id id)
@@ -203,7 +204,7 @@ void manager::finalize_worker(std::thread::id id)
 		workers.erase(it);
 		lg.trace("finalized worker #", id, ", ", workers.size(), " workers left");
 
-		if (worker_srv.stopped() && workers.empty())
-			master_srv.stop();
+		if (worker_ctx.stopped() && workers.empty())
+			master_ctx.stop();
 	}
 }

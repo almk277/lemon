@@ -1,4 +1,6 @@
 #include "client.hpp"
+#include <boost/asio/dispatch.hpp>
+#include <boost/asio/post.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/range/algorithm/find.hpp>
@@ -18,7 +20,14 @@ static boost::fast_pool_allocator<client,
 template <typename Handler>
 struct arena_handler
 {
-	arena_handler(arena &a, Handler h) noexcept: a{ a }, h {std::move(h)} {}
+	using allocator_type = arena::allocator<Handler>;
+
+	arena_handler(arena &a, Handler h) noexcept: a{ a }, h{ std::move(h) } {}
+
+	allocator_type get_allocator() const noexcept
+	{
+		return a.make_allocator<Handler>("asio handler");
+	}
 
 	template <typename ...Args>
 	void operator()(Args &&...args)
@@ -26,26 +35,15 @@ struct arena_handler
 		h(std::forward<Args>(args)...);
 	}
 
-	friend void *asio_handler_allocate(std::size_t size,
-		arena_handler<Handler> *handler)
-	{
-		return handler->a.alloc(size, "asio handler");
-	}
-
-	friend void asio_handler_deallocate(void *p, std::size_t size,
-		arena_handler<Handler> *handler) noexcept
-	{
-		handler->a.free(p, size, "asio handler");
-	}
-
+private:
 	arena &a;
 	const Handler h;
 };
 
-template <typename Handler>
-arena_handler<Handler> make_arena_handler(arena &a, Handler h) noexcept
+template <typename Task, typename Handler>
+arena_handler<Handler> make_arena_handler(Task &&t, Handler &&h) noexcept
 {
-	return{ a, h };
+	return{ t.get_arena(), std::forward<Handler>(h) };
 }
 
 struct client::task_visitor : boost::static_visitor<>
@@ -68,16 +66,15 @@ private:
 	client &cl;
 };
 
-client::client(boost::asio::io_service &service, socket &&sock, std::shared_ptr<const options> opt,
+client::client(boost::asio::io_context &context, socket &&sock, std::shared_ptr<const options> opt,
 	std::shared_ptr<const router> router, server_logger &lg) noexcept:
-	service{service},
 	sock{std::move(sock)},
 	opt(std::move(opt)),
 	rout(std::move(router)),
 	lg{lg, this->sock.remote_endpoint().address()},
 	builder{start_task_id, *this->opt},
 	next_send_id{start_task_id},
-	send_barrier{service}
+	send_barrier{context}
 {
 	lg.info("connection established"_w);
 }
@@ -93,10 +90,10 @@ client::~client()
 	lg.info("connection closed"_w);
 }
 
-void client::make(boost::asio::io_service &service, socket &&sock, std::shared_ptr<const options> opt,
+void client::make(boost::asio::io_context &context, socket &&sock, std::shared_ptr<const options> opt,
 	std::shared_ptr<const router> rout, server_logger &lg)
 {
-	auto c = std::allocate_shared<client>(client_allocator, service, std::move(sock),
+	auto c = std::allocate_shared<client>(client_allocator, context, std::move(sock),
 		move(opt), move(rout), lg);
 	auto it = c->builder.prepare_task(c);
 	c->start_recv(it);
@@ -105,7 +102,7 @@ void client::make(boost::asio::io_service &service, socket &&sock, std::shared_p
 void client::start_recv(const incomplete_task &it)
 {
 	const auto b = builder.get_memory(it);
-	sock.async_read_some(buffer(b), make_arena_handler(it.get_arena(),
+	sock.async_read_some(buffer(b), make_arena_handler(it,
 		[this, it](const error_code &ec, size_t bytes_transferred)
 		{
 			on_recv(ec, bytes_transferred, it);
@@ -136,7 +133,7 @@ void client::on_recv(const error_code &ec,
 
 void client::run(const ready_task &rt) noexcept
 {
-	service.post(make_arena_handler(rt.get_arena(), [this, rt]
+	post(sock.get_executor(), make_arena_handler(rt, [this, rt]
 	{
 		try {
 			auto tr = rt.run();
@@ -151,11 +148,11 @@ void client::run(const ready_task &rt) noexcept
 
 void client::start_send(const task::result &tr)
 {
-	send_barrier.dispatch(make_arena_handler(tr.get_arena(), [this, tr]
+	dispatch(send_barrier, make_arena_handler(tr, [this, tr]
 	{
 		if (BOOST_LIKELY(tr.get_id() == next_send_id)) {
 			tr.lg().debug("sending task result..."_w);
-			async_write(sock, tr, make_arena_handler(tr.get_arena(),
+			async_write(sock, tr, make_arena_handler(tr,
 				[this, tr](const error_code &ec, size_t)
 			{
 				on_sent(ec, tr);

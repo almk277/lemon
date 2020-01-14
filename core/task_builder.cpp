@@ -89,7 +89,7 @@ auto task_builder::results::make_ready_task(const std::shared_ptr<client> &cl,
 		if (!stop || bytes_rest != 0)
 			it = builder.prepare_task(cl);
 		if (BOOST_UNLIKELY(bytes_rest != 0))
-			boost::copy(data, boost::asio::buffer_cast<char*>(builder.recv_buf));
+			boost::copy(data, static_cast<char*>(builder.recv_buf.data()));
 	}
 	else {
 		if (BOOST_UNLIKELY(bytes_rest != 0)) {
@@ -123,7 +123,7 @@ auto task_builder::prepare_task(const std::shared_ptr<client> &cl) -> incomplete
 
 auto task_builder::get_memory(const incomplete_task &it) -> boost::asio::mutable_buffer
 {
-	if (buffer_size(recv_buf) < MIN_BUF_SIZE)
+	if (recv_buf.size() < MIN_BUF_SIZE)
 		//TODO adaptive size
 		recv_buf = { it.t->a.alloc(OPTIMUM_BUF_SIZE, "request buffer"), OPTIMUM_BUF_SIZE };
 	return recv_buf;
@@ -132,7 +132,7 @@ auto task_builder::get_memory(const incomplete_task &it) -> boost::asio::mutable
 auto task_builder::make_tasks(const std::shared_ptr<client> &cl,
 	const incomplete_task &it, std::size_t bytes_recv, bool stop) -> results
 {
-	auto data = string_view{ boost::asio::buffer_cast<char*>(recv_buf), bytes_recv };
+	auto data = string_view{static_cast<char*>(recv_buf.data()), bytes_recv };
 	recv_buf = recv_buf + bytes_recv;
 	return results{ *this, cl, it, data, stop };
 }

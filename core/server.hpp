@@ -2,7 +2,7 @@
 #include "logger_imp.hpp"
 #include "options.hpp"
 #include <boost/core/noncopyable.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
 
@@ -12,7 +12,7 @@ class rh_manager;
 class server: boost::noncopyable
 {
 public:
-	server(boost::asio::io_service &service, std::shared_ptr<const options> global_opt,
+	server(boost::asio::io_context &context, std::shared_ptr<const options> global_opt,
 		const options::server &server_opt, const rh_manager &rhman);
 	~server();
 
@@ -25,9 +25,8 @@ private:
 
 	void start_accept();
 
-	boost::asio::io_service &service;
+	boost::asio::io_context &context;
 	tcp::acceptor acceptor;
-	tcp::socket sock;
 	const std::shared_ptr<const options> global_opt;
 	const options::server &server_opt;
 	const std::shared_ptr<const router> rout;
