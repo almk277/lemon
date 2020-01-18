@@ -7,6 +7,7 @@
 #  define LEMON_LOG_LEVEL 3
 #endif
 
+//BUG should be in [0, 4]
 static_assert(LEMON_LOG_LEVEL >= 1 && LEMON_LOG_LEVEL <= 5,
 	"log level should be in [1(error), 5(trace)]");
 
@@ -30,7 +31,7 @@ public:
 	template <typename ...Args> void debug(Args ...args);
 	template <typename ...Args> void trace(Args ...args);
 
-	template <typename ...Args> void message(severity s, Args ...args);
+	template <severity S, typename ...Args> void message(Args ...args);
 
 	struct base_printer
 	{
@@ -63,39 +64,39 @@ private:
 template <typename ... Args>
 void logger::error(Args... args)
 {
-	message(severity::error, std::forward<Args>(args)...);
+	message<severity::error>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
 void logger::warning(Args... args)
 {
-	message(severity::warning, std::forward<Args>(args)...);
+	message<severity::warning>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
 void logger::info(Args... args)
 {
-	message(severity::info, std::forward<Args>(args)...);
+	message<severity::info>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
 void logger::debug(Args... args)
 {
-	message(severity::debug, std::forward<Args>(args)...);
+	message<severity::debug>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
 void logger::trace(Args... args)
 {
-	message(severity::trace, std::forward<Args>(args)...);
+	message<severity::trace>(std::forward<Args>(args)...);
 }
 
-template <typename ... Args>
-void logger::message(severity s, Args ... args)
+template <logger::severity S, typename ... Args>
+void logger::message(Args ... args)
 {
-	if (s <= severity_barrier)
+	if constexpr(S <= severity_barrier)
 	{
-		if (open(s))
+		if (open(S))
 		{
 			log1(std::forward<Args>(args)...);
 		}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utility.hpp"
+#include "string_view.hpp"
 #include "http_parser.h"
 #include "http_error.hpp"
 #include <boost/core/noncopyable.hpp>
@@ -12,11 +12,10 @@ class arena;
 class parser: boost::noncopyable
 {
 public:
-	using buffer = string_view;
 	struct incomplete_request {};
 	struct complete_request
 	{
-		buffer rest;
+		string_view rest;
 	};
 	using result = boost::variant<http_error, incomplete_request, complete_request>;
 
@@ -24,7 +23,7 @@ public:
 	~parser() = default;
 
 	void reset(request &req, arena &a) noexcept;
-	result parse_chunk(buffer buf) noexcept;
+	result parse_chunk(string_view chunk) noexcept;
 
 protected:
 	struct context
@@ -38,6 +37,7 @@ protected:
 		bool comp;
 	};
 
+	//TODO pImpl
 	http_parser p;
 	context ctx;
 };

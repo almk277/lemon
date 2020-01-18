@@ -5,16 +5,16 @@
 #include "http_error.hpp"
 #include "string_builder.hpp"
 #include "string.hpp"
+#include "string_view.hpp"
 #include <fstream>
-#include <utility.hpp>
 
 //TODO chunked send
 //TODO caching
 //TODO Linux sendfile?
 
-constexpr std::size_t MAX_SIZE = 100 * 1024 * 1024;
+const std::fstream::pos_type MAX_SIZE = 100 * 1024 * 1024;
 //TODO configurable file directory
-constexpr string_view WWW_DIR = "/var/www"_w;
+constexpr string_view WWW_DIR = "/var/www"sv;
 
 static std::pair<std::ifstream, std::size_t> open_file(
 	const request &req, const rh_static_file::context &ctx)
@@ -32,7 +32,7 @@ static std::pair<std::ifstream, std::size_t> open_file(
 
 	//TODO size from metadata
 	auto size = f.tellg();
-	ctx.lg.debug("open file: '"_w, fname, "', size: "_w, size);
+	ctx.lg.debug("open file: '"sv, fname, "', size: "sv, size);
 	if (size > MAX_SIZE)
 		throw http_exception{ response::status::PAYLOAD_TOO_LARGE };
 	auto mem_length = static_cast<std::size_t>(size);
@@ -42,7 +42,7 @@ static std::pair<std::ifstream, std::size_t> open_file(
 
 string_view rh_static_file::get_name() const noexcept
 {
-	return "StaticFile"_w;
+	return "StaticFile"sv;
 }
 
 void rh_static_file::get(request &req, response &resp, context &ctx)
@@ -71,6 +71,6 @@ void rh_static_file::finalize(request &req, response &resp, context &ctx, std::s
 {
 	resp.http_version = req.http_version;
 	//TODO Content-Type
-	resp.headers.emplace_back("Content-Length"_w, string_builder{ ctx.a }.convert(length));
+	resp.headers.emplace_back("Content-Length"sv, string_builder{ ctx.a }.convert(length));
 	resp.code = response::status::OK;
 }

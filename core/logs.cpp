@@ -1,7 +1,7 @@
 #include "logs.hpp"
 #include "logger_imp.hpp"
 #include "options.hpp"
-#include "utility.hpp"
+#include "string_view.hpp"
 #include "task_ident.hpp"
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -23,12 +23,12 @@
 logger::severity log_severity_level = logger::severity::info;
 bool log_access_enabled = true;
 
-constexpr std::array<string_view, 5> severity_strings = {
-	"ERR "_w,
-	"WRN "_w,
-	"INF "_w,
-	"DBG "_w,
-	"TRC "_w,
+constexpr std::array severity_strings = {
+	"ERR "sv,
+	"WRN "sv,
+	"INF "sv,
+	"DBG "sv,
+	"TRC "sv,
 };
 
 static std::ostream &operator<<(std::ostream &s, logger::severity sev)
@@ -96,17 +96,11 @@ struct log_adder: boost::static_visitor<bool>
 	Fmt fmt;
 };
 
-template <typename Filter, typename Fmt>
-log_adder<Filter, Fmt> make_adder(Filter filter, Fmt fmt)
-{
-	return log_adder<Filter, Fmt>{filter, fmt};
-}
-
 static bool add_messages_sink(const options::log_types::messages_log &log)
 {
 	using namespace boost::log;
 
-	return boost::apply_visitor(make_adder(
+	return apply_visitor(log_adder(
 		keywords::filter =
 			!has_attr(kw_time),
 		keywords::format = expressions::stream
@@ -136,7 +130,7 @@ static bool add_access_sink(const options::log_types::access_log &log)
 #ifndef LEMON_NO_ACCESS_LOG
 	using namespace boost::log;
 
-	return boost::apply_visitor(make_adder(
+	return apply_visitor(log_adder(
 		keywords::filter =
 			has_attr(kw_time),
 		keywords::format = expressions::stream
@@ -165,7 +159,7 @@ void logs::init(const options &opt)
 
 	log_severity_level = convert(opt.log.messages.level);
 
-	if (log_severity_level > static_cast<logger::severity>(LEMON_LOG_LEVEL))
+	if (log_severity_level > logger::severity_barrier)
 		throw std::runtime_error{ "requested log level ("
 			+ std::to_string(static_cast<int>(log_severity_level))
 			+ ") is too high, supported: "

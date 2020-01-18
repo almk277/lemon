@@ -34,7 +34,7 @@ bool operator==(const options::server &lhs, const options::server &rhs)
 
 namespace
 {
-decltype(options::route::matcher) parse_route(const string &s)
+decltype(options::route::matcher) parse_matcher(const string &s)
 {
 	if (s.at(0) == '=')
 		return options::route::equal{ s.substr(1) };
@@ -94,36 +94,29 @@ options::options(const config::table &config)
 {
 	using namespace config;
 
-	auto &n_workers_it = config["workers"];
-	if (n_workers_it)
+	if (auto &n_workers_it = config["workers"]; n_workers_it)
 		n_workers = n_workers_it.as<integer>();
 
-	auto &headers_size_it = config["headers_size"];
-	if (headers_size_it)
+	if (auto &headers_size_it = config["headers_size"]; headers_size_it)
 		headers_size = headers_size_it.as<integer>();
 
-	auto &log_messages_it = config["log.messages"];
-	if (log_messages_it)
+	if (auto &log_messages_it = config["log.messages"]; log_messages_it)
 		log.messages.dest = parse_msg_dest(log_messages_it.as<string>());
 
-	auto &log_level_it = config["log.level"];
-	if (log_level_it)
+	if (auto &log_level_it = config["log.level"]; log_level_it)
 		log.messages.level = parse_severity(log_level_it.as<string>());
 
-	auto &log_access_it = config["log.access"];
-	if (log_access_it)
+	if (auto &log_access_it = config["log.access"]; log_access_it)
 		log.access.dest = parse_access_dest(log_access_it.as<string>());
 
 	for (auto &srv_val : config.get_all("server")) {
 		auto &srv = srv_val->as<table>();
-		servers.emplace_back();
-		auto &s = servers.back(); //TODO c++17
+		auto &s = servers.emplace_back();
 		s.listen_port = srv["listen"].as<integer>();
 		auto &routes = srv["route"].as<table>();
-		for (auto &route : routes) {
-			options::route r{ parse_route(route.key()), route.as<string>() };
-			s.routes.push_back(std::move(r));
-		}
+		for (auto &route : routes)
+			s.routes.push_back(options::route
+				{ parse_matcher(route.key()), route.as<string>() });
 	}
 
 	//TODO check unknown keys

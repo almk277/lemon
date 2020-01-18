@@ -9,7 +9,7 @@ namespace {
 	{
 		string_view get_name() const noexcept override
 		{
-			return "h1"_w;
+			return "h1"sv;
 		}
 	};
 
@@ -17,7 +17,7 @@ namespace {
 	{
 		string_view get_name() const noexcept override
 		{
-			return "h2"_w;
+			return "h2"sv;
 		}
 	};
 

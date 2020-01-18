@@ -10,7 +10,6 @@
 using namespace config::test;
 using config::table;
 using boost::unit_test::data::make;
-using boost::filesystem::path;
 
 struct bad_sample
 {

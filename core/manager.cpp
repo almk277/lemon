@@ -87,7 +87,7 @@ void manager::init()
 		opts = std::make_shared<options>(config);
 #endif
 		if (opts->servers.empty())
-			throw std::runtime_error("no servers configured");
+			throw std::runtime_error{ "no servers configured" };
 	} catch (std::exception& e) {
 		lg.error("init: ", e.what());
 		if (srv.empty())

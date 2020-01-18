@@ -7,13 +7,13 @@ enum cb_result {
 	ERR = 3 // on_headers_complete reserves 1 and 2
 };
 
-inline request::method_s method_from(http_method m)
+request::method_s method_from(http_method m)
 {
 	using M = request::method_s::type_e;
 	static constexpr request::method_s
-		m_get = { M::GET, "GET"_w },
-		m_head = { M::HEAD, "HEAD"_w },
-		m_post = { M::POST, "POST"_w };
+		m_get = { M::GET, "GET"sv },
+		m_head = { M::HEAD, "HEAD"sv },
+		m_post = { M::POST, "POST"sv };
 
 	switch (m) {
 	case HTTP_GET:  return m_get;
@@ -25,18 +25,18 @@ inline request::method_s method_from(http_method m)
 	BOOST_UNREACHABLE_RETURN({});
 }
 
-inline void prolong(string_view &original, string_view added)
+void prolong(string_view &original, string_view added)
 {
-	BOOST_ASSERT(original.end() == added.begin());
+	BOOST_ASSERT(original.data() + original.size() == added.data());
 	original = { original.data(), original.size() + added.size() };
 }
 
-inline string_view url_field(const http_parser_url &url,
+string_view url_field(const http_parser_url &url,
 	http_parser_url_fields f, string_view s)
 {
 	return url.field_set & (1 << f)
 		? s.substr(url.field_data[f].off, url.field_data[f].len)
-		: ""_w;
+		: ""sv;
 }
 
 struct parser_internal: parser
@@ -78,9 +78,8 @@ http_parser_settings parser_internal::make_settings()
 		{
 			if (r.url.all.empty())
 				r.url.all = s;
-			else {
+			else
 				prolong(r.url.all, s);
-			}
 			return OK;
 		}
 	};
@@ -138,7 +137,7 @@ http_parser_settings parser_internal::make_settings()
 			auto err = http_parser_parse_url(r.url.all.data(), r.url.all.length(),
 				method == HTTP_CONNECT, &url);
 			if (BOOST_UNLIKELY(err)) {
-				ctx.error.emplace(response::status::BAD_REQUEST, "bad URL"_w);
+				ctx.error.emplace(response::status::BAD_REQUEST, "bad URL"sv);
 				return ERR;
 			}
 			r.url.path = url_field(url, UF_PATH, r.url.all);
@@ -189,9 +188,9 @@ void parser::reset(request &req, arena &a) noexcept
 	p.data = &ctx;
 }
 
-auto parser::parse_chunk(buffer buf) noexcept -> result
+auto parser::parse_chunk(string_view chunk) noexcept -> result
 {
-	auto nparsed = http_parser_execute(&p, &settings, buf.data(), buf.size());
+	auto nparsed = http_parser_execute(&p, &settings, chunk.data(), chunk.size());
 
 	auto err = HTTP_PARSER_ERRNO(&p);
 	switch (err)
@@ -202,8 +201,9 @@ auto parser::parse_chunk(buffer buf) noexcept -> result
 		http_parser_pause(&p, 0);
 		break;
 	default:
-		return ctx.error.value_or(
-			http_error{ response::status::BAD_REQUEST, http_errno_description(err) });
+		return ctx.error.value_or_eval([err] {
+			return http_error{ response::status::BAD_REQUEST, http_errno_description(err) };
+		});
 	}
 
 	if (p.upgrade) {
@@ -211,8 +211,8 @@ auto parser::parse_chunk(buffer buf) noexcept -> result
 	}
 
 	if (ctx.comp)
-		return complete_request{ buf.substr(nparsed) };
+		return complete_request{ chunk.substr(nparsed) };
 
-	BOOST_ASSERT(nparsed == buf.size());
+	BOOST_ASSERT(nparsed == chunk.size());
 	return incomplete_request{};
 }

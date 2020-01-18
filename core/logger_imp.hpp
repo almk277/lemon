@@ -2,11 +2,11 @@
 
 #include "logger.hpp"
 #include "task_ident.hpp"
+#include "string_view.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/log/core/record.hpp>
 #include <boost/log/sources/logger.hpp>
 #include <boost/asio/ip/address.hpp>
-#include <utility.hpp>
 
 class logger_imp: public logger, boost::noncopyable
 {
@@ -131,7 +131,7 @@ struct module_logger_guard: boost::noncopyable
 
 	~module_logger_guard()
 	{
-		lg.module_name.clear();
+		lg.module_name = {};
 	}
 
 private:

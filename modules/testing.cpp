@@ -3,12 +3,15 @@
 #include "http_error.hpp"
 #include "string_builder.hpp"
 #include "logger.hpp"
-#include <algorithm>
-#include <numeric>
+#include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/numeric.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/assign/std/list.hpp>
+#include <functional>
 
 string_view rh_testing::get_name() const noexcept
 {
-	return "Testing"_w;
+	return "Testing"sv;
 }
 
 void rh_testing::get(request &req, response &resp, context &ctx)
@@ -17,21 +20,18 @@ void rh_testing::get(request &req, response &resp, context &ctx)
 
 	const auto path = req.url.path;
 	if (path == "/index") {
-		resp.body = { "It works!"_w };
+		resp.body = { "It works!"sv };
 	} else if (path == "/query") {
 		resp.body = { req.url.query };
 	} else if (path == "/headers") {
 		for (const auto &hdr : req.headers) {
-			resp.body.emplace_back(hdr.name);
-			resp.body.emplace_back(message::header::SEP);
-			resp.body.emplace_back(hdr.value);
-			resp.body.emplace_back(message::NL);
+			using namespace boost::assign;
+			resp.body += hdr.name, message::header::SEP, hdr.value, message::NL;
 		}
 	} else if (path == "/ua") {
-		auto it = std::find_if(req.headers.begin(), req.headers.end(), [](const auto &hdr)
-		{
+		auto it = boost::find_if(req.headers, [](const auto &hdr) {
 			//TODO use lcase_name
-			return hdr.name == "User-Agent"_w;
+			return hdr.name == "User-Agent"sv;
 		});
 		if (it != req.headers.end())
 			resp.body = { it->value };
@@ -57,11 +57,11 @@ void rh_testing::post(request &req, response &resp, context &ctx)
 	finalize(req, resp, ctx);
 }
 
-void rh_testing::method(boost::string_view method_name, request &req, response &resp, context &ctx)
+void rh_testing::method(string_view method_name, request &req, response &resp, context &ctx)
 {
 	if (method_name == "DELETE") {
 		if (req.url.path == "/index") {
-			resp.body = { "del"_w };
+			resp.body = { "del"sv };
 		} else {
 			throw http_exception{ response::status::NOT_FOUND };
 		}
@@ -75,14 +75,12 @@ void rh_testing::method(boost::string_view method_name, request &req, response &
 void rh_testing::finalize(request &req, response &resp, context &ctx)
 {
 	resp.http_version = req.http_version;
-	resp.headers.emplace_back("Content-Type"_w, "text/plain"_w);
+	resp.headers.emplace_back("Content-Type"sv, "text/plain"sv);
 
-	auto content_length = accumulate(resp.body.begin(), resp.body.end(),
-		decltype(resp.body.front().size()){}, [](auto init, const auto &chunk)
-		{
-			return init + chunk.size();
-		});
-	resp.headers.emplace_back("Content-Length"_w,
+	auto content_length = accumulate(
+		resp.body | boost::adaptors::transformed(mem_fn(&string_view::size)),
+		decltype(resp.body.front().size()){});
+	resp.headers.emplace_back("Content-Length"sv,
 		string_builder{ ctx.a }.convert(content_length));
 	resp.code = response::status::OK;
 }

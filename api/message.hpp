@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utility.hpp"
+#include "string_view.hpp"
 #include "arena.hpp"
 #include <ostream>
 #include <iterator>
@@ -34,7 +34,7 @@ struct message
 				&& value == rhs.value;
 		}
 
-		static constexpr string_view SEP = ": "_w;
+		static constexpr string_view SEP = ": "sv;
 	};
 
 	enum class http_version_type {
@@ -58,7 +58,7 @@ struct message
 	message &operator=(message&&) = delete;
 
 	// HTTP new line
-	static constexpr string_view NL = "\r\n"_w;
+	static constexpr string_view NL = "\r\n"sv;
 
 	http_version_type http_version;
 	header_list headers;

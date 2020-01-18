@@ -1,5 +1,5 @@
 #pragma once
-#include "utility.hpp"
+#include "string_view.hpp"
 #include <string>
 #include <vector>
 #include <iterator>
@@ -73,22 +73,22 @@ public:
 	auto operator=(const property& rhs)->property& = delete;
 	auto operator=(property&& rhs)->property& = delete;
 
+	[[nodiscard]] auto has_value() const noexcept -> bool;
 	explicit operator bool() const noexcept;
-	auto has_value() const noexcept -> bool;
 	auto operator!() const noexcept -> bool;
 
-	auto key() const noexcept -> const std::string&;
+	[[nodiscard]] auto key() const noexcept -> const std::string&;
 
 	template <typename T>
-	auto is() const noexcept -> bool;
+	[[nodiscard]] auto is() const noexcept -> bool;
 
 	template <typename T>
 	std::enable_if_t<
-		   std::is_same<T, boolean>::value
-		|| std::is_same<T, integer>::value
-		|| std::is_same<T, real>::value
-		|| std::is_same<T, string>::value
-		|| std::is_same<T, table>::value
+		   std::is_same_v<T, boolean>
+		|| std::is_same_v<T, integer>
+		|| std::is_same_v<T, real>
+		|| std::is_same_v<T, string>
+		|| std::is_same_v<T, table>
 		, const T&> as() const;
 
 	auto get_error_handler() const -> const error_handler&;
@@ -123,10 +123,10 @@ public:
 
 	auto add(property val) -> table&;
 
-	auto get_unique(string_view name) const -> const property&;
-	auto get_last(string_view name) const -> const property&;
-	auto operator[](string_view name) const -> const property&;
-	auto get_all(string_view name) const -> std::vector<const property*>;
+	[[nodiscard]] auto get_unique(string_view name) const -> const property&;
+	[[nodiscard]] auto get_last(string_view name) const -> const property&;
+	[[nodiscard]] auto operator[](string_view name) const -> const property&;
+	[[nodiscard]] auto get_all(string_view name) const -> std::vector<const property*>;
 
 	auto size() const -> std::size_t;
 

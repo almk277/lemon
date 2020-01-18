@@ -2,7 +2,7 @@
 #include "config.hpp"
 #include <boost/filesystem/path.hpp>
 #include <memory>
-#include <vector>
+#include <string>
 
 namespace config
 {
@@ -34,9 +34,9 @@ public:
 class text: public text_view
 {
 public:
-	explicit text(std::vector<char> data, const std::string& filename = {});
+	explicit text(std::string data, const std::string& filename = {});
 private:
-	const std::vector<char> data; //TODO c++17 string
+	const std::string data;
 };
 
 class file : public text

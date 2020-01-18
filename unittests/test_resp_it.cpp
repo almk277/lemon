@@ -35,10 +35,10 @@ namespace {
 		}
 	};
 
-	auto concat = [](const auto &begin, const auto &end)
+	const auto concat = [](const auto &begin, const auto &end)
 	{
 		return accumulate(begin, end, std::string{},
-			[](auto acc, auto s) { return acc + s.to_string(); });
+			[](auto acc, auto s) { return acc + std::string{ s }; });
 	};
 
 	std::ostream &operator<<(std::ostream &s, const test_case &t)
@@ -46,7 +46,7 @@ namespace {
 		return s << "No " << t.no << ": " << t.response;
 	}
 
-	std::vector<test_case> response_samples =
+	const std::vector<test_case> response_samples =
 	{
 		{
 			1,

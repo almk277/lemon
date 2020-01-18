@@ -96,8 +96,7 @@ template <typename InitType, typename TestType>
 void check_type(const property &p, const InitType &init)
 {
 	using PlainInitType = std::remove_cv_t<std::remove_reference_t<InitType>>;
-	auto same = std::is_same<TestType, PlainInitType>::value;
-	if (same)
+	if constexpr(std::is_same_v<TestType, PlainInitType>)
 		check_good_type<PlainInitType>(p, init);
 	else
 		check_bad_type<TestType>(p);
@@ -226,8 +225,8 @@ BOOST_AUTO_TEST_CASE(test_plain_table)
 		<< prop("key0", 5)
 		;
 
-	CHECK_THROW("key1", t["key1"]);
-	CHECK_THROW("key1", t.get_unique("key1"));
+	CHECK_THROW("key1", static_cast<void>(t["key1"]));
+	CHECK_THROW("key1", static_cast<void>(t.get_unique("key1")));
 	BOOST_TEST(t.get_last("key1").as<integer>() == 4);
 	auto get_all1 = t.get_all("key1");
 	BOOST_TEST(indirect(get_all1) == vals1.Data, boost::test_tools::per_element());

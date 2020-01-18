@@ -13,12 +13,12 @@ public:
 	arena &operator=(arena&&) = delete;
 
 	template <typename T>
-	void *alloc(const char *msg = "");
+	[[nodiscard]] void *alloc(const char *msg = "");
 
-	void *alloc(size_t size, const char *msg = "");
+	[[nodiscard]] void *alloc(size_t size, const char *msg = "");
 	void free(void *ptr, size_t size, const char *msg = "") noexcept;
 
-	void *aligned_alloc(size_t alignment, size_t size, const char *msg = "");
+	[[nodiscard]] void *aligned_alloc(size_t alignment, size_t size, const char *msg = "");
 
 	size_t n_blocks_allocated() const noexcept;
 	size_t n_bytes_allocated() const noexcept;

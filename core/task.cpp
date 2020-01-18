@@ -90,8 +90,8 @@ void task::make_error(response::status code) noexcept
 	resp.body.emplace_back(to_string(code));
 
 	resp.headers.clear();
-	resp.headers.emplace_back("Content-Type"_w, "text/plain"_w);
+	resp.headers.emplace_back("Content-Type"sv, "text/plain"sv);
 
 	auto clen_str = string_builder{ a }.convert(resp.body.front().length());
-	resp.headers.emplace_back("Content-Length"_w, clen_str);
+	resp.headers.emplace_back("Content-Length"sv, clen_str);
 }

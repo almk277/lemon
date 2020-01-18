@@ -5,13 +5,11 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <cstdlib>
+#include <string>
 
 using namespace std::string_literals;
 
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<response::const_iterator>));
-
-constexpr string_view message::NL;
-constexpr string_view message::header::SEP;
 
 auto response::begin() const noexcept -> const_iterator
 {
@@ -35,9 +33,9 @@ auto response::cend() const noexcept -> const_iterator
 
 static const string_view &to_string_ref(message::http_version_type v)
 {
-	static const std::array<string_view, 2> strings = {
-		"HTTP/1.0 "_w,
-		"HTTP/1.1 "_w
+	static constexpr std::array strings = {
+		"HTTP/1.0 "sv,
+		"HTTP/1.1 "sv
 	};
 
 	auto idx = static_cast<std::size_t>(v);
@@ -57,86 +55,86 @@ struct string_list
 	{}
 };
 
-constexpr string_view m0[] = { ""_w };
+constexpr string_view m0[] = { ""sv };
 
 constexpr string_view m1[] = {
-	"100 Continue"_w,
-	"101 Switching Protocols"_w,
-	"102 Processing"_w,
+	"100 Continue"sv,
+	"101 Switching Protocols"sv,
+	"102 Processing"sv,
 };
 
 constexpr string_view m2[] = {
-	"200 OK"_w,
-	"201 Created"_w,
-	"202 Accepted"_w,
-	"203 Non-Authoritative Information"_w,
-	"204 No Content"_w,
-	"205 Reset Content"_w,
-	"206 Partial Content"_w,
-	"207 Multi-Status"_w,
-	"208 Already Reported"_w,
+	"200 OK"sv,
+	"201 Created"sv,
+	"202 Accepted"sv,
+	"203 Non-Authoritative Information"sv,
+	"204 No Content"sv,
+	"205 Reset Content"sv,
+	"206 Partial Content"sv,
+	"207 Multi-Status"sv,
+	"208 Already Reported"sv,
 };
 
 constexpr string_view m3[] = {
-	"300 Multiple Choices"_w,
-	"301 Moved Permanently"_w,
-	"302 Found"_w,
-	"303 See Other"_w,
-	"304 Not Modified"_w,
-	"305 Use Proxy"_w,
-	"306 Switch Proxy"_w,
-	"307 Temporary Redirect"_w,
-	"308 Permanent Redirect"_w,
+	"300 Multiple Choices"sv,
+	"301 Moved Permanently"sv,
+	"302 Found"sv,
+	"303 See Other"sv,
+	"304 Not Modified"sv,
+	"305 Use Proxy"sv,
+	"306 Switch Proxy"sv,
+	"307 Temporary Redirect"sv,
+	"308 Permanent Redirect"sv,
 };
 
 constexpr string_view m4[] = {
-	"400 Bad Request"_w,
-	"401 Unauthorized"_w,
-	"402 Payment Required"_w,
-	"403 Forbidden"_w,
-	"404 Not Found"_w,
-	"405 Method Not Allowed"_w,
-	"406 Not Acceptable"_w,
-	"407 Proxy Authentication Required"_w,
-	"408 Request Timeout"_w,
-	"409 Conflict"_w,
-	"410 Gone"_w,
-	"411 Length Required"_w,
-	"412 Precondition Failed"_w,
-	"413 Payload Too Large"_w,
-	"414 URI Too Long"_w,
-	"415 Unsupported Media Type"_w,
-	"416 Range Not Satisfiable"_w,
-	"417 Expectation Failed"_w,
-	"418 I'm a teapot"_w,
-	"419 419"_w,
-	"420 420"_w,
-	"421 Misdirected Request"_w,
-	"422 Unprocessable Entity"_w,
-	"423 Locked"_w,
-	"424 Failed Dependency"_w,
-	"425 425"_w,
-	"426 Upgrade Required"_w,
-	"427 427"_w,
-	"428 Precondition Required"_w,
-	"429 Too Many Requests"_w,
-	"430 430"_w,
-	"431 Request Header Fields Too Large"_w,
+	"400 Bad Request"sv,
+	"401 Unauthorized"sv,
+	"402 Payment Required"sv,
+	"403 Forbidden"sv,
+	"404 Not Found"sv,
+	"405 Method Not Allowed"sv,
+	"406 Not Acceptable"sv,
+	"407 Proxy Authentication Required"sv,
+	"408 Request Timeout"sv,
+	"409 Conflict"sv,
+	"410 Gone"sv,
+	"411 Length Required"sv,
+	"412 Precondition Failed"sv,
+	"413 Payload Too Large"sv,
+	"414 URI Too Long"sv,
+	"415 Unsupported Media Type"sv,
+	"416 Range Not Satisfiable"sv,
+	"417 Expectation Failed"sv,
+	"418 I'm a teapot"sv,
+	"419 419"sv,
+	"420 420"sv,
+	"421 Misdirected Request"sv,
+	"422 Unprocessable Entity"sv,
+	"423 Locked"sv,
+	"424 Failed Dependency"sv,
+	"425 425"sv,
+	"426 Upgrade Required"sv,
+	"427 427"sv,
+	"428 Precondition Required"sv,
+	"429 Too Many Requests"sv,
+	"430 430"sv,
+	"431 Request Header Fields Too Large"sv,
 };
 
 constexpr string_view m5[] = {
-	"500 Internal Server Error"_w,
-	"501 Not Implemented"_w,
-	"502 Bad Gateway"_w,
-	"503 Service Unavailable"_w,
-	"504 Gateway Timeout"_w,
-	"505 HTTP Version Not Supported"_w,
-	"506 Variant Also Negotiates"_w,
-	"507 Insufficient Storage"_w,
-	"508 Loop Detected"_w,
-	"509 509"_w,
-	"510 Not Extended"_w,
-	"511 Network Authentication Required"_w,
+	"500 Internal Server Error"sv,
+	"501 Not Implemented"sv,
+	"502 Bad Gateway"sv,
+	"503 Service Unavailable"sv,
+	"504 Gateway Timeout"sv,
+	"505 HTTP Version Not Supported"sv,
+	"506 Variant Also Negotiates"sv,
+	"507 Insufficient Storage"sv,
+	"508 Loop Detected"sv,
+	"509 509"sv,
+	"510 Not Extended"sv,
+	"511 Network Authentication Required"sv,
 };
 
 constexpr string_list strings[] = {
@@ -151,8 +149,8 @@ constexpr string_list strings[] = {
 static const string_view &to_string_other(int status)
 {
 	static const std::unordered_map<int, string_view> string_map = {
-		{ 226, "226 IM Used"_w },
-		{ 451, "451 Unavailable For Legal Reasons"_w },
+		{ 226, "226 IM Used"sv },
+		{ 451, "451 Unavailable For Legal Reasons"sv },
 	};
 
 	auto status_it = string_map.find(status);
@@ -383,9 +381,9 @@ auto operator==(const response::const_iterator& it1,
 	switch (it1.s)
 	{
 	using state = response::const_iterator::state;
-	case state::HEADER_NAME: BOOST_FALLTHROUGH;
-	case state::HEADER_NAME_SEP: BOOST_FALLTHROUGH;
-	case state::HEADER_VAL: BOOST_FALLTHROUGH;
+	case state::HEADER_NAME: [[fallthrough]];
+	case state::HEADER_NAME_SEP: [[fallthrough]];
+	case state::HEADER_VAL: [[fallthrough]];
 	case state::HEADER_VAL_NL:
 		return it1.header_it == it2.header_it;
 	case state::BODY:

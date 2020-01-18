@@ -33,7 +33,7 @@ if(DEVELOPER_MODE)
 endif(DEVELOPER_MODE)
 
 function(find_boost)
-	set(BOOST_DEFS BOOST_ALL_NO_LIB BOOST_FILESYSTEM_NO_DEPRECATED BOOST_ASIO_NO_DEPRECATED)
+	set(BOOST_DEFS BOOST_ALL_NO_LIB BOOST_FILESYSTEM_NO_DEPRECATED BOOST_ASIO_NO_DEPRECATED _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING)
 	if(LINK_SHARED)
 		list(APPEND BOOST_DEFS BOOST_ALL_DYN_LINK)
 	else()
@@ -95,7 +95,7 @@ set(API_SRC
 	api/request_handler.hpp
 	api/string.hpp
 	api/string_builder.hpp
-	api/utility.hpp
+	api/string_view.hpp
 )
 set(CORE_SRC
 	core/algorithm.hpp

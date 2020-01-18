@@ -211,7 +211,7 @@ struct fragmented_pipeline_dataset
 		{
 			string_view prev{};
 			for (auto c: chunks) {
-				BOOST_ASSERT(prev.empty() || prev.end() == c.begin());
+				BOOST_ASSERT(prev.empty() || prev.data() + prev.size() == c.data());
 				prev = c;
 			}
 		}
@@ -261,13 +261,11 @@ private:
 	};
 };
 
-namespace boost {
-namespace unit_test {
-namespace data {
-namespace monomorphic {
+namespace boost::unit_test::data::monomorphic
+{
 template <>
 struct is_dataset<fragmented_pipeline_dataset> : mpl::true_ {};
-}}}}
+}
 
 static std::ostream &operator<<(std::ostream &s,
 	const fragmented_pipeline_dataset::sample &ds)

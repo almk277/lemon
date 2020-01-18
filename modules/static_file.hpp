@@ -6,7 +6,7 @@ struct rh_static_file : request_handler
 {
 	rh_static_file() = default;
 
-	boost::string_view get_name() const noexcept override;
+	string_view get_name() const noexcept override;
 
 	void get(request &req, response &resp, context &ctx) override;
 	void head(request &req, response &resp, context &ctx) override;

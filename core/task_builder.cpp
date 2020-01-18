@@ -4,14 +4,13 @@
 #include <boost/assert.hpp>
 #include <boost/concept_check.hpp>
 #include <boost/range/algorithm/copy.hpp>
-#include <boost/static_assert.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <utility>
 
 constexpr std::size_t MIN_BUF_SIZE = 512;
 constexpr std::size_t OPTIMUM_BUF_SIZE = 4096;
 
-BOOST_STATIC_ASSERT(MIN_BUF_SIZE <= OPTIMUM_BUF_SIZE);
+static_assert(MIN_BUF_SIZE <= OPTIMUM_BUF_SIZE);
 BOOST_CONCEPT_ASSERT((boost::InputIterator<task_builder::results::iterator>));
 
 struct task_builder::results::parse_result_visitor : boost::static_visitor<value>
@@ -21,13 +20,13 @@ struct task_builder::results::parse_result_visitor : boost::static_visitor<value
 	auto operator()(const http_error &error) const
 	{
 		it.lg().info("HTTP error ", error.code, " ", error.details);
-		r.data.clear();
+		r.data = {};
 		r.stop = true;
 		return value{ make_error_task(it, error.code) };
 	}
 	auto operator()(parser::incomplete_request) const
 	{
-		r.data.clear();
+		r.data = {};
 		r.stop = true;
 		return value{ it };
 	}
@@ -94,7 +93,7 @@ auto task_builder::results::make_ready_task(const std::shared_ptr<client> &cl,
 	else {
 		if (BOOST_UNLIKELY(bytes_rest != 0)) {
 			complete_task->lg.warning("non-keep-alive request, bytes beyond: ", bytes_rest);
-			data.clear();
+			data = {};
 		}
 		stop = true;
 	}

@@ -205,31 +205,31 @@ auto property::is<table>() const noexcept -> bool
 template <>
 auto property::as<boolean>() const -> const boolean&
 {
-	return p->get<boolean>("boolean"_w);
+	return p->get<boolean>("boolean"sv);
 }
 
 template <>
 auto property::as<integer>() const -> const integer&
 {
-	return p->get<integer>("integer"_w);
+	return p->get<integer>("integer"sv);
 }
 
 template <>
 auto property::as<real>() const -> const real&
 {
-	return p->get<rough_real>("real"_w).val;
+	return p->get<rough_real>("real"sv).val;
 }
 
 template <>
 auto property::as<string>() const -> const string&
 {
-	return p->get<string>("string"_w);
+	return p->get<string>("string"sv);
 }
 
 template <>
 auto property::as<table>() const -> const table&
 {
-	return p->get<table>("table"_w);
+	return p->get<table>("table"sv);
 }
 
 struct table::priv
@@ -281,16 +281,17 @@ auto table::get_unique(string_view name) const -> const property&
 	if (it2 != end)
 		throw bad_key{ it2->first.key(), it2->first.get_error_handler().key_error("non-unique") };
 
-	it->second = true;
-	return it->first;
+	auto &[prop, used] = *it;
+	used = true;
+	return prop;
 }
 
 auto table::get_last(string_view name) const -> const property&
 {
 	const property *result = nullptr;
-	for (auto &e : p->map | boost::adaptors::filtered(key_comparator{ name })) {
-		result = &e.first;
-		e.second = true;
+	for (auto &[prop, used] : p->map | boost::adaptors::filtered(key_comparator{ name })) {
+		result = &prop;
+		used = true;
 	}
 
 	return result ? *result : p->empty_value(name);
@@ -299,9 +300,9 @@ auto table::get_last(string_view name) const -> const property&
 auto table::get_all(string_view name) const -> std::vector<const property*>
 {
 	std::vector<const property*> res;
-	for (auto &e : p->map | boost::adaptors::filtered(key_comparator{ name })) {
-		res.push_back(&e.first);
-		e.second = true;
+	for (auto &[prop, used] : p->map | boost::adaptors::filtered(key_comparator{ name })) {
+		res.push_back(&prop);
+		used = true;
 	}
 
 	return res;
@@ -339,11 +340,11 @@ auto table::cend() const -> const_iterator
 
 auto table::throw_on_unknown_key() const -> void
 {
-	for (auto &v : p->map) {
-		if (!v.second)
-			throw bad_key{ v.first.key(), v.first.get_error_handler().key_error("unknown key") };
-		if (v.first.is<table>())
-			v.first.as<table>().throw_on_unknown_key();
+	for (auto &[prop, used] : p->map) {
+		if (!used)
+			throw bad_key{ prop.key(), prop.get_error_handler().key_error("unknown key") };
+		if (prop.is<table>())
+			prop.as<table>().throw_on_unknown_key();
 	}
 }
 

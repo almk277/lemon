@@ -3,11 +3,18 @@
 #include "config.hpp"
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
+#ifdef _MSC_VER
+#pragma warning(push)
+// seems to be fixed in boost 1.70
+#pragma warning(disable: 4521)
+#endif
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
-#include <boost/static_assert.hpp>
 #include <utility>
 #include <vector>
 #include <sstream>
@@ -84,8 +91,8 @@ struct real_policy : strict_real_policies<T>
 };
 const auto real = real_parser<double, real_policy<double>>{};
 
-BOOST_STATIC_ASSERT(std::is_same<decltype(real)::attribute_type, config::real>::value);
-BOOST_STATIC_ASSERT(std::is_same<decltype(int32)::attribute_type, config::integer>::value);
+static_assert(std::is_same_v<decltype(real)::attribute_type, config::real>);
+static_assert(std::is_same_v<decltype(int32)::attribute_type, config::integer>);
 
 const auto key_def = string;
 const auto value_def =
@@ -112,7 +119,7 @@ auto read(const boost::filesystem::path &path)
 
 	auto size = f.tellg();
 	f.seekg(0, std::ios::beg);
-	std::vector<char> data(size);
+	std::string data(size, 0);
 	if (!f.read(data.data(), size))
 		throw std::runtime_error{ "can't read config: " + name };
 
@@ -162,7 +169,7 @@ config::text_view::text_view(string_view data, const std::string &filename):
 {
 }
 
-config::text::text(std::vector<char> data, const std::string& filename):
+config::text::text(std::string data, const std::string& filename):
 	text_view{ string_view{ data.data(), data.size() }, filename },
 	data{ move(data) }
 {

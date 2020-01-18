@@ -2,6 +2,7 @@
 #include "options.hpp"
 #include "rh_manager.hpp"
 #include <boost/variant/static_visitor.hpp>
+#include <algorithm>
 #include <string>
 #include <regex>
 #include <utility>
@@ -24,7 +25,8 @@ public:
 	explicit prefix_matcher(std::string prefix): prefix{move(prefix)} {}
 	bool match(string_view s) const noexcept override
 	{
-		return s.starts_with(prefix);
+		return prefix.length() <= s.length()
+			&& equal(prefix.begin(), prefix.end(), s.begin());
 	}
 private:
 	const std::string prefix;
@@ -73,9 +75,9 @@ router::router(const rh_manager &rhman, const options::route_list &routes)
 
 request_handler *router::resolve(string_view path) const
 {
-	for (auto &el: matchers) {
-		if (el.first->match(path))
-			return el.second.get();
+	for (auto &[matcher, handler]: matchers) {
+		if (matcher->match(path))
+			return handler.get();
 	}
 	return nullptr;
 }

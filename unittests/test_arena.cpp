@@ -2,12 +2,16 @@
 
 #include "arena_imp.hpp"
 #include "stub_logger.hpp"
+#include <boost/asio/buffer.hpp>
+#include <boost/range/algorithm/for_each.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/align/is_aligned.hpp> 
-#include <boost/mpl/list.hpp>
 #include <memory>
 #include <cstring>
 #include <cstddef>
+#include <vector>
+#include <tuple>
+#include <utility>
 
 using std::size_t;
 
@@ -16,23 +20,17 @@ const size_t sizes[] = { 1, 10, 100, 1'000, 10'000, 1'000, 100, 10, 1 };
 const size_t max_alignment = alignof(std::max_align_t);
 
 namespace {
-	class buffer
-	{
-		void *data;
-		size_t size;
-	public:
-		buffer(void *data, size_t size) : data{ data }, size{ size } { test(); }
-		void test() const { std::memset(data, 0, size); }
-	};
-
+	using buffer = boost::asio::mutable_buffer;
 	using buffer_list = std::vector<buffer>;
-
 	struct big_array { int data[2048]; };
 
 	struct arena_fixture
 	{
 		arena_imp a{ slg };
 	};
+
+	void test1(const buffer &b) { std::memset(b.data(), 0, b.size()); }
+	void test(const buffer_list &list) { boost::range::for_each(list, test1); }
 }
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(arena::allocator<char>)
@@ -45,12 +43,12 @@ BOOST_AUTO_TEST_CASE(test_aligned_alloc)
 	for (size_t i = 0; i < n_arenas; ++i)
 		arenas.emplace_back(std::make_unique<arena_imp>(slg), buffer_list{});
 
-	for (auto &a : arenas)
+	for (auto &[a, buffers] : arenas)
 		for (auto size: sizes)
 			for (size_t align = 1; align <= max_alignment; align *= 2)
 			{
-				const auto p = a.first->aligned_alloc(align, size);
-				a.second.emplace_back(p, size);
+				const auto p = a->aligned_alloc(align, size);
+				buffers.emplace_back(p, size);
 				BOOST_TEST(boost::alignment::is_aligned(p, align));
 			}
 
@@ -59,8 +57,7 @@ BOOST_AUTO_TEST_CASE(test_aligned_alloc)
 	arenas.erase(arenas.begin());
 
 	for (auto &a : arenas)
-		for (auto &b : a.second)
-			b.test();
+		test(a.second);
 }
 
 BOOST_AUTO_TEST_CASE(test_alloc)
@@ -75,7 +72,7 @@ BOOST_AUTO_TEST_CASE(test_alloc)
 	}
 }
 
-using alloc_types = boost::mpl::list<
+using alloc_types = std::tuple<
 	char, short, int, long, long long,
 	float, double, long double,
 	big_array
@@ -90,7 +87,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_alloc_type, T, alloc_types)
 
 BOOST_AUTO_TEST_CASE(test_allocator)
 {
-	std::list<int, arena::allocator<int>> l {
+	std::list l {
 		{ 1, 2, 3, 4 },
 		a.make_allocator<int>()
 	};

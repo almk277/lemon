@@ -2,7 +2,6 @@
 #include "arena_imp.hpp"
 #include "logger.hpp"
 #include <boost/assert.hpp>
-#include <boost/static_assert.hpp>
 #include <boost/align/aligned_alloc.hpp>
 #include <algorithm>
 #include <memory>
@@ -18,9 +17,10 @@ constexpr size_t MAX_ALLOC_COMPACT_SIZE = BLOCK_SIZE - MIN_BLOCK_USEFUL_SIZE;
 
 constexpr bool is_power_of_two(size_t n) { return (n & (n - 1)) == 0; }
 
-BOOST_STATIC_ASSERT(is_power_of_two(BLOCK_SIZE));
-BOOST_STATIC_ASSERT(is_power_of_two(BLOCK_ALIGN_WANTED));
-BOOST_STATIC_ASSERT(MAX_ALLOC_COMPACT_SIZE < BLOCK_SIZE);
+static_assert(is_power_of_two(BLOCK_SIZE));
+static_assert(is_power_of_two(BLOCK_ALIGN_WANTED));
+static_assert(is_power_of_two(BLOCK_ALIGN));
+static_assert(MAX_ALLOC_COMPACT_SIZE < BLOCK_SIZE);
 
 #if 0
 #include <cstdio>
@@ -84,7 +84,7 @@ void *arena_imp::stateful_block::alloc(size_t size) noexcept
 {
 	BOOST_ASSERT(size <= space);
 	auto p = current;
-	current = static_cast<char*>(current) + size;
+	current = static_cast<std::byte*>(current) + size;
 	space -= size;
 	return p;
 }
