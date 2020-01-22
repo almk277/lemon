@@ -11,7 +11,7 @@
 1. Boost
 
 Debian/Ubuntu:
-    # apt-get install liboost-system-dev libboost-log-dev libboost-regex-dev libboost-test-dev
+    # apt-get install liboost-system-dev libboost-log-dev libboost-regex-dev libboost-program-options-dev libboost-test-dev
 
 FreeBSD:
     # pkg add boost-libs

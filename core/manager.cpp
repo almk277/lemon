@@ -1,4 +1,5 @@
 #include "manager.hpp"
+#include "parameters.hpp"
 #include "options.hpp"
 #include "server.hpp"
 #include "logs.hpp"
@@ -16,10 +17,6 @@
 #include <stdexcept>
 #include <set>
 
-#ifndef LEMON_CONFIG_PATH
-# define LEMON_CONFIG_PATH ./lemon.ini
-#endif
-
 struct finish_worker: std::exception
 {
 	const char *what() const noexcept override { return "finish_worker"; }
@@ -31,11 +28,12 @@ static unsigned n_workers_default()
 	return n_cores > 0 ? n_cores : 2;
 }
 
-manager::manager(const parameters &/*params*/):
+manager::manager(const parameters &params):
 	master_ctx{ 1 },
 	master_work{ make_work_guard(master_ctx) },
 	worker_work{ make_work_guard(worker_ctx) },
-	quit_signals{ master_ctx, SIGTERM, SIGINT }
+	quit_signals{ master_ctx, SIGTERM, SIGINT },
+	config_path{ params.config_path }
 {
 	quit_signals.async_wait([this](const boost::system::error_code&, int sig)
 	{
@@ -48,6 +46,7 @@ manager::manager(const parameters &/*params*/):
 	init();
 
 	lg.trace("manager created");
+	lg.debug("config_path ", config_path);
 }
 
 manager::~manager()
@@ -81,7 +80,6 @@ void manager::init()
 #ifdef LEMON_NO_CONFIG
 		opts = std::make_shared<options>();
 #else
-		auto config_path = boost::filesystem::path{ BOOST_STRINGIZE(LEMON_CONFIG_PATH) };
 		auto config_file = std::make_shared<config::file>(config_path);
 		auto config = parse(config_file);
 		opts = std::make_shared<options>(config);

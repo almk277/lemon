@@ -5,13 +5,14 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/filesystem/path.hpp>
 #include <memory>
 #include <vector>
 #include <map>
 #include <thread>
 
 class options;
-class parameters;
+struct parameters;
 class server;
 
 class manager: boost::noncopyable
@@ -42,4 +43,5 @@ private:
 	unsigned n_workers = 0;
 	common_logger lg;
 	std::vector<std::unique_ptr<server>> srv;
+	const boost::filesystem::path config_path;
 };

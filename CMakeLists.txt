@@ -42,7 +42,7 @@ function(find_boost)
 	if(BUILD_TESTING)
 		set(BOOST_TEST_COMPONENT unit_test_framework)
 	endif()
-	find_package(Boost 1.65 REQUIRED COMPONENTS system log filesystem ${BOOST_TEST_COMPONENT})
+	find_package(Boost 1.65 REQUIRED COMPONENTS system log filesystem program_options ${BOOST_TEST_COMPONENT})
 	if(WIN32)
 		list(APPEND BOOST_DEFS _WIN32_WINNT=0x0600)
 	endif()
@@ -103,6 +103,8 @@ set(CORE_SRC
 	core/arena_imp.hpp
 	core/client.cpp
 	core/client.hpp
+	core/cmdline_parser.cpp
+	core/cmdline_parser.hpp
 	core/config.cpp
 	core/leak_checked.hpp
 	core/logger.cpp
@@ -156,7 +158,7 @@ target_include_directories(lemon PRIVATE
 	"${PROJECT_SOURCE_DIR}/api"
 )
 target_link_libraries(lemon PRIVATE
-	http_parser Boost::boost Boost::system Boost::log Boost::filesystem)
+	http_parser Boost::boost Boost::system Boost::log Boost::filesystem Boost::program_options)
 enable_sanitizer(lemon)
 target_compile_definitions(lemon PRIVATE LEMON_LOG_LEVEL=${LEMON_LOG_LEVEL})
 target_compile_definitions(lemon PRIVATE LEMON_CONFIG_PATH=${LEMON_CONFIG_PATH})
@@ -173,12 +175,14 @@ if(BUILD_TESTING)
 		unittests/stub_logger.hpp
 		unittests/test_main.cpp
 		unittests/test_arena.cpp
+		unittests/test_cmdline_parser.cpp
 		unittests/test_config.cpp
 		unittests/test_config.hpp
 		unittests/test_parser.cpp
 		unittests/test_resp_it.cpp
 		unittests/test_router.cpp
 		core/arena.cpp
+		core/cmdline_parser.cpp
 		core/config.cpp
 		core/message.cpp
 		core/options.cpp
@@ -201,7 +205,7 @@ if(BUILD_TESTING)
 		"${PROJECT_SOURCE_DIR}/core"
 	)
 	target_link_libraries(test_lemon PRIVATE
-		http_parser Boost::boost Boost::system Boost::filesystem Boost::unit_test_framework)
+		http_parser Boost::boost Boost::system Boost::filesystem Boost::program_options Boost::unit_test_framework)
 	target_compile_definitions(test_lemon PRIVATE)
 	enable_sanitizer(test_lemon)
 	add_test(NAME test_lemon COMMAND test_lemon)

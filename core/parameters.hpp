@@ -1,9 +1,7 @@
 #pragma once
+#include <string>
 
-class logger;
-
-class parameters
+struct parameters
 {
-public:
-	parameters(int argc, char *argv[], logger &lg) {}
+	std::string config_path;
 };
