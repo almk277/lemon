@@ -24,12 +24,16 @@ logger::severity log_severity_level = logger::severity::info;
 bool log_access_enabled = true;
 
 constexpr std::array severity_strings = {
+	"!!! "sv,
 	"ERR "sv,
 	"WRN "sv,
 	"INF "sv,
 	"DBG "sv,
 	"TRC "sv,
 };
+
+static_assert(severity_strings[static_cast<int>(logger::severity::error)] == "ERR "sv);
+static_assert(severity_strings[static_cast<int>(logger::severity::trace)] == "TRC "sv);
 
 static std::ostream &operator<<(std::ostream &s, logger::severity sev)
 {

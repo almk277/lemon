@@ -7,7 +7,6 @@
 #  define LEMON_LOG_LEVEL 3
 #endif
 
-//BUG should be in [0, 4]
 static_assert(LEMON_LOG_LEVEL >= 1 && LEMON_LOG_LEVEL <= 5,
 	"log level should be in [1(error), 5(trace)]");
 
@@ -16,11 +15,11 @@ class logger
 public:
 	enum class severity
 	{
-		error,
-		warning,
-		info,
-		debug,
-		trace,
+		error   = 1,
+		warning = 2,
+		info    = 3,
+		debug   = 4,
+		trace   = 5,
 	};
 
 	static constexpr severity severity_barrier = static_cast<severity>(LEMON_LOG_LEVEL);
