@@ -1,9 +1,12 @@
 #include "logger.hpp"
 #include "logger_imp.hpp"
 
-inline logger_imp *impl(logger *lg)
+namespace
+{
+logger_imp *impl(logger *lg)
 {
 	return static_cast<logger_imp*>(lg);
+}
 }
 
 bool logger::open(severity s)

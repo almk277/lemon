@@ -2,6 +2,8 @@
 #include "message.hpp"
 #include "arena.hpp"
 
+namespace
+{
 enum cb_result {
 	OK = 0,
 	ERR = 3 // on_headers_complete reserves 1 and 2
@@ -176,6 +178,7 @@ http_parser_settings parser_internal::make_settings()
 }
 
 const http_parser_settings settings = parser_internal::make_settings();
+}
 
 void parser::reset(request &req, arena &a) noexcept
 {

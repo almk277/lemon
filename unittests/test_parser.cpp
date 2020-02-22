@@ -10,62 +10,63 @@
 #include <deque>
 #include <utility>
 
-namespace {
-	std::string body(const request &r)
+namespace
+{
+std::string body(const request &r)
+{
+	std::string b;
+	for (auto s : r.body)
+		b += std::string{ s };
+	return b;
+}
+
+struct parser_fixture
+{
+	arena_imp a{ slg };
+	request req{a};
+	parser p;
+
+	void reset()
 	{
-		std::string b;
-		for (auto s : r.body)
-			b += std::string{ s };
-		return b;
+		req.url = {};
+		req.headers.clear();
+		req.body.clear();
+		p.reset(req, a);
 	}
-
-	struct parser_fixture
+	parser_fixture()
 	{
-		arena_imp a{ slg };
-		request req{a};
-		parser p;
-
-		void reset()
-		{
-			req.url = {};
-			req.headers.clear();
-			req.body.clear();
-			p.reset(req, a);
-		}
-		parser_fixture()
-		{
-			reset();
-		}
-	};
-
-	struct good_test_case
-	{
-		int no;
-		std::string request;
-		request::method_s::type_e method_type;
-		string_view method_name;
-		string_view url;
-		message::http_version_type version;
-		std::vector<request::header> headers;
-		std::string body;
-	};
-
-	std::ostream &operator<<(std::ostream &s, const good_test_case &t)
-	{
-		return s << "No " << t.no << ": " << t.request;
+		reset();
 	}
+};
 
-	struct bad_test_case
-	{
-		int no;
-		std::string request;
-		boost::optional<response::status> code;
-	};
+struct good_test_case
+{
+	int no;
+	std::string request;
+	request::method_s::type_e method_type;
+	string_view method_name;
+	string_view url;
+	message::http_version_type version;
+	std::vector<request::header> headers;
+	std::string body;
+};
 
-	std::ostream &operator<<(std::ostream &s, const bad_test_case &t)
-	{
-		return s << "No " << t.no << ": " << t.request;
-	}
+std::ostream &operator<<(std::ostream &s, const good_test_case &t)
+{
+	return s << "No " << t.no << ": " << t.request;
+}
+
+struct bad_test_case
+{
+	int no;
+	std::string request;
+	boost::optional<response::status> code;
+};
+
+std::ostream &operator<<(std::ostream &s, const bad_test_case &t)
+{
+	return s << "No " << t.no << ": " << t.request;
+}
 }
 
 static std::ostream &operator<<(std::ostream &s, request::http_version_type v)

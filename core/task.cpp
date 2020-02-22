@@ -7,10 +7,12 @@
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/concept_check.hpp>
 
+namespace
+{
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<task::result::const_iterator>));
 
-static boost::fast_pool_allocator<task,
-	boost::default_user_allocator_malloc_free> task_allocator;
+boost::fast_pool_allocator<task, boost::default_user_allocator_malloc_free> task_allocator;
+}
 
 task::task(ident id, std::shared_ptr<client> cl) noexcept:
 	id{id},

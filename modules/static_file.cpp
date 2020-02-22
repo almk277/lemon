@@ -12,11 +12,13 @@
 //TODO caching
 //TODO Linux sendfile?
 
+namespace
+{
 const std::fstream::pos_type MAX_SIZE = 100 * 1024 * 1024;
 //TODO configurable file directory
 constexpr string_view WWW_DIR = "/var/www"sv;
 
-static std::pair<std::ifstream, std::size_t> open_file(
+std::pair<std::ifstream, std::size_t> open_file(
 	const request &req, const rh_static_file::context &ctx)
 {
 	const auto path = req.url.path;
@@ -38,6 +40,7 @@ static std::pair<std::ifstream, std::size_t> open_file(
 	auto mem_length = static_cast<std::size_t>(size);
 
 	return make_pair(move(f), mem_length);
+}
 }
 
 string_view rh_static_file::get_name() const noexcept

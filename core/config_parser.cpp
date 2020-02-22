@@ -131,8 +131,10 @@ BOOST_FUSION_ADAPT_STRUCT(ast::key, name);
 BOOST_FUSION_ADAPT_STRUCT(ast::stmt, key, val);
 BOOST_FUSION_ADAPT_STRUCT(ast::table, entries);
 
+namespace config
+{
 //TODO proper tab handling
-struct config::text_view::priv
+struct text_view::priv
 {
 	priv(string_view data, const std::string &filename):
 		data{ data },
@@ -164,24 +166,22 @@ struct config::text_view::priv
 	ast::table ast;
 };
 
-config::text_view::text_view(string_view data, const std::string &filename):
+text_view::text_view(string_view data, const std::string &filename):
 	p{ std::make_shared<priv>(data, filename) }
 {
 }
 
-config::text::text(std::string data, const std::string& filename):
+text::text(std::string data, const std::string& filename):
 	text_view{ string_view{ data.data(), data.size() }, filename },
 	data{ move(data) }
 {
 }
 
-config::file::file(const boost::filesystem::path &path):
+file::file(const boost::filesystem::path &path):
 	text{ read(path), path.string() }
 {
 }
 
-namespace config
-{
 namespace
 {
 class property_error_handler : public property::error_handler

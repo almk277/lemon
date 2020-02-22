@@ -15,22 +15,23 @@
 
 using std::size_t;
 
+namespace
+{
 const size_t n_arenas = 8;
 const size_t sizes[] = { 1, 10, 100, 1'000, 10'000, 1'000, 100, 10, 1 };
 const size_t max_alignment = alignof(std::max_align_t);
 
-namespace {
-	using buffer = boost::asio::mutable_buffer;
-	using buffer_list = std::vector<buffer>;
-	struct big_array { int data[2048]; };
+using buffer = boost::asio::mutable_buffer;
+using buffer_list = std::vector<buffer>;
+struct big_array { int data[2048]; };
 
-	struct arena_fixture
-	{
-		arena_imp a{ slg };
-	};
+struct arena_fixture
+{
+	arena_imp a{ slg };
+};
 
-	void test1(const buffer &b) { std::memset(b.data(), 0, b.size()); }
-	void test(const buffer_list &list) { boost::range::for_each(list, test1); }
+void test1(const buffer &b) { std::memset(b.data(), 0, b.size()); }
+void test(const buffer_list &list) { boost::range::for_each(list, test1); }
 }
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(arena::allocator<char>)

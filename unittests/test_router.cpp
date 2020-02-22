@@ -4,38 +4,39 @@
 #include "options.hpp"
 #include <boost/test/unit_test.hpp>
 
-namespace {
-	struct handler1 : request_handler
+namespace
+{
+struct handler1 : request_handler
+{
+	string_view get_name() const noexcept override
 	{
-		string_view get_name() const noexcept override
-		{
-			return "h1"sv;
-		}
-	};
+		return "h1"sv;
+	}
+};
 
-	struct handler2 : request_handler
+struct handler2 : request_handler
+{
+	string_view get_name() const noexcept override
 	{
-		string_view get_name() const noexcept override
-		{
-			return "h2"sv;
-		}
-	};
+		return "h2"sv;
+	}
+};
 
-	struct router_fixture
+struct router_fixture
+{
+	router_fixture()
 	{
-		router_fixture()
-		{
-			man.add(h1);
-			man.add(h2);
-			routes.clear();
-		}
+		man.add(h1);
+		man.add(h2);
+		routes.clear();
+	}
 
-		const std::shared_ptr<request_handler> h1 = std::make_shared<handler1>();
-		const std::shared_ptr<request_handler> h2 = std::make_shared<handler2>();
-		rh_manager man;
-		decltype(options::servers) servers = { {} };
-		options::route_list &routes = servers.at(0).routes;
-	};
+	const std::shared_ptr<request_handler> h1 = std::make_shared<handler1>();
+	const std::shared_ptr<request_handler> h2 = std::make_shared<handler2>();
+	rh_manager man;
+	decltype(options::servers) servers = { {} };
+	options::route_list &routes = servers.at(0).routes;
+};
 }
 
 #define assert_yes(r, path, module) \

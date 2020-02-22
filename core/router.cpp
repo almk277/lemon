@@ -7,6 +7,8 @@
 #include <regex>
 #include <utility>
 
+namespace
+{
 class exact_matcher: public router::matcher
 {
 public:
@@ -59,6 +61,7 @@ struct match_builder: boost::static_visitor<std::unique_ptr<router::matcher>>
 		return std::make_unique<regex_matcher>(r.re);
 	}
 };
+}
 
 router::router(const rh_manager &rhman, const options::route_list &routes)
 {

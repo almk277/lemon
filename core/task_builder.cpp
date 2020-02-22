@@ -7,11 +7,14 @@
 #include <boost/variant/static_visitor.hpp>
 #include <utility>
 
+namespace
+{
 constexpr std::size_t MIN_BUF_SIZE = 512;
 constexpr std::size_t OPTIMUM_BUF_SIZE = 4096;
 
 static_assert(MIN_BUF_SIZE <= OPTIMUM_BUF_SIZE);
 BOOST_CONCEPT_ASSERT((boost::InputIterator<task_builder::results::iterator>));
+}
 
 struct task_builder::results::parse_result_visitor : boost::static_visitor<value>
 {

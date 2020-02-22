@@ -6,14 +6,14 @@
 #include <cstdlib>
 #include <utility>
 
-BOOST_CONCEPT_ASSERT((boost::ForwardIterator<config::table::const_iterator>));
-
-constexpr auto REAL_EPS = 0.001;
-
 namespace config
 {
 namespace
 {
+BOOST_CONCEPT_ASSERT((boost::ForwardIterator<table::const_iterator>));
+
+constexpr auto REAL_EPS = 0.001;
+
 struct empty_value_t {};
 auto operator==(empty_value_t, empty_value_t) noexcept { return true; }
 auto operator!=(empty_value_t, empty_value_t) noexcept { return false; }

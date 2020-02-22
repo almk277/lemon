@@ -1,10 +1,10 @@
 #pragma once
 
+#include "string_view.hpp"
 struct request;
 struct response;
 class arena;
 class logger;
-#include "string_view.hpp"
 
 struct request_handler
 {

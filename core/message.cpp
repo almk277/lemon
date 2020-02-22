@@ -9,29 +9,11 @@
 
 using namespace std::string_literals;
 
+namespace
+{
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<response::const_iterator>));
 
-auto response::begin() const noexcept -> const_iterator
-{
-	return { this, const_iterator::begin_tag{} };
-}
-
-auto response::cbegin() const noexcept -> const_iterator
-{
-	return begin();
-}
-
-auto response::end() const noexcept -> const_iterator
-{
-	return { this, const_iterator::end_tag{} };
-}
-
-auto response::cend() const noexcept -> const_iterator
-{
-	return end();
-}
-
-static const string_view &to_string_ref(message::http_version_type v)
+const string_view &to_string_ref(message::http_version_type v)
 {
 	static constexpr std::array strings = {
 		"HTTP/1.0 "sv,
@@ -141,12 +123,12 @@ constexpr string_list strings[] = {
 	m0, m1, m2, m3, m4, m5
 };
 
-[[noreturn]] static void bad_response(int n)
+[[noreturn]] void bad_response(int n)
 {
 	throw std::runtime_error{ "bad response code: "s + std::to_string(n) };
 }
 
-static const string_view &to_string_other(int status)
+const string_view &to_string_other(int status)
 {
 	static const std::unordered_map<int, string_view> string_map = {
 		{ 226, "226 IM Used"sv },
@@ -159,7 +141,7 @@ static const string_view &to_string_other(int status)
 	return status_it->second;
 }
 
-static const string_view &to_string_ref(response::status status)
+const string_view &to_string_ref(response::status status)
 {
 	const auto status_n = static_cast<int>(status);
 	auto dv = std::div(status_n, 100);
@@ -174,6 +156,27 @@ static const string_view &to_string_ref(response::status status)
 		return sublist.data[subcode];
 
 	return to_string_other(status_n);
+}
+}
+
+auto response::begin() const noexcept -> const_iterator
+{
+	return { this, const_iterator::begin_tag{} };
+}
+
+auto response::cbegin() const noexcept -> const_iterator
+{
+	return begin();
+}
+
+auto response::end() const noexcept -> const_iterator
+{
+	return { this, const_iterator::end_tag{} };
+}
+
+auto response::cend() const noexcept -> const_iterator
+{
+	return end();
 }
 
 string_view to_string(response::status status)

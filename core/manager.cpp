@@ -17,15 +17,18 @@
 #include <stdexcept>
 #include <set>
 
+namespace
+{
 struct finish_worker: std::exception
 {
 	const char *what() const noexcept override { return "finish_worker"; }
 };
 
-static unsigned n_workers_default()
+unsigned n_workers_default()
 {
 	auto n_cores = std::thread::hardware_concurrency();
 	return n_cores > 0 ? n_cores : 2;
+}
 }
 
 manager::manager(const parameters &params):

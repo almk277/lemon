@@ -1,18 +1,20 @@
 #include "client.hpp"
+#include "algorithm.hpp"
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/pool/pool_alloc.hpp>
-#include <boost/range/algorithm/find.hpp>
 #include <boost/range/algorithm/upper_bound.hpp>
 #include <boost/range/algorithm_ext/is_sorted.hpp>
 #include <exception>
 #include <utility>
 
+namespace
+{
 using boost::system::error_code;
 using std::size_t;
 
-static boost::fast_pool_allocator<client,
+boost::fast_pool_allocator<client,
 	boost::default_user_allocator_malloc_free,
 	boost::details::pool::null_mutex> client_allocator;
 
@@ -39,6 +41,7 @@ private:
 	arena &a;
 	const Handler h;
 };
+}
 
 struct client::task_visitor : boost::static_visitor<>
 {
@@ -151,7 +154,7 @@ void client::start_send(const task::result &tr)
 					[this, tr](const error_code &ec, size_t) { on_sent(ec, tr); } });
 			} else {
 				tr.lg().debug("queueing task result"sv);
-				BOOST_ASSERT(boost::find(send_q, tr) == send_q.end());
+				BOOST_ASSERT(!contains(send_q, tr));
 				auto it = boost::upper_bound(send_q, tr);
 				send_q.insert(it, tr);
 				BOOST_ASSERT(boost::is_sorted(send_q));

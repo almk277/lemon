@@ -32,9 +32,6 @@ constexpr std::array severity_strings = {
 	"TRC "sv,
 };
 
-static_assert(severity_strings[static_cast<int>(logger::severity::error)] == "ERR "sv);
-static_assert(severity_strings[static_cast<int>(logger::severity::trace)] == "TRC "sv);
-
 static std::ostream &operator<<(std::ostream &s, logger::severity sev)
 {
 	return s << severity_strings[static_cast<int>(sev)];
@@ -47,7 +44,12 @@ static std::ostream &operator<<(std::ostream &s, logger_imp::message_type msg)
 	return s;
 }
 
-static logger_imp::severity convert(options::log_types::severity s)
+namespace
+{
+static_assert(severity_strings[static_cast<int>(logger::severity::error)] == "ERR "sv);
+static_assert(severity_strings[static_cast<int>(logger::severity::trace)] == "TRC "sv);
+
+logger_imp::severity convert(options::log_types::severity s)
 {
 	using opt = options::log_types::severity;
 	using lg = logger::severity;
@@ -100,7 +102,7 @@ struct log_adder: boost::static_visitor<bool>
 	Fmt fmt;
 };
 
-static bool add_messages_sink(const options::log_types::messages_log &log)
+bool add_messages_sink(const options::log_types::messages_log &log)
 {
 	using namespace boost::log;
 
@@ -129,7 +131,7 @@ static bool add_messages_sink(const options::log_types::messages_log &log)
 		), log.dest);
 }
 
-static bool add_access_sink(const options::log_types::access_log &log)
+bool add_access_sink(const options::log_types::access_log &log)
 {
 #ifndef LEMON_NO_ACCESS_LOG
 	using namespace boost::log;
@@ -146,6 +148,7 @@ static bool add_access_sink(const options::log_types::access_log &log)
 #else
 	return false;
 #endif
+}
 }
 
 void logs::preinit()

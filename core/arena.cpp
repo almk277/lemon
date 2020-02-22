@@ -7,21 +7,6 @@
 #include <memory>
 #include <new>
 
-using std::size_t;
-
-constexpr size_t BLOCK_SIZE = 4 * 1024; //TODO adjust to fit block here
-constexpr size_t BLOCK_ALIGN_WANTED = 16;
-constexpr size_t BLOCK_ALIGN = std::max(BLOCK_ALIGN_WANTED, alignof(std::max_align_t));
-constexpr size_t MIN_BLOCK_USEFUL_SIZE = 32;
-constexpr size_t MAX_ALLOC_COMPACT_SIZE = BLOCK_SIZE - MIN_BLOCK_USEFUL_SIZE;
-
-constexpr bool is_power_of_two(size_t n) { return (n & (n - 1)) == 0; }
-
-static_assert(is_power_of_two(BLOCK_SIZE));
-static_assert(is_power_of_two(BLOCK_ALIGN_WANTED));
-static_assert(is_power_of_two(BLOCK_ALIGN));
-static_assert(MAX_ALLOC_COMPACT_SIZE < BLOCK_SIZE);
-
 #if 0
 #include <cstdio>
 #include <cstdlib>
@@ -39,7 +24,24 @@ void operator delete(void *p)
 }
 #endif
 
-static void *sys_alloc(size_t size)
+namespace
+{
+using std::size_t;
+
+constexpr size_t BLOCK_SIZE = 4 * 1024; //TODO adjust to fit block here
+constexpr size_t BLOCK_ALIGN_WANTED = 16;
+constexpr size_t BLOCK_ALIGN = std::max(BLOCK_ALIGN_WANTED, alignof(std::max_align_t));
+constexpr size_t MIN_BLOCK_USEFUL_SIZE = 32;
+constexpr size_t MAX_ALLOC_COMPACT_SIZE = BLOCK_SIZE - MIN_BLOCK_USEFUL_SIZE;
+
+constexpr bool is_power_of_two(size_t n) { return (n & (n - 1)) == 0; }
+
+static_assert(is_power_of_two(BLOCK_SIZE));
+static_assert(is_power_of_two(BLOCK_ALIGN_WANTED));
+static_assert(is_power_of_two(BLOCK_ALIGN));
+static_assert(MAX_ALLOC_COMPACT_SIZE < BLOCK_SIZE);
+
+void *sys_alloc(size_t size)
 {
 	auto p = boost::alignment::aligned_alloc(BLOCK_ALIGN, size);
 	if (BOOST_UNLIKELY(!p))
@@ -47,9 +49,10 @@ static void *sys_alloc(size_t size)
 	return p;
 }
 
-static void sys_free(void *p) noexcept
+void sys_free(void *p) noexcept
 {
 	boost::alignment::aligned_free(p);
+}
 }
 
 struct alloc_tag_t {};
