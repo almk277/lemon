@@ -17,45 +17,54 @@ struct message
 {
 	struct header
 	{
+		using lowercase_string_view = string_view;
+
 		string_view name;
-		string_view lcase_name;
+		lowercase_string_view lowercase_name;
 		string_view value;
 
-		explicit header(string_view name) noexcept:
-			name{ name }, lcase_name{ name }
-		{}
-		constexpr header(string_view name, string_view value) noexcept:
-			name{ name }, lcase_name{ name }, value{ value }
-		{}
+		explicit header(string_view name) noexcept : name{name} {}
+		constexpr header(string_view name, string_view value) noexcept : name{name}, value{value} {}
 
 		bool operator==(const header &rhs) const noexcept
 		{
-			return lcase_name == rhs.lcase_name
-				&& value == rhs.value;
+			return lowercase_name == rhs.lowercase_name && value == rhs.value;
+		}
+
+		[[nodiscard]] bool is(lowercase_string_view name) const noexcept
+		{
+			return lowercase_name == name;
+		}
+
+		[[nodiscard]] static auto make_is(lowercase_string_view name) noexcept
+		{
+			return [name](const header &hdr) { return hdr.is(name); };
 		}
 
 		static constexpr string_view SEP = ": "sv;
 	};
 
-	enum class http_version_type {
+	enum class http_version_type
+	{
 		HTTP_1_0 = 0,
 		HTTP_1_1 = 1,
 	};
 
 	using header_list = std::list<header, arena::allocator<header>>;
-	using chunk_list = std::list < string_view, arena::allocator<string_view>>;
+	using chunk_list = std::list<string_view, arena::allocator<string_view>>;
 
-	explicit message(arena &a) noexcept:
-		http_version{},
-		headers{a.make_allocator<header>("message::headers")},
-		body{a.make_allocator<string_view>("message::body")},
-		a{a}
+	explicit message(arena &a) noexcept :
+	    http_version{},
+	    headers{a.make_allocator<header>("message::headers")},
+	    body{a.make_allocator<string_view>("message::body")},
+	    a{a}
 	{}
 
-	message(const message&) = delete;
-	message(message&&) = delete;
-	message &operator=(const message&) = delete;
-	message &operator=(message&&) = delete;
+	message(const message &) = delete;
+	message(message &&) = delete;
+	message &operator=(const message &) = delete;
+	message &operator=(message &&) = delete;
+	~message() = default;
 
 	// HTTP new line
 	static constexpr string_view NL = "\r\n"sv;
@@ -67,11 +76,12 @@ struct message
 	arena &a;
 };
 
-struct request: message
+struct request : message
 {
 	struct method_s
 	{
-		enum class type_e {
+		enum class type_e
+		{
 			GET,
 			HEAD,
 			POST,
@@ -81,7 +91,7 @@ struct request: message
 		string_view name;
 	};
 
-	explicit request(arena &a) noexcept: message{ a } {}
+	explicit request(arena &a) noexcept : message{a} {}
 
 	method_s method;
 	url_s url;
@@ -89,7 +99,7 @@ struct request: message
 	std::size_t content_length = 0;
 };
 
-struct response: message
+struct response : message
 {
 	enum class status;
 	class const_iterator;
@@ -177,8 +187,8 @@ class response::const_iterator
 {
 public:
 	using value_type = string_view;
-	using reference = const value_type&;
-	using pointer = const value_type*;
+	using reference = const value_type &;
+	using pointer = const value_type *;
 	using difference_type = int;
 	using iterator_category = std::bidirectional_iterator_tag;
 
@@ -188,24 +198,22 @@ public:
 	const_iterator() noexcept;
 	const_iterator(const response *r, begin_tag) noexcept;
 	const_iterator(const response *r, end_tag) noexcept;
-	const_iterator(const const_iterator&) = default;
-	const_iterator(const_iterator&&) = default;
+	const_iterator(const const_iterator &) = default;
+	const_iterator(const_iterator &&) = default;
 	~const_iterator() = default;
 
-	auto operator=(const const_iterator&) -> const_iterator& = default;
-	auto operator=(const_iterator&&) -> const_iterator& = default;
+	auto operator=(const const_iterator &) -> const_iterator & = default;
+	auto operator=(const_iterator &&) -> const_iterator & = default;
 
 	auto operator*() const -> reference;
-	auto operator->() const -> pointer;
-	auto operator++() -> const_iterator&;
+	auto operator-> () const -> pointer;
+	auto operator++() -> const_iterator &;
 	auto operator++(int) -> const_iterator;
-	auto operator--() -> const_iterator&;
+	auto operator--() -> const_iterator &;
 	auto operator--(int) -> const_iterator;
 
-	friend auto operator==(const const_iterator& it1,
-		const const_iterator& it2) -> bool;
-	friend auto operator!=(const const_iterator& it1,
-		const const_iterator& it2) -> bool;
+	friend auto operator==(const const_iterator &it1, const const_iterator &it2) -> bool;
+	friend auto operator!=(const const_iterator &it1, const const_iterator &it2) -> bool;
 
 private:
 	enum class state;
@@ -216,14 +224,8 @@ private:
 	chunk_list::const_iterator body_it;
 };
 
-inline response::response(arena &a) noexcept:
-	message{ a },
-	code{ status::INTERNAL_SERVER_ERROR }
-{}
+inline response::response(arena &a) noexcept : message{a}, code{status::INTERNAL_SERVER_ERROR} {}
 
 string_view to_string(response::status status);
 
-inline std::ostream &operator<<(std::ostream &strm, response::status status)
-{
-	return strm << static_cast<int>(status);
-}
+std::ostream &operator<<(std::ostream &stream, response::status status);

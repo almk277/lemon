@@ -31,7 +31,7 @@ struct parser_fixture
 		req.url = {};
 		req.headers.clear();
 		req.body.clear();
-		p.reset(req, a);
+		p.reset(req);
 	}
 	parser_fixture()
 	{
@@ -49,6 +49,16 @@ struct good_test_case
 	message::http_version_type version;
 	std::vector<request::header> headers;
 	std::string body;
+
+	auto lowercased_headers() const
+	{
+		decltype(headers) result{headers.begin(), headers.end()};
+		for (auto &hdr : result)
+		{
+			hdr.lowercase_name = hdr.name;
+		}
+		return result;
+	}
 };
 
 std::ostream &operator<<(std::ostream &s, const good_test_case &t)
@@ -102,8 +112,8 @@ const std::vector<good_test_case> good_request_samples = {
 		"/",
 		message::http_version_type::HTTP_1_1,
 		{
-			{ "Content-Type", "text/plain" },
-			{ "Content-Length", "5" },
+			{ "content-type", "text/plain" },
+			{ "content-length", "5" },
 		},
 		"Hello"
 	},
@@ -120,9 +130,9 @@ const std::vector<good_test_case> good_request_samples = {
 		"/",
 		message::http_version_type::HTTP_1_1,
 		{
-			{ "Content-Type", "text/plain" },
-			{ "Content-Length", "4" },
-			{ "User-Agent", "Lemon" },
+			{ "content-type", "text/plain" },
+			{ "content-length", "4" },
+			{ "user-agent", "Lemon" },
 		},
 		"body"
 	},
@@ -159,7 +169,7 @@ const std::vector<good_test_case> good_last_request_samples = {
 		"/index",
 		message::http_version_type::HTTP_1_1,
 		{
-			{"Connection", "close"},
+			{"connection", "close"},
 		},
 		{}
 	},
@@ -285,6 +295,7 @@ BOOST_DATA_TEST_CASE(test_simple,
 	+ boost::unit_test::data::make(good_last_request_samples))
 {
 	auto result = p.parse_chunk(sample.request);
+	parser::finalize(req);
 
 	auto error = boost::get<http_error>(&result);
 	if (error)
@@ -299,7 +310,7 @@ BOOST_DATA_TEST_CASE(test_simple,
 	BOOST_TEST(req.method.name == sample.method_name);
 	BOOST_TEST(req.url.path == sample.url);
 	BOOST_TEST(req.http_version == sample.version);
-	BOOST_TEST(req.headers == sample.headers, boost::test_tools::per_element());
+	BOOST_TEST(req.headers == sample.lowercased_headers(), boost::test_tools::per_element());
 	BOOST_TEST(body(req) == sample.body);
 }
 
@@ -319,6 +330,8 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 
 		if (auto result_complete = boost::get<parser::complete_request>(&result))
 		{
+			parser::finalize(req);
+
 			if (!result_complete->rest.empty())
 				chunks.emplace_front(result_complete->rest);
 
@@ -330,7 +343,7 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 			BOOST_TEST(req.method.name == expected.method_name);
 			BOOST_TEST(req.url.path == expected.url);
 			BOOST_TEST(req.http_version == expected.version);
-			BOOST_TEST(req.headers == expected.headers, boost::test_tools::per_element());
+			BOOST_TEST(req.headers == expected.lowercased_headers(), boost::test_tools::per_element());
 			BOOST_TEST(body(req) == expected.body);
 
 			reset();
@@ -343,6 +356,7 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 BOOST_DATA_TEST_CASE(test_errors, boost::unit_test::data::make(bad_request_samples))
 {
 	auto result = p.parse_chunk(sample.request);
+	parser::finalize(req);
 
 	auto r = boost::get<http_error>(&result);
 	BOOST_TEST_REQUIRE(r);

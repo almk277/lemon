@@ -69,6 +69,7 @@ void task::run()
 void task::handle_request(request_handler &h)
 {
 	module_logger_guard mlg{ lg, h.get_name() };
+	parser::finalize(req);
 	request_handler::context ctx{ a, lg };
 	
 	switch (req.method.type) {

@@ -29,10 +29,7 @@ void rh_testing::get(request &req, response &resp, context &ctx)
 			resp.body += hdr.name, message::header::SEP, hdr.value, message::NL;
 		}
 	} else if (path == "/ua") {
-		auto it = boost::find_if(req.headers, [](const auto &hdr) {
-			//TODO use lcase_name
-			return hdr.name == "User-Agent"sv;
-		});
+		auto it = boost::find_if(req.headers, request::header::make_is("user-agent"sv));
 		if (it != req.headers.end())
 			resp.body = { it->value };
 	} else if (path == "/notimp") {

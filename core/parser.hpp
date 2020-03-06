@@ -7,7 +7,6 @@
 #include <boost/variant/variant.hpp>
 #include <boost/optional/optional.hpp>
 struct request;
-class arena;
 
 class parser: boost::noncopyable
 {
@@ -20,10 +19,11 @@ public:
 	using result = boost::variant<http_error, incomplete_request, complete_request>;
 
 	parser() = default;
-	~parser() = default;
 
-	void reset(request &req, arena &a) noexcept;
+	void reset(request &req) noexcept;
 	result parse_chunk(string_view chunk) noexcept;
+
+	static void finalize(request &req);
 
 protected:
 	struct context
@@ -31,7 +31,6 @@ protected:
 		enum class hdr { KEY, VAL };
 
 		request *r;
-		arena *a;
 		hdr hdr_state;
 		boost::optional<http_error> error;
 		bool comp;

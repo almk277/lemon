@@ -119,7 +119,7 @@ auto task_builder::prepare_task(const std::shared_ptr<client> &cl) -> incomplete
 	++task_id;
 	auto size = opt.headers_size;
 	recv_buf = { t->a.alloc(size, "request headers buffer"), size };
-	p.reset(t->req, t->a);
+	p.reset(t->req);
 	return { t };
 }
 

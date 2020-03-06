@@ -184,6 +184,11 @@ string_view to_string(response::status status)
 	return to_string_ref(status);
 }
 
+std::ostream &operator<<(std::ostream &stream, response::status status)
+{
+	return stream << static_cast<int>(status);
+}
+
 enum class response::const_iterator::state
 {
 	HTTP_VERSION,

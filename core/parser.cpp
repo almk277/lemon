@@ -1,13 +1,16 @@
 #include "parser.hpp"
 #include "message.hpp"
-#include "arena.hpp"
+#include <boost/algorithm/string/case_conv.hpp>
 
 namespace
 {
-enum cb_result {
+enum cb_result
+{
 	OK = 0,
 	ERR = 3 // on_headers_complete reserves 1 and 2
 };
+
+const std::locale header_locale;
 
 request::method_s method_from(http_method m)
 {
@@ -97,7 +100,6 @@ http_parser_settings parser_internal::make_settings()
 				ctx.hdr_state = context::hdr::KEY;
 			} else {
 				prolong(r.headers.back().name, s);
-				prolong(r.headers.back().lcase_name, s);
 			}
 			return OK;
 		}
@@ -122,8 +124,7 @@ http_parser_settings parser_internal::make_settings()
 
 	struct on_headers_complete
 	{
-		static auto f(const http_parser *p, context &ctx,
-		              request &r) noexcept
+		static auto f(const http_parser *p, context &ctx, request &r) noexcept
 		{
 			if (BOOST_UNLIKELY(p->http_major != 1 || p->http_minor > 1)) {
 				ctx.error.emplace(response::status::HTTP_VERSION_NOT_SUPPORTED);
@@ -144,6 +145,7 @@ http_parser_settings parser_internal::make_settings()
 			}
 			r.url.path = url_field(url, UF_PATH, r.url.all);
 			r.url.query = url_field(url, UF_QUERY, r.url.all);
+
 			return OK;
 		}
 	};
@@ -180,11 +182,10 @@ http_parser_settings parser_internal::make_settings()
 const http_parser_settings settings = parser_internal::make_settings();
 }
 
-void parser::reset(request &req, arena &a) noexcept
+void parser::reset(request &req) noexcept
 {
 	http_parser_init(&p, HTTP_REQUEST);
 	ctx.r = &req;
-	ctx.a = &a;
 	ctx.hdr_state = context::hdr::VAL;
 	ctx.error = boost::none;
 	ctx.comp = false;
@@ -218,4 +219,15 @@ auto parser::parse_chunk(string_view chunk) noexcept -> result
 
 	BOOST_ASSERT(nparsed == chunk.size());
 	return incomplete_request{};
+}
+
+void parser::finalize(request &req)
+{
+	auto allocator = req.a.make_allocator<char>("lowercase header");
+	for (auto &hdr : req.headers) {
+		auto lc_length = hdr.name.length();  //TODO calculate length?
+		auto lc_begin = allocator.allocate(lc_length);
+		boost::to_lower_copy(lc_begin, hdr.name, header_locale);
+		hdr.lowercase_name = {lc_begin, lc_length};
+	}
 }
