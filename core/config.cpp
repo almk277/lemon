@@ -1,9 +1,10 @@
 #include "config.hpp"
-#include <boost/variant.hpp>
+#include "visitor.hpp"
 #include <boost/concept_check.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <cstdlib>
+#include <variant>
 #include <utility>
 
 namespace config
@@ -32,16 +33,6 @@ auto operator!=(rough_real lhs, rough_real rhs) noexcept
 {
 	return std::abs(lhs.val - rhs.val) > REAL_EPS;
 }
-
-struct value_type_visitor : boost::static_visitor<string>
-{
-	auto operator()(empty_value_t) const { return "empty"; }
-	auto operator()(boolean) const { return "boolean"; }
-	auto operator()(integer) const { return "integer"; }
-	auto operator()(rough_real) const { return "real"; }
-	auto operator()(const string&) const { return "string"; }
-	auto operator()(const table&) const { return "table"; }
-};
 
 using value_tuple = std::pair<property, bool>;
 
@@ -74,30 +65,41 @@ bad_value::bad_value(const std::string &key, const std::string &expected, const 
 struct property::priv
 {
 	const string k;
-	const boost::variant<empty_value_t, boolean, integer, rough_real, string, table> val;
+	const std::variant<empty_value_t, boolean, integer, rough_real, string, table> val;
 	const std::unique_ptr<const error_handler> eh;
 
 	template <typename T>
 	auto is() const noexcept
 	{
-		return boost::get<T>(&val) != nullptr;
+		return std::holds_alternative<T>(val);
 	}
 
 	template <typename T>
 	auto get(string_view expected_type) const -> const T&
 	{
-		auto *v = boost::get<T>(&val);
+		auto *v = std::get_if<T>(&val);
 		if (BOOST_UNLIKELY(!v)) {
 			if (is<empty_value_t>())
 				throw bad_key{ k, eh->key_error("not found") };
 			auto expected = std::string{ expected_type };
-			auto obtained = apply_visitor(value_type_visitor{}, val);
+			auto obtained = type_string();
 			auto msg = "expected: " + expected + ", but got: " + obtained;
-			throw bad_value{ k, expected, obtained,
-				eh->value_error(msg) };
+			throw bad_value{ k, expected, obtained, eh->value_error(msg) };
 		}
 
 		return *v;
+	}
+
+	auto type_string() const
+	{
+		return visit(visitor{
+			[](empty_value_t)  { return "empty"; },
+			[](boolean)        { return "boolean"; },
+			[](integer)        { return "integer"; },
+			[](rough_real)     { return "real"; },
+			[](const string&)  { return "string"; },
+			[](const table&)   { return "table"; },
+		}, val);
 	}
 
 	auto as_tuple() const

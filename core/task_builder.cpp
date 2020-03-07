@@ -1,10 +1,10 @@
 #include "task_builder.hpp"
 #include "options.hpp"
 #include "http_error.hpp"
+#include "visitor.hpp"
 #include <boost/assert.hpp>
 #include <boost/concept_check.hpp>
 #include <boost/range/algorithm/copy.hpp>
-#include <boost/variant/static_visitor.hpp>
 #include <utility>
 
 namespace
@@ -16,33 +16,6 @@ static_assert(MIN_BUF_SIZE <= OPTIMUM_BUF_SIZE);
 BOOST_CONCEPT_ASSERT((boost::InputIterator<task_builder::results::iterator>));
 }
 
-struct task_builder::results::parse_result_visitor : boost::static_visitor<value>
-{
-	explicit parse_result_visitor(results &r): r{ r }, it { r.it } {}
-
-	auto operator()(const http_error &error) const
-	{
-		it.lg().info("HTTP error ", error.code, " ", error.details);
-		r.data = {};
-		r.stop = true;
-		return value{ make_error_task(it, error.code) };
-	}
-	auto operator()(parser::incomplete_request) const
-	{
-		r.data = {};
-		r.stop = true;
-		return value{ it };
-	}
-	auto operator()(const parser::complete_request &result) const
-	{
-		r.data = result.rest;
-		return value{ r.make_ready_task(r.cl, it) };
-	}
-private:
-	results &r;
-	incomplete_task &it;
-};
-
 auto task_builder::results::iterator::increment() -> void
 {
 	if (r->data.empty()) {
@@ -50,16 +23,31 @@ auto task_builder::results::iterator::increment() -> void
 			current = boost::none;
 		} else {
 			r->stop = true;
-			current.emplace(r->it);
+			current = r->it;
 		}
 	} else {
 		auto result = r->builder.p.parse_chunk(r->data);
-		current = apply_visitor(parse_result_visitor{ *r }, result);
+		visit(visitor{
+			[this](const http_error &error) {
+				r->data = {};
+			    r->stop = true;
+			    current = make_error_task(r->it, error);
+			},
+		    [this](const parser::incomplete_request) {
+			    r->data = {};
+			    r->stop = true;
+			    current = r->it;
+		    },
+		    [this](const parser::complete_request &req) {
+			    r->data = req.rest;
+				current = r->make_ready_task(r->cl, r->it);
+		    },
+		}, result);
 	}
 }
 
 task_builder::results::results(task_builder &builder, const std::shared_ptr<client> &cl,
-                               incomplete_task it, string_view data, bool stop):
+	incomplete_task it, string_view data, bool stop):
 	data{data},
 	builder{builder},
 	cl{cl},
@@ -139,10 +127,10 @@ auto task_builder::make_tasks(const std::shared_ptr<client> &cl,
 	return results{ *this, cl, it, data, stop };
 }
 
-auto task_builder::make_error_task(incomplete_task it,
-	response::status error) -> task::result
+auto task_builder::make_error_task(incomplete_task it, const http_error &error) -> task::result
 {
+	it.lg().info("HTTP error ", error.code, " ", error.details);
 	auto t = move(it.t);
-	t->make_error(error);
+	t->make_error(error.code);
 	return { t };
 }

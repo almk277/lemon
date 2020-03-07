@@ -53,6 +53,4 @@ private:
 	void run(const ready_task &rt) noexcept;
 	void start_send(const task::result &tr);
 	void on_sent(const boost::system::error_code &ec, const task::result &tr) noexcept;
-
-	struct task_visitor;
 };

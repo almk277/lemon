@@ -4,8 +4,8 @@
 #include "http_parser.h"
 #include "http_error.hpp"
 #include <boost/core/noncopyable.hpp>
-#include <boost/variant/variant.hpp>
 #include <boost/optional/optional.hpp>
+#include <variant>
 struct request;
 
 class parser: boost::noncopyable
@@ -16,7 +16,7 @@ public:
 	{
 		string_view rest;
 	};
-	using result = boost::variant<http_error, incomplete_request, complete_request>;
+	using result = std::variant<http_error, incomplete_request, complete_request>;
 
 	parser() = default;
 

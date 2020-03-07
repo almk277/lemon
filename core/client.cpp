@@ -1,5 +1,6 @@
 #include "client.hpp"
 #include "algorithm.hpp"
+#include "visitor.hpp"
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/write.hpp>
@@ -42,26 +43,6 @@ private:
 	const Handler h;
 };
 }
-
-struct client::task_visitor : boost::static_visitor<>
-{
-	explicit task_visitor(client &cl) noexcept: cl{ cl } {}
-
-	auto operator()(const incomplete_task &it) const
-	{
-		cl.start_recv(it);
-	}
-	auto operator()(const ready_task &rt) const
-	{
-		cl.run(rt);
-	}
-	auto operator()(const task::result &tr) const
-	{
-		cl.start_send(tr);
-	}
-private:
-	client &cl;
-};
 
 client::client(boost::asio::io_context &context, socket &&sock, std::shared_ptr<const options> opt,
 	std::shared_ptr<const router> router, server_logger &lg) noexcept:
@@ -118,13 +99,17 @@ void client::on_recv(const error_code &ec,
 	}
 
 	try {
-		task_visitor v{ *this };
 		for (auto &&t : builder.make_tasks(shared_from_this(), it, bytes_transferred, eof))
-			apply_visitor(v, t);
+			visit(visitor{
+				[this](const incomplete_task &t) { start_recv(t); },
+			    [this](const ready_task &t)      { run(t); },
+			    [this](const task::result &t)    { start_send(t); },
+			}, t);
 	} catch (std::exception &re) {
 		//TODO check if 'it' is actual task
 		it.lg().error(re.what());
-		start_send(task_builder::make_error_task(it, response::status::INTERNAL_SERVER_ERROR));
+		start_send(task_builder::make_error_task(it,
+			http_error{response::status::INTERNAL_SERVER_ERROR, re.what()}));
 	}
 }
 

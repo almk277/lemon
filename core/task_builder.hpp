@@ -7,7 +7,7 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/iterator/iterator_facade.hpp>
-#include <boost/variant/variant.hpp>
+#include <variant>
 #include <iterator>
 
 class options;
@@ -19,7 +19,7 @@ public:
 	class results
 	{
 	public:
-		using value = boost::variant<incomplete_task, ready_task, task::result>;
+		using value = std::variant<incomplete_task, ready_task, task::result>;
 
 		class iterator : public boost::iterator_facade<
 			iterator, value, std::input_iterator_tag, value>
@@ -58,8 +58,6 @@ public:
 		const std::shared_ptr<client> &cl;
 		incomplete_task it;
 		bool stop;
-
-		struct parse_result_visitor;
 	};
 
 	task_builder(task::ident start_id, const options &opt);
@@ -68,7 +66,7 @@ public:
 	auto get_memory(const incomplete_task &it) -> boost::asio::mutable_buffer;
 	auto make_tasks(const std::shared_ptr<client> &cl, const incomplete_task &it,
 		std::size_t bytes_recv, bool stop) -> results;
-	static auto make_error_task(incomplete_task it, response::status error) ->task::result;
+	static auto make_error_task(incomplete_task it, const http_error &error) -> task::result;
 
 private:
 	parser p;

@@ -2,13 +2,13 @@
 
 #include <boost/core/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/variant/variant.hpp>
 #include <cstdint>
 #include <cstddef>
 #include <string>
 #include <vector>
 #include <list>
 #include <stdexcept>
+#include <variant>
 
 namespace config
 {
@@ -40,12 +40,12 @@ public:
 
 		struct messages_log
 		{
-			boost::variant<console, file> dest;
+			std::variant<console, file> dest;
 			severity level = severity::info;
 		};
 		struct access_log
 		{
-			boost::variant<console, file, null> dest;
+			std::variant<console, file, null> dest;
 		};
 		struct logs
 		{
@@ -60,7 +60,7 @@ public:
 		struct prefix { std::string str; };
 		struct regex { std::string re; };
 
-		boost::variant<equal, prefix, regex> matcher;
+		std::variant<equal, prefix, regex> matcher;
 		std::string handler;
 	};
 

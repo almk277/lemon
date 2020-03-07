@@ -14,7 +14,6 @@
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/attributes/clock.hpp>
 #include <boost/asio/ip/address.hpp>
-#include <boost/variant/static_visitor.hpp>
 #include <boost/phoenix/operator.hpp>
 #include <stdexcept>
 #include <iostream>
@@ -76,7 +75,7 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(kw_time, logger_imp::attr_name.time,
 	boost::log::attributes::local_clock::value_type)
 
 template <typename Filter, typename Fmt>
-struct log_adder: boost::static_visitor<bool>
+struct log_adder
 {
 	log_adder(Filter filter, Fmt fmt) : filter{ filter }, fmt { fmt } {}
 
@@ -106,7 +105,7 @@ bool add_messages_sink(const options::log_types::messages_log &log)
 {
 	using namespace boost::log;
 
-	return apply_visitor(log_adder(
+	return visit(log_adder{
 		keywords::filter =
 			!has_attr(kw_time),
 		keywords::format = expressions::stream
@@ -128,7 +127,7 @@ bool add_messages_sink(const options::log_types::messages_log &log)
 				expressions::stream << "[" << kw_module << "] "
 			]
 			<< kw_lazymessage
-		), log.dest);
+		}, log.dest);
 }
 
 bool add_access_sink(const options::log_types::access_log &log)
@@ -136,7 +135,7 @@ bool add_access_sink(const options::log_types::access_log &log)
 #ifndef LEMON_NO_ACCESS_LOG
 	using namespace boost::log;
 
-	return apply_visitor(log_adder(
+	return visit(log_adder{
 		keywords::filter =
 			has_attr(kw_time),
 		keywords::format = expressions::stream
@@ -144,7 +143,7 @@ bool add_access_sink(const options::log_types::access_log &log)
 			<< kw_server << " "
 			<< kw_address << " "
 			<< kw_lazymessage
-		), log.dest);
+		}, log.dest);
 #else
 	return false;
 #endif

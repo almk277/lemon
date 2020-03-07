@@ -6,7 +6,6 @@
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/mpl/bool.hpp>
-#include <boost/variant/get.hpp>
 #include <deque>
 #include <utility>
 
@@ -297,13 +296,13 @@ BOOST_DATA_TEST_CASE(test_simple,
 	auto result = p.parse_chunk(sample.request);
 	parser::finalize(req);
 
-	auto error = boost::get<http_error>(&result);
+	auto error = std::get_if<http_error>(&result);
 	if (error)
 		BOOST_TEST_MESSAGE(std::to_string(static_cast<int>(error->code))
 			+ " " + std::string{ error->details });
 	BOOST_TEST_REQUIRE(!error);
 
-	auto r = boost::get<parser::complete_request>(&result);
+	auto r = std::get_if<parser::complete_request>(&result);
 	BOOST_TEST_REQUIRE(r);
 	BOOST_TEST(r->rest.empty());
 	BOOST_TEST(req.method.type == sample.method_type);
@@ -325,10 +324,10 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 		chunks.pop_front();
 		auto result = p.parse_chunk(chunk);
 
-		auto result_error = boost::get<http_error>(&result);
+		auto result_error = std::get_if<http_error>(&result);
 		BOOST_TEST(!result_error);
 
-		if (auto result_complete = boost::get<parser::complete_request>(&result))
+		if (auto result_complete = std::get_if<parser::complete_request>(&result))
 		{
 			parser::finalize(req);
 
@@ -358,7 +357,7 @@ BOOST_DATA_TEST_CASE(test_errors, boost::unit_test::data::make(bad_request_sampl
 	auto result = p.parse_chunk(sample.request);
 	parser::finalize(req);
 
-	auto r = boost::get<http_error>(&result);
+	auto r = std::get_if<http_error>(&result);
 	BOOST_TEST_REQUIRE(r);
 	BOOST_TEST(r->code == sample.code.value_or(response::status::BAD_REQUEST));
 }

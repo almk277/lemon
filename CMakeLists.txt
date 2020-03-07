@@ -134,6 +134,7 @@ set(CORE_SRC
 	core/task_ident.hpp
 	core/task_builder.cpp
 	core/task_builder.hpp
+	core/visitor.hpp
 )
 if(NOT LEMON_NO_CONFIG)
 	set(CORE_SRC ${CORE_SRC}

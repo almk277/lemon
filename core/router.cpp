@@ -1,7 +1,6 @@
 #include "router.hpp"
 #include "options.hpp"
 #include "rh_manager.hpp"
-#include <boost/variant/static_visitor.hpp>
 #include <algorithm>
 #include <string>
 #include <regex>
@@ -46,17 +45,19 @@ private:
 	const std::regex re;
 };
 
-struct match_builder: boost::static_visitor<std::unique_ptr<router::matcher>>
+struct match_builder
 {
-	auto operator()(const options::route::equal &r) const
+	using result_type = std::unique_ptr<router::matcher>;
+
+	auto operator()(const options::route::equal &r) const -> result_type
 	{
 		return std::make_unique<exact_matcher>(r.str);
 	}
-	auto operator()(const options::route::prefix &r) const
+	auto operator()(const options::route::prefix &r) const -> result_type
 	{
 		return std::make_unique<prefix_matcher>(r.str);
 	}
-	auto operator()(const options::route::regex &r) const
+	auto operator()(const options::route::regex &r) const -> result_type
 	{
 		return std::make_unique<regex_matcher>(r.re);
 	}
@@ -71,7 +72,7 @@ router::router(const rh_manager &rhman, const options::route_list &routes)
 		if (!rh)
 			throw options::error(r.handler + ": module not found");
 		matchers.emplace_back(
-			apply_visitor(match_builder{}, r.matcher),
+			visit(match_builder{}, r.matcher),
 			move(rh));
 	}
 }
