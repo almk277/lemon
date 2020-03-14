@@ -16,36 +16,6 @@ static_assert(MIN_BUF_SIZE <= OPTIMUM_BUF_SIZE);
 BOOST_CONCEPT_ASSERT((boost::InputIterator<task_builder::results::iterator>));
 }
 
-auto task_builder::results::iterator::increment() -> void
-{
-	if (r->data.empty()) {
-		if (r->stop) {
-			current = boost::none;
-		} else {
-			r->stop = true;
-			current = r->it;
-		}
-	} else {
-		auto result = r->builder.p.parse_chunk(r->data);
-		visit(visitor{
-			[this](const http_error &error) {
-				r->data = {};
-			    r->stop = true;
-			    current = make_error_task(r->it, error);
-			},
-		    [this](const parser::incomplete_request) {
-			    r->data = {};
-			    r->stop = true;
-			    current = r->it;
-		    },
-		    [this](const parser::complete_request &req) {
-			    r->data = req.rest;
-				current = r->make_ready_task(r->cl, r->it);
-		    },
-		}, result);
-	}
-}
-
 task_builder::results::results(task_builder &builder, const std::shared_ptr<client> &cl,
 	incomplete_task it, string_view data, bool stop):
 	data{data},
@@ -66,27 +36,51 @@ auto task_builder::results::end() -> iterator
 	return iterator{ this };
 }
 
+auto task_builder::results::next() -> std::optional<value>
+{
+	if (data.empty()) {
+		if (stop)
+			return std::nullopt;
+		stop = true;
+		return it;
+	}
+	
+	auto result = builder.p.parse_chunk(data);
+	return visit(visitor{
+		[this](const http_error &error) -> value {
+			data = {};
+			stop = true;
+			return make_error_task(it, error);
+		},
+		[this](parser::incomplete_request req) -> value {
+			data = {};
+			stop = true;
+			return it;
+		},
+		[this](parser::complete_request req) -> value {
+			data = req.rest;
+			return make_ready_task(cl, it);
+		},
+	}, result);
+}
+
 auto task_builder::results::make_ready_task(const std::shared_ptr<client> &cl,
 	incomplete_task &it) -> ready_task
 {
-	const auto bytes_rest = data.size();
+	const auto has_more_bytes = !data.empty();
 	const auto complete_task = move(it.t);
 
-	complete_task->lg.access(
-		complete_task->req.method.name, " ", complete_task->req.url.all);
-
-	if (complete_task->req.keep_alive) {
-		if (!stop || bytes_rest != 0)
-			it = builder.prepare_task(cl);
-		if (BOOST_UNLIKELY(bytes_rest != 0))
-			boost::copy(data, static_cast<char*>(builder.recv_buf.data()));
-	}
-	else {
-		if (BOOST_UNLIKELY(bytes_rest != 0)) {
-			complete_task->lg.warning("non-keep-alive request, bytes beyond: ", bytes_rest);
+	if (complete_task->is_last()) {
+		if (BOOST_UNLIKELY(has_more_bytes)) {
+			complete_task->lg.warning("non-keep-alive request, bytes beyond: ", data.size());
 			data = {};
 		}
 		stop = true;
+	} else {
+		if (!stop || has_more_bytes)
+			it = builder.prepare_task(cl);
+		if (BOOST_UNLIKELY(has_more_bytes))
+			boost::copy(data, static_cast<char*>(builder.recv_buf.data()));
 	}
 
 	return { complete_task };

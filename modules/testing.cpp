@@ -4,8 +4,6 @@
 #include "string_builder.hpp"
 #include "logger.hpp"
 #include <boost/range/algorithm/find_if.hpp>
-#include <boost/range/numeric.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 #include <boost/assign/std/list.hpp>
 #include <functional>
 
@@ -72,12 +70,13 @@ void rh_testing::method(string_view method_name, request &req, response &resp, c
 void rh_testing::finalize(request &req, response &resp, context &ctx)
 {
 	resp.http_version = req.http_version;
-	resp.headers.emplace_back("Content-Type"sv, "text/plain"sv);
+	auto content_length = calc_content_length(resp);
+	auto content_length_s = string_builder{ ctx.a }.convert(content_length);
 
-	auto content_length = accumulate(
-		resp.body | boost::adaptors::transformed(mem_fn(&string_view::size)),
-		decltype(resp.body.front().size()){});
-	resp.headers.emplace_back("Content-Length"sv,
-		string_builder{ ctx.a }.convert(content_length));
+	resp.headers.insert(resp.headers.end(), {
+		{ "Content-Type"sv, "text/plain"sv },
+		{ "Content-Length"sv, content_length_s },
+	});
+
 	resp.code = response::status::OK;
 }

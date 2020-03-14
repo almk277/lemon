@@ -23,7 +23,6 @@ struct message
 		lowercase_string_view lowercase_name;
 		string_view value;
 
-		explicit header(string_view name) noexcept : name{name} {}
 		constexpr header(string_view name, string_view value) noexcept : name{name}, value{value} {}
 
 		bool operator==(const header &rhs) const noexcept
@@ -229,3 +228,5 @@ inline response::response(arena &a) noexcept : message{a}, code{status::INTERNAL
 string_view to_string(response::status status);
 
 std::ostream &operator<<(std::ostream &stream, response::status status);
+
+auto calc_content_length(const message &msg) noexcept -> std::size_t;

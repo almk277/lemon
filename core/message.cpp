@@ -1,8 +1,11 @@
 #include "message.hpp"
 #include <boost/assert.hpp>
 #include <boost/concept_check.hpp>
+#include <boost/range/numeric.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <array>
 #include <unordered_map>
+#include <functional>
 #include <stdexcept>
 #include <cstdlib>
 #include <string>
@@ -187,6 +190,14 @@ string_view to_string(response::status status)
 std::ostream &operator<<(std::ostream &stream, response::status status)
 {
 	return stream << static_cast<int>(status);
+}
+
+auto calc_content_length(const message &msg) noexcept -> std::size_t
+{
+	auto length = accumulate(
+		msg.body | boost::adaptors::transformed(mem_fn(&string_view::size)),
+		decltype(msg.body.front().size()){});
+	return length;
 }
 
 enum class response::const_iterator::state

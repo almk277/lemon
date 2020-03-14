@@ -5,8 +5,8 @@
 #include "task.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/buffer.hpp>
-#include <boost/optional/optional.hpp>
 #include <boost/iterator/iterator_facade.hpp>
+#include <optional>
 #include <variant>
 #include <iterator>
 
@@ -36,10 +36,13 @@ public:
 			{
 				return !current == !rhs.current;
 			}
-			auto increment() -> void;
+			auto increment()
+			{
+				current = r->next();
+			}
 
 			results *r;
-			boost::optional<value> current;
+			std::optional<value> current;
 
 			friend class boost::iterator_core_access;
 		};
@@ -49,6 +52,8 @@ public:
 
 		auto begin() -> iterator;
 		auto end() -> iterator;
+
+		auto next() -> std::optional<value>;
 
 	private:
 		auto make_ready_task(const std::shared_ptr<client> &cl, incomplete_task &it) -> ready_task;

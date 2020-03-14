@@ -50,9 +50,7 @@ string_view rh_static_file::get_name() const noexcept
 
 void rh_static_file::get(request &req, response &resp, context &ctx)
 {
-	auto open_result = open_file(req, ctx);
-	auto f = move(open_result.first);
-	auto length = open_result.second;
+	auto [f, length] = open_file(req, ctx);
 
 	f.seekg(0, std::ios::beg);
 	auto body_mem = ctx.a.alloc(length, "StaticFile buffer");

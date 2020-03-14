@@ -10,7 +10,7 @@ enum cb_result
 	ERR = 3 // on_headers_complete reserves 1 and 2
 };
 
-const std::locale header_locale;
+const auto &header_locale = std::locale::classic();
 
 request::method_s method_from(http_method m)
 {
@@ -96,7 +96,7 @@ http_parser_settings parser_internal::make_settings()
 		              request &r, string_view s) noexcept
 		{
 			if (BOOST_LIKELY(ctx.hdr_state == context::hdr::VAL)) {
-				r.headers.emplace_back(s);
+				r.headers.emplace_back(s, string_view{});
 				ctx.hdr_state = context::hdr::KEY;
 			} else {
 				prolong(r.headers.back().name, s);
@@ -169,7 +169,7 @@ http_parser_settings parser_internal::make_settings()
 		{
 			r.keep_alive = http_should_keep_alive(p) != 0;
 			r.content_length = static_cast<size_t>(p->content_length);
-			ctx.comp = true;
+			ctx.complete = true;
 			http_parser_pause(p, 1);
 			return OK;
 		}
@@ -188,7 +188,7 @@ void parser::reset(request &req) noexcept
 	ctx.r = &req;
 	ctx.hdr_state = context::hdr::VAL;
 	ctx.error = boost::none;
-	ctx.comp = false;
+	ctx.complete = false;
 	p.data = &ctx;
 }
 
@@ -214,7 +214,7 @@ auto parser::parse_chunk(string_view chunk) noexcept -> result
 		//TODO
 	}
 
-	if (ctx.comp)
+	if (ctx.complete)
 		return complete_request{ chunk.substr(nparsed) };
 
 	BOOST_ASSERT(nparsed == chunk.size());
@@ -225,7 +225,7 @@ void parser::finalize(request &req)
 {
 	auto allocator = req.a.make_allocator<char>("lowercase header");
 	for (auto &hdr : req.headers) {
-		auto lc_length = hdr.name.length();  //TODO calculate length?
+		auto lc_length = hdr.name.length();
 		auto lc_begin = allocator.allocate(lc_length);
 		boost::to_lower_copy(lc_begin, hdr.name, header_locale);
 		hdr.lowercase_name = {lc_begin, lc_length};

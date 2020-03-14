@@ -33,7 +33,7 @@ protected:
 		request *r;
 		hdr hdr_state;
 		boost::optional<http_error> error;
-		bool comp;
+		bool complete;
 	};
 
 	//TODO pImpl

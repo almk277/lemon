@@ -17,7 +17,7 @@ constexpr auto REAL_EPS = 0.001;
 
 struct empty_value_t {};
 auto operator==(empty_value_t, empty_value_t) noexcept { return true; }
-auto operator!=(empty_value_t, empty_value_t) noexcept { return false; }
+[[maybe_unused]] auto operator!=(empty_value_t, empty_value_t) noexcept { return false; }
 
 struct rough_real
 {
@@ -29,7 +29,7 @@ auto operator==(rough_real lhs, rough_real rhs) noexcept
 	return std::abs(lhs.val - rhs.val) < REAL_EPS;
 }
 
-auto operator!=(rough_real lhs, rough_real rhs) noexcept
+[[maybe_unused]] auto operator!=(rough_real lhs, rough_real rhs) noexcept
 {
 	return std::abs(lhs.val - rhs.val) > REAL_EPS;
 }

@@ -26,7 +26,7 @@ public:
 	template <typename T> class allocator;
 
 	template <typename T>
-	allocator<T> make_allocator(const char *name = "") noexcept
+	constexpr allocator<T> make_allocator(const char *name = "") noexcept
 	{ return allocator<T>{*this, name}; }
 
 protected:
@@ -70,7 +70,7 @@ class arena::allocator
 public:
 	using value_type = T;
 
-	explicit allocator(arena &a, const char *name = "") noexcept:
+	explicit constexpr allocator(arena &a, const char *name = "") noexcept:
 	a{ a }, name{ name } {}
 	template <typename U>
 	explicit allocator(const allocator<U> &rhs) noexcept :

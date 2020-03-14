@@ -38,6 +38,8 @@ std::shared_ptr<task> task::make(ident id, std::shared_ptr<client> cl)
 
 void task::run()
 {
+	lg.access(req.method.name, " ", req.url.all);
+
 	const auto path = req.url.path;
 	lg.debug("resolving: ", path);
 	auto h = rout.resolve(path);
@@ -46,21 +48,17 @@ void task::run()
 			lg.debug("handler found: ", h->get_name());
 			handle_request(*h);
 			lg.debug("handler finished: ", h->get_name());
-		}
-		else {
+		} else {
 			lg.debug("HTTP error 404");
 			make_error(response::status::NOT_FOUND);
 		}
-	}
-	catch (http_exception &he) {
+	} catch (http_exception &he) {
 		lg.debug("HTTP error ", he.status_code(), " ", he.detail_string());
 		make_error(he.status_code());
-	}
-	catch (std::exception &e) {
+	} catch (std::exception &e) {
 		lg.error("internal error in module: ", h->get_name(), ": ", e.what());
 		make_error(response::status::INTERNAL_SERVER_ERROR);
-	}
-	catch (...) {
+	} catch (...) {
 		lg.error("unknown exception in module: ", h->get_name());
 		make_error(response::status::INTERNAL_SERVER_ERROR);
 	}

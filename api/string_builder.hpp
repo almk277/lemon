@@ -6,7 +6,7 @@
 class string_builder
 {
 public:
-	explicit string_builder(arena &a) noexcept:
+	explicit constexpr string_builder(arena &a) noexcept:
 		allocator{a}
 	{}
 

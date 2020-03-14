@@ -39,6 +39,8 @@ public:
 	task(ident id, std::shared_ptr<client> cl) noexcept;
 	~task();
 
+	auto is_last() const { return !req.keep_alive; }
+
 private:
 	static std::shared_ptr<task> make(ident id, std::shared_ptr<client> cl);
 
