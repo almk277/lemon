@@ -1,5 +1,4 @@
 #pragma once
-
 #include "logger.hpp"
 #include "task_ident.hpp"
 #include "string_view.hpp"

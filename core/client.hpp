@@ -1,5 +1,4 @@
 #pragma once
-
 #include "task_ident.hpp"
 #include "task_builder.hpp"
 #include "logger_imp.hpp"

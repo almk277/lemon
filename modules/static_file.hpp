@@ -1,5 +1,4 @@
 #pragma once
-
 #include "request_handler.hpp"
 
 struct RhStaticFile : RequestHandler

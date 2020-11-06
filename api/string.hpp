@@ -1,5 +1,4 @@
 #pragma once
-
 #include "arena.hpp"
 #include <string>
 

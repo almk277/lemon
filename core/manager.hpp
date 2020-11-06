@@ -1,5 +1,4 @@
 #pragma once
-
 #include "logger_imp.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/io_context.hpp>
@@ -11,8 +10,8 @@
 #include <map>
 #include <thread>
 
-class Options;
 struct Parameters;
+class Options;
 class Server;
 
 class Manager: boost::noncopyable

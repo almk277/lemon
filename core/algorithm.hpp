@@ -2,7 +2,7 @@
 #include <algorithm>
 
 template <typename Container, typename Elem>
-bool contains(Container &&where, Elem &&what)
+bool contains(const Container &where, const Elem &what)
 {
 	using namespace std;
 

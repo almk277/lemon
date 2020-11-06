@@ -1,9 +1,9 @@
 #pragma once
-
 #include "string_view.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <memory>
 #include <map>
+
 struct RequestHandler;
 
 class RhManager: boost::noncopyable

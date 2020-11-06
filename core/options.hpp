@@ -1,5 +1,4 @@
 #pragma once
-
 #include <boost/core/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include <cstdint>

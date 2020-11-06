@@ -1,5 +1,4 @@
 #pragma once
-
 #include "task_ident.hpp"
 #include "logger_imp.hpp"
 #include "arena_imp.hpp"

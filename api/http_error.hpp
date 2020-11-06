@@ -1,5 +1,4 @@
 #pragma once
-
 #include "string_view.hpp"
 #include "message.hpp"
 #include <stdexcept>
