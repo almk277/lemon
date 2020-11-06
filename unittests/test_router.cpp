@@ -35,7 +35,7 @@ struct RouterFixture
 	const std::shared_ptr<RequestHandler> h2 = std::make_shared<Handler2>();
 	RhManager man;
 	decltype(Options::servers) servers = { {} };
-	Options::RouteList &routes = servers.at(0).routes;
+	Options::RouteList& routes = servers.at(0).routes;
 };
 }
 

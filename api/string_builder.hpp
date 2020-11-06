@@ -5,7 +5,7 @@
 class StringBuilder
 {
 public:
-	explicit constexpr StringBuilder(Arena &a) noexcept:
+	explicit constexpr StringBuilder(Arena& a) noexcept:
 		allocator{a}
 	{}
 

@@ -12,7 +12,7 @@ string_view RhTesting::get_name() const noexcept
 	return "Testing"sv;
 }
 
-void RhTesting::get(Request &req, Response &resp, Context &ctx)
+void RhTesting::get(Request& req, Response& resp, Context& ctx)
 {
 	ctx.lg.debug("Handling get...");
 
@@ -41,7 +41,7 @@ void RhTesting::get(Request &req, Response &resp, Context &ctx)
 	finalize(req, resp, ctx);
 }
 
-void RhTesting::post(Request &req, Response &resp, Context &ctx)
+void RhTesting::post(Request& req, Response& resp, Context& ctx)
 {
 	if (req.url.path == "/echo") {
 		resp.body = move(req.body);
@@ -52,7 +52,7 @@ void RhTesting::post(Request &req, Response &resp, Context &ctx)
 	finalize(req, resp, ctx);
 }
 
-void RhTesting::method(string_view method_name, Request &req, Response &resp, Context &ctx)
+void RhTesting::method(string_view method_name, Request& req, Response& resp, Context& ctx)
 {
 	if (method_name == "DELETE") {
 		if (req.url.path == "/index") {
@@ -67,7 +67,7 @@ void RhTesting::method(string_view method_name, Request &req, Response &resp, Co
 	finalize(req, resp, ctx);
 }
 
-void RhTesting::finalize(Request &req, Response &resp, Context &ctx)
+void RhTesting::finalize(Request& req, Response& resp, Context& ctx)
 {
 	resp.http_version = req.http_version;
 	auto content_length = calc_content_length(resp);

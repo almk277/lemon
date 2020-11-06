@@ -64,7 +64,7 @@ void Task::run()
 	}
 }
 
-void Task::handle_request(RequestHandler &h)
+void Task::handle_request(RequestHandler& h)
 {
 	ModuleLoggerGuard mlg{ lg, h.get_name() };
 	Parser::finalize(req);

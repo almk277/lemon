@@ -29,7 +29,7 @@ auto tbl()
 }
 }
 
-auto config::operator<<(std::ostream& stream, const Property &p) -> std::ostream&
+auto config::operator<<(std::ostream& stream, const Property& p) -> std::ostream&
 {
 	auto flags = stream.flags();
 	BOOST_SCOPE_EXIT(&stream, flags) {
@@ -63,7 +63,7 @@ auto config::operator<<(std::ostream& stream, const Property::EmptyType&) -> std
 	return stream << "empty";
 }
 
-auto config::operator<<(std::ostream &stream, const Table &t) -> std::ostream&
+auto config::operator<<(std::ostream& stream, const Table& t) -> std::ostream&
 {
 	stream << "table {";
 	boost::copy(t, std::ostream_iterator<Property>{stream, ", "});
@@ -75,7 +75,7 @@ auto config::operator<<(std::ostream &stream, const Table &t) -> std::ostream&
 	BOOST_CHECK_EXCEPTION(expr, config::BadKey, [](auto &exc){ return exc.key() == (_key); })
 
 template <typename InitType>
-void check_good_type(const Property &p, const InitType &init)
+void check_good_type(const Property& p, const InitType& init)
 {
 	BOOST_TEST(static_cast<bool>(p));
 	BOOST_TEST(!!p);
@@ -84,7 +84,7 @@ void check_good_type(const Property &p, const InitType &init)
 }
 
 template <typename TestType>
-void check_bad_type(const Property &p)
+void check_bad_type(const Property& p)
 {
 	BOOST_TEST_CONTEXT("TestType=" << typeid(TestType).name()) {
 		BOOST_TEST(!p.is<TestType>());
@@ -93,7 +93,7 @@ void check_bad_type(const Property &p)
 }
 
 template <typename InitType, typename TestType>
-void check_type(const Property &p, const InitType &init)
+void check_type(const Property& p, const InitType& init)
 {
 	using PlainInitType = std::remove_cv_t<std::remove_reference_t<InitType>>;
 	if constexpr(std::is_same_v<TestType, PlainInitType>)
@@ -103,7 +103,7 @@ void check_type(const Property &p, const InitType &init)
 }
 
 template <typename InitType>
-void check(InitType &&init1, InitType &&init2)
+void check(InitType&& init1, InitType&& init2)
 {
 	Property p{ std::make_unique<PropertyErrorHandler>(), "testkey"s, std::forward<InitType>(init1) };
 	BOOST_TEST_CONTEXT(p) {
@@ -117,7 +117,7 @@ void check(InitType &&init1, InitType &&init2)
 
 template <typename InitType>
 std::enable_if_t<std::is_copy_constructible<InitType>::value>
-check(const InitType &init)
+check(const InitType& init)
 {
 	check(init, init);
 }
@@ -191,7 +191,7 @@ struct List
 {
 	std::vector<Property> Data;
 
-	List &&operator<<(Property &&p) &&
+	List&& operator<<(Property&& p) &&
 	{
 		Data.push_back(std::move(p));
 		return std::move(*this);

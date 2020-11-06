@@ -21,7 +21,7 @@ namespace
 {
 struct FinishWorker: std::exception
 {
-	const char *what() const noexcept override { return "finish_worker"; }
+	const char* what() const noexcept override { return "finish_worker"; }
 };
 
 unsigned n_workers_default()
@@ -31,7 +31,7 @@ unsigned n_workers_default()
 }
 }
 
-Manager::Manager(const Parameters &params):
+Manager::Manager(const Parameters& params):
 	master_ctx{ 1 },
 	master_work{ make_work_guard(master_ctx) },
 	worker_work{ make_work_guard(worker_ctx) },
@@ -103,7 +103,7 @@ void Manager::init()
 	}
 }
 
-void Manager::init_servers(const std::shared_ptr<const Options> &opts)
+void Manager::init_servers(const std::shared_ptr<const Options>& opts)
 {
 	lg.trace("init_servers");
 
@@ -114,7 +114,7 @@ void Manager::init_servers(const std::shared_ptr<const Options> &opts)
 	std::set<decltype(Options::Server::listen_port)> running_servers;
 	for (auto it = srv.begin(); it != srv.end();)
 	{
-		auto &server = *it;
+		auto& server = *it;
 		auto server_ok = contains(opts->servers, server->get_options());
 		if (server_ok) {
 			running_servers.insert(server->get_options().listen_port);
@@ -125,15 +125,15 @@ void Manager::init_servers(const std::shared_ptr<const Options> &opts)
 		}
 	}
 
-	auto not_running = [&running_servers](const auto &opt)
+	auto not_running = [&running_servers](const auto& opt)
 	{
 		return !contains(running_servers, opt.listen_port);
 	};
-	for (auto &s : opts->servers | boost::adaptors::filtered(not_running))
+	for (auto& s : opts->servers | boost::adaptors::filtered(not_running))
 		srv.push_back(std::make_unique<Server>(worker_ctx, opts, s, rhman));
 }
 
-void Manager::init_workers(const std::shared_ptr<const Options> &opts)
+void Manager::init_workers(const std::shared_ptr<const Options>& opts)
 {
 	lg.trace("init_workers");
 
@@ -181,7 +181,7 @@ void Manager::run_worker() noexcept
 			worker_ctx.run();
 		} catch (FinishWorker&) {
 			break;
-		} catch (std::exception &e) {
+		} catch (std::exception& e) {
 			lg.error(e.what());
 		} catch (...) {
 			lg.error("unknown worker error");

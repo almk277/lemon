@@ -11,7 +11,7 @@ class SyntaxError : public Error
 public:
 	using Position = std::size_t;
 
-	SyntaxError(Position where, const std::string &what):
+	SyntaxError(Position where, const std::string& what):
 		Error{ what },
 		pos{ where }
 	{}
@@ -25,7 +25,7 @@ private:
 class TextView
 {
 public:
-	explicit TextView(string_view data, const std::string &filename = {});
+	explicit TextView(string_view data, const std::string& filename = {});
 
 	struct Priv;
 	const std::shared_ptr<Priv> p;
@@ -42,7 +42,7 @@ private:
 class File : public Text
 {
 public:
-	explicit File(const boost::filesystem::path &path);
+	explicit File(const boost::filesystem::path& path);
 };
 
 auto parse(std::shared_ptr<TextView> text) -> Table;

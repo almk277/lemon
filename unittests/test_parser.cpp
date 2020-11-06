@@ -11,7 +11,7 @@
 
 namespace
 {
-std::string body(const Request &r)
+std::string body(const Request& r)
 {
 	std::string b;
 	for (auto s : r.body)
@@ -52,7 +52,7 @@ struct GoodTestCase
 	auto lowercased_headers() const
 	{
 		decltype(headers) result{headers.begin(), headers.end()};
-		for (auto &hdr : result)
+		for (auto& hdr : result)
 		{
 			hdr.lowercase_name = hdr.name;
 		}
@@ -60,7 +60,7 @@ struct GoodTestCase
 	}
 };
 
-std::ostream &operator<<(std::ostream &s, const GoodTestCase &t)
+std::ostream& operator<<(std::ostream& s, const GoodTestCase& t)
 {
 	return s << "No " << t.no << ": " << t.request;
 }
@@ -72,28 +72,28 @@ struct BadTestCase
 	boost::optional<Response::Status> code;
 };
 
-std::ostream &operator<<(std::ostream &s, const BadTestCase &t)
+std::ostream& operator<<(std::ostream& s, const BadTestCase& t)
 {
 	return s << "No " << t.no << ": " << t.request;
 }
 }
 
-static std::ostream &operator<<(std::ostream &s, Request::ProtocolVersion v)
+static std::ostream& operator<<(std::ostream& s, Request::ProtocolVersion v)
 {
 	return s << static_cast<int>(v);
 }
 
-static std::ostream &operator<<(std::ostream &s, Request::Method::Type t)
+static std::ostream& operator<<(std::ostream& s, Request::Method::Type t)
 {
 	return s << static_cast<int>(t);
 }
 
-static std::ostream &operator<<(std::ostream &s, const Request::Header &h)
+static std::ostream& operator<<(std::ostream& s, const Request::Header& h)
 {
 	return s << h.name << ": " << h.value;
 }
 
-static std::ostream &operator<<(std::ostream &s, const string_view &sw)
+static std::ostream& operator<<(std::ostream& s, const string_view& sw)
 {
 	return s << std::string{ sw };
 }
@@ -200,7 +200,7 @@ struct fragmented_pipeline_dataset
 		sample(std::deque<GoodTestCase> cases, std::size_t pos):
 			cases{cases}
 		{
-			for (auto &t : cases)
+			for (auto& t : cases)
 				request += t.request;
 			chunks = {
 				{ request.data(), pos },
@@ -209,7 +209,7 @@ struct fragmented_pipeline_dataset
 			
 			check();
 		}
-		sample(sample &&rhs) noexcept:
+		sample(sample&& rhs) noexcept:
 			request{move(rhs.request)},
 			chunks{std::move(rhs.chunks)},
 			cases{move(rhs.cases)}
@@ -241,7 +241,7 @@ struct fragmented_pipeline_dataset
 			return { cases, pos };
 		}
 
-		iterator &operator++()
+		iterator& operator++()
 		{
 			++pos;
 			return *this;
@@ -257,7 +257,7 @@ struct fragmented_pipeline_dataset
 	boost::unit_test::data::size_t size() const
 	{
 		std::size_t size = 0;
-		for (auto &t : cases)
+		for (auto& t : cases)
 			size += t.request.size();
 		return size - 1;
 	}
@@ -277,11 +277,11 @@ template <>
 struct is_dataset<fragmented_pipeline_dataset> : mpl::true_ {};
 }
 
-static std::ostream &operator<<(std::ostream &s,
-	const fragmented_pipeline_dataset::sample &ds)
+static std::ostream& operator<<(std::ostream& s,
+	const fragmented_pipeline_dataset::sample& ds)
 {
 	s << "[";
-	for (auto &c : ds.chunks)
+	for (auto& c : ds.chunks)
 		s << "\"" << c << "\" ";
 	s << "]";
 	return s;

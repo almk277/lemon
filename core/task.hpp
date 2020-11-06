@@ -25,8 +25,8 @@ public:
 	{
 		explicit Ptr(std::shared_ptr<Task> t) noexcept: t{move(t)} {}
 
-		TaskLogger &lg() const noexcept { return t->lg; }
-		Arena &get_arena() const noexcept { return t->a; }
+		TaskLogger& lg() const noexcept { return t->lg; }
+		Arena& get_arena() const noexcept { return t->a; }
 
 		std::shared_ptr<Task> t;
 	};
@@ -44,7 +44,7 @@ private:
 	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<Client> cl);
 
 	void run();
-	void handle_request(RequestHandler &h);
+	void handle_request(RequestHandler& h);
 	void make_error(Response::Status code) noexcept;
 
 	const Ident id;
@@ -53,7 +53,7 @@ private:
 	ArenaImp a;
 	Request req;
 	Response resp;
-	const Router &rout;
+	const Router& rout;
 
 	friend class TaskBuilder;
 	friend class ReadyTask;
@@ -69,7 +69,7 @@ class Task::Result: public Ptr
 
 	struct BufferAdapter
 	{
-		const auto &operator()(string_view s) const noexcept
+		const auto& operator()(string_view s) const noexcept
 		{
 			buffer = { s.data(), s.size() };
 			return buffer;
@@ -80,16 +80,16 @@ class Task::Result: public Ptr
 public:
 	Result(const Result&) = default;
 	Result(Result&&) = default;
-	Result &operator=(const Result&) = default;
-	Result &operator=(Result&&) = default;
+	Result& operator=(const Result&) = default;
+	Result& operator=(Result&&) = default;
 	~Result() = default;
 
 	Ident get_id() const noexcept { return t->id; }
-	bool operator<(const Result &rhs) const noexcept
+	bool operator<(const Result& rhs) const noexcept
 	{
 		return get_id() < rhs.get_id();
 	}
-	bool operator==(const Result &rhs) const noexcept
+	bool operator==(const Result& rhs) const noexcept
 	{
 		return t == rhs.t;
 	}
@@ -109,8 +109,8 @@ class ReadyTask : public Task::Ptr
 public:
 	ReadyTask(const ReadyTask&) = default;
 	ReadyTask(ReadyTask&&) = default;
-	ReadyTask &operator=(const ReadyTask&) = default;
-	ReadyTask &operator=(ReadyTask&&) = default;
+	ReadyTask& operator=(const ReadyTask&) = default;
+	ReadyTask& operator=(ReadyTask&&) = default;
 	~ReadyTask() = default;
 
 	Task::Result run() const { t->run(); return { t }; }
@@ -123,7 +123,7 @@ class IncompleteTask : public Task::Ptr
 public:
 	IncompleteTask(const IncompleteTask&) = default;
 	IncompleteTask(IncompleteTask&&) = default;
-	IncompleteTask &operator=(const IncompleteTask&) = default;
-	IncompleteTask &operator=(IncompleteTask&&) = default;
+	IncompleteTask& operator=(const IncompleteTask&) = default;
+	IncompleteTask& operator=(IncompleteTask&&) = default;
 	~IncompleteTask() = default;
 };

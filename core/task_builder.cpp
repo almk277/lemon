@@ -16,7 +16,7 @@ static_assert(min_buf_size <= optimum_buf_size);
 BOOST_CONCEPT_ASSERT((boost::InputIterator<TaskBuilder::Results::iterator>));
 }
 
-TaskBuilder::Results::Results(TaskBuilder &builder, const std::shared_ptr<Client> &cl,
+TaskBuilder::Results::Results(TaskBuilder& builder, const std::shared_ptr<Client>& cl,
 	IncompleteTask it, string_view data, bool stop):
 	data{data},
 	builder{builder},
@@ -47,7 +47,7 @@ auto TaskBuilder::Results::next() -> std::optional<value>
 	
 	auto result = builder.p.parse_chunk(data);
 	return visit(Visitor{
-		[this](const HttpError &error) -> value {
+		[this](const HttpError& error) -> value {
 			data = {};
 			stop = true;
 			return make_error_task(it, error);
@@ -64,8 +64,8 @@ auto TaskBuilder::Results::next() -> std::optional<value>
 	}, result);
 }
 
-auto TaskBuilder::Results::make_ready_task(const std::shared_ptr<Client> &cl,
-	IncompleteTask &it) -> ReadyTask
+auto TaskBuilder::Results::make_ready_task(const std::shared_ptr<Client>& cl,
+	IncompleteTask& it) -> ReadyTask
 {
 	const auto has_more_bytes = !data.empty();
 	const auto complete_task = move(it.t);
@@ -86,7 +86,7 @@ auto TaskBuilder::Results::make_ready_task(const std::shared_ptr<Client> &cl,
 	return { complete_task };
 }
 
-TaskBuilder::TaskBuilder(Task::Ident start_id, const Options &opt):
+TaskBuilder::TaskBuilder(Task::Ident start_id, const Options& opt):
 	opt{opt},
 	task_id{start_id}
 {
@@ -95,7 +95,7 @@ TaskBuilder::TaskBuilder(Task::Ident start_id, const Options &opt):
 		throw std::runtime_error{ "headers_size too small: " + std::to_string(opt.headers_size) };
 }
 
-auto TaskBuilder::prepare_task(const std::shared_ptr<Client> &cl) -> IncompleteTask
+auto TaskBuilder::prepare_task(const std::shared_ptr<Client>& cl) -> IncompleteTask
 {
 	auto t = Task::make(task_id, cl);
 	++task_id;
@@ -105,7 +105,7 @@ auto TaskBuilder::prepare_task(const std::shared_ptr<Client> &cl) -> IncompleteT
 	return { t };
 }
 
-auto TaskBuilder::get_memory(const IncompleteTask &it) -> boost::asio::mutable_buffer
+auto TaskBuilder::get_memory(const IncompleteTask& it) -> boost::asio::mutable_buffer
 {
 	if (recv_buf.size() < min_buf_size)
 		//TODO adaptive size
@@ -113,15 +113,15 @@ auto TaskBuilder::get_memory(const IncompleteTask &it) -> boost::asio::mutable_b
 	return recv_buf;
 }
 
-auto TaskBuilder::make_tasks(const std::shared_ptr<Client> &cl,
-	const IncompleteTask &it, std::size_t bytes_recv, bool stop) -> Results
+auto TaskBuilder::make_tasks(const std::shared_ptr<Client>& cl,
+	const IncompleteTask& it, std::size_t bytes_recv, bool stop) -> Results
 {
 	auto data = string_view{static_cast<char*>(recv_buf.data()), bytes_recv };
 	recv_buf = recv_buf + bytes_recv;
 	return Results{ *this, cl, it, data, stop };
 }
 
-auto TaskBuilder::make_error_task(IncompleteTask it, const HttpError &error) -> Task::Result
+auto TaskBuilder::make_error_task(IncompleteTask it, const HttpError& error) -> Task::Result
 {
 	it.lg().info("HTTP error ", error.code, " ", error.details);
 	auto t = move(it.t);

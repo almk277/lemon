@@ -2,8 +2,8 @@
 #include "client.hpp"
 #include "router.hpp"
 
-Server::Server(boost::asio::io_context &context, std::shared_ptr<const Options> global_opt,
-	const Options::Server &server_opt, const RhManager &rhman):
+Server::Server(boost::asio::io_context& context, std::shared_ptr<const Options> global_opt,
+	const Options::Server& server_opt, const RhManager& rhman):
 	lg{server_opt.listen_port},
 	context{context},
 	acceptor{context, Tcp::endpoint{ Tcp::v4(), server_opt.listen_port }},
@@ -25,7 +25,7 @@ Server::~Server()
 void Server::start_accept()
 {
 	//TODO allocate handler in pool
-	acceptor.async_accept([this](const boost::system::error_code &ec, Tcp::socket sock)
+	acceptor.async_accept([this](const boost::system::error_code& ec, Tcp::socket sock)
 	{
 		if (!ec)
 			Client::make(context, std::move(sock), global_opt, rout, lg);

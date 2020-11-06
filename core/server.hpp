@@ -12,11 +12,11 @@ class RhManager;
 class Server: boost::noncopyable
 {
 public:
-	Server(boost::asio::io_context &context, std::shared_ptr<const Options> global_opt,
-		const Options::Server &server_opt, const RhManager &rhman);
+	Server(boost::asio::io_context& context, std::shared_ptr<const Options> global_opt,
+		const Options::Server& server_opt, const RhManager& rhman);
 	~Server();
 
-	const Options::Server &get_options() const { return server_opt; }
+	const Options::Server& get_options() const { return server_opt; }
 
 	ServerLogger lg;
 
@@ -25,9 +25,9 @@ private:
 
 	void start_accept();
 
-	boost::asio::io_context &context;
+	boost::asio::io_context& context;
 	Tcp::acceptor acceptor;
 	const std::shared_ptr<const Options> global_opt;
-	const Options::Server &server_opt;
+	const Options::Server& server_opt;
 	const std::shared_ptr<const Router> rout;
 };

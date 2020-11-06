@@ -24,24 +24,24 @@ struct ResponseFixture
 	ArenaImp a{ slg };
 	Response r{ a };
 
-	void fill(const TestCase &c)
+	void fill(const TestCase& c)
 	{
 		r.http_version = Message::ProtocolVersion::http_1_1;
 		r.code = Response::Status::ok;
-		for (auto &h : c.headers)
+		for (auto& h : c.headers)
 			r.headers.emplace_back(h.first, h.second);
-		for (auto &b : c.body)
+		for (auto& b : c.body)
 			r.body.emplace_back(b);
 	}
 };
 
-const auto concat = [](const auto &begin, const auto &end)
+const auto concat = [](const auto& begin, const auto& end)
 {
 	return accumulate(begin, end, std::string{},
 		[](auto acc, auto s) { return acc + std::string{ s }; });
 };
 
-std::ostream &operator<<(std::ostream &s, const TestCase &t)
+std::ostream& operator<<(std::ostream& s, const TestCase& t)
 {
 	return s << "No " << t.no << ": " << t.response;
 }

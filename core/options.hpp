@@ -19,7 +19,7 @@ class Options: boost::noncopyable
 public:
 	struct Error: std::runtime_error
 	{
-		explicit Error(const std::string &s):
+		explicit Error(const std::string& s):
 			runtime_error("options error: " + s) {}
 	};
 
@@ -74,7 +74,7 @@ public:
 	Options();
 
 #ifndef LEMON_NO_CONFIG
-	explicit Options(const config::Table &config);
+	explicit Options(const config::Table& config);
 #endif
 
 	boost::optional<unsigned> n_workers = 1;
@@ -86,4 +86,4 @@ public:
 	std::vector<Server> servers;
 };
 
-bool operator==(const Options::Server &lhs, const Options::Server &rhs);
+bool operator==(const Options::Server& lhs, const Options::Server& rhs);

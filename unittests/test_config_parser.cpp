@@ -23,13 +23,13 @@ using BadSampleList = std::initializer_list<BadSample>;
 
 namespace config
 {
-static std::ostream &operator<<(std::ostream &stream, SampleList::const_reference sample)
+static std::ostream& operator<<(std::ostream& stream, SampleList::const_reference sample)
 {
 	return stream << "TEXT{\"" << sample.first << "\"} -> " << *sample.second;
 }
 }
 
-static std::ostream &operator<<(std::ostream &stream, BadSampleList::const_reference sample)
+static std::ostream& operator<<(std::ostream& stream, BadSampleList::const_reference sample)
 {
 	return stream << "TEXT{\"" << sample.text << "\"} -> error at "
 		<< sample.error_pos << ": " << sample.error_msg;
@@ -357,7 +357,7 @@ void error(BadSampleList::const_reference sample)
 {
 	auto f = std::make_shared<config::TextView>(sample.text);
 	BOOST_CHECK_EXCEPTION(config::parse(f), config::SyntaxError,
-		[&sample](const config::SyntaxError &exc)
+		[&sample](const config::SyntaxError& exc)
 		{
 			BOOST_TEST_INFO("exception position " << exc.where());
 			BOOST_TEST_INFO("exception: " << exc.what());

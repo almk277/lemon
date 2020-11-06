@@ -10,7 +10,7 @@ enum CallbackResult
 	error = 3 // on_headers_complete reserves 1 and 2
 };
 
-const auto &header_locale = std::locale::classic();
+const auto& header_locale = std::locale::classic();
 
 Request::Method method_from(http_method m)
 {
@@ -30,13 +30,13 @@ Request::Method method_from(http_method m)
 	BOOST_UNREACHABLE_RETURN({});
 }
 
-void prolong(string_view &original, string_view added)
+void prolong(string_view& original, string_view added)
 {
 	BOOST_ASSERT(original.data() + original.size() == added.data());
 	original = { original.data(), original.size() + added.size() };
 }
 
-string_view url_field(const http_parser_url &url,
+string_view url_field(const http_parser_url& url,
 	http_parser_url_fields f, string_view s)
 {
 	return url.field_set & (1 << f)
@@ -47,21 +47,21 @@ string_view url_field(const http_parser_url &url,
 struct ParserInternal: Parser
 {
 	template<typename cb>
-	static int parser_cb(http_parser *p) noexcept
+	static int parser_cb(http_parser* p) noexcept
 	{
-		Context &ctx = *static_cast<Context*>(p->data);
-		Request &r = *ctx.r;
+		Context& ctx = *static_cast<Context*>(p->data);
+		Request& r = *ctx.r;
 		static_assert(noexcept(cb::f(p, ctx, r)),
 			"parser callback should be noexcept");
 		return cb::f(p, ctx, r);
 	}
 
 	template<typename cb>
-	static int data_cb(http_parser *p, const char *at, size_t len) noexcept
+	static int data_cb(http_parser* p, const char* at, size_t len) noexcept
 	{
 		const http_parser *cp = p;
-		Context &ctx = *static_cast<Context*>(cp->data);
-		Request &r = *ctx.r;
+		Context& ctx = *static_cast<Context*>(cp->data);
+		Request& r = *ctx.r;
 		string_view s{at, len};
 		static_assert(noexcept(cb::f(cp, ctx, r, s)),
 			"parser callback should be noexcept");
@@ -78,8 +78,8 @@ http_parser_settings ParserInternal::make_settings()
 
 	struct OnUrl
 	{
-		static auto f(const http_parser *p, Context &ctx,
-		              Request &r, string_view s) noexcept
+		static auto f(const http_parser* p, Context& ctx,
+		              Request& r, string_view s) noexcept
 		{
 			if (r.url.all.empty())
 				r.url.all = s;
@@ -92,8 +92,8 @@ http_parser_settings ParserInternal::make_settings()
 
 	struct OnHeaderField
 	{
-		static auto f(const http_parser *, Context &ctx,
-		              Request &r, string_view s) noexcept
+		static auto f(const http_parser*, Context& ctx,
+		              Request& r, string_view s) noexcept
 		{
 			if (BOOST_LIKELY(ctx.hdr_state == Context::HeaderState::VAL)) {
 				r.headers.emplace_back(s, string_view{});
@@ -108,8 +108,8 @@ http_parser_settings ParserInternal::make_settings()
 
 	struct OnHeaderValue
 	{
-		static auto f(const http_parser *, Context &ctx,
-		              Request &r, string_view s) noexcept
+		static auto f(const http_parser*, Context& ctx,
+		              Request& r, string_view s) noexcept
 		{
 			if (BOOST_LIKELY(ctx.hdr_state == Context::HeaderState::KEY)) {
 				r.headers.back().value = s;
@@ -124,7 +124,7 @@ http_parser_settings ParserInternal::make_settings()
 
 	struct OnHeadersComplete
 	{
-		static auto f(const http_parser *p, Context &ctx, Request &r) noexcept
+		static auto f(const http_parser* p, Context& ctx, Request& r) noexcept
 		{
 			if (BOOST_UNLIKELY(p->http_major != 1 || p->http_minor > 1)) {
 				ctx.error.emplace(Response::Status::http_version_not_supported);
@@ -153,8 +153,8 @@ http_parser_settings ParserInternal::make_settings()
 
 	struct OnBody
 	{
-		static auto f(const http_parser *, Context &,
-		              Request &r, string_view s) noexcept
+		static auto f(const http_parser*, Context&,
+		              Request& r, string_view s) noexcept
 		{
 			r.body.emplace_back(s);
 			return ok;
@@ -164,8 +164,8 @@ http_parser_settings ParserInternal::make_settings()
 
 	struct OnMessageComplete
 	{
-		static auto f(http_parser *p, Context &ctx,
-		              Request &r) noexcept
+		static auto f(http_parser* p, Context& ctx,
+		              Request& r) noexcept
 		{
 			r.keep_alive = http_should_keep_alive(p) != 0;
 			r.content_length = static_cast<size_t>(p->content_length);
@@ -182,7 +182,7 @@ http_parser_settings ParserInternal::make_settings()
 const auto settings = ParserInternal::make_settings();
 }
 
-void Parser::reset(Request &req) noexcept
+void Parser::reset(Request& req) noexcept
 {
 	http_parser_init(&p, HTTP_REQUEST);
 	ctx.r = &req;
@@ -221,10 +221,10 @@ auto Parser::parse_chunk(string_view chunk) noexcept -> Result
 	return IncompleteRequest{};
 }
 
-void Parser::finalize(Request &req)
+void Parser::finalize(Request& req)
 {
 	auto allocator = req.a.make_allocator<char>("lowercase header");
-	for (auto &hdr : req.headers) {
+	for (auto& hdr : req.headers) {
 		auto lc_length = hdr.name.length();
 		auto lc_begin = allocator.allocate(lc_length);
 		boost::to_lower_copy(lc_begin, hdr.name, header_locale);

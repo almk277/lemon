@@ -25,7 +25,7 @@ struct ArenaHandler
 {
 	using allocator_type = Arena::Allocator<Handler>;
 
-	ArenaHandler(const Task &t, Handler h) noexcept: a{ t.get_arena() }, h{ std::move(h) } {}
+	ArenaHandler(const Task& t, Handler h) noexcept: a{ t.get_arena() }, h{ std::move(h) } {}
 
 	allocator_type get_allocator() const noexcept
 	{
@@ -33,19 +33,19 @@ struct ArenaHandler
 	}
 
 	template <typename ...Args>
-	void operator()(Args &&...args)
+	void operator()(Args&&... args)
 	{
 		h(std::forward<Args>(args)...);
 	}
 
 private:
-	Arena &a;
+	Arena& a;
 	const Handler h;
 };
 }
 
-Client::Client(boost::asio::io_context &context, Socket &&sock, std::shared_ptr<const Options> opt,
-	std::shared_ptr<const Router> router, ServerLogger &lg) noexcept:
+Client::Client(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+	std::shared_ptr<const Router> router, ServerLogger& lg) noexcept:
 	sock{std::move(sock)},
 	opt(std::move(opt)),
 	rout(std::move(router)),
@@ -68,8 +68,8 @@ Client::~Client()
 	lg.info("connection closed"sv);
 }
 
-void Client::make(boost::asio::io_context &context, Socket &&sock, std::shared_ptr<const Options> opt,
-	std::shared_ptr<const Router> rout, ServerLogger &lg)
+void Client::make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+	std::shared_ptr<const Router> rout, ServerLogger& lg)
 {
 	auto c = std::allocate_shared<Client>(client_allocator, context, std::move(sock),
 		move(opt), move(rout), lg);
@@ -77,19 +77,19 @@ void Client::make(boost::asio::io_context &context, Socket &&sock, std::shared_p
 	c->start_recv(it);
 }
 
-void Client::start_recv(const IncompleteTask &it)
+void Client::start_recv(const IncompleteTask& it)
 {
 	const auto b = builder.get_memory(it);
 	sock.async_read_some(buffer(b), ArenaHandler{ it,
-		[this, it](const error_code &ec, size_t bytes_transferred)
+		[this, it](const error_code& ec, size_t bytes_transferred)
 		{
 			on_recv(ec, bytes_transferred, it);
 		} });
 }
 
-void Client::on_recv(const error_code &ec,
+void Client::on_recv(const error_code& ec,
                      size_t bytes_transferred,
-	                 const IncompleteTask &it) noexcept
+	                 const IncompleteTask& it) noexcept
 {
 	const auto eof = ec == boost::asio::error::eof;
 	it.lg().debug("received bytes: "sv, bytes_transferred, eof ? ", and EOF"sv : ""sv);
@@ -99,13 +99,13 @@ void Client::on_recv(const error_code &ec,
 	}
 
 	try {
-		for (auto &&t : builder.make_tasks(shared_from_this(), it, bytes_transferred, eof))
+		for (auto&& t : builder.make_tasks(shared_from_this(), it, bytes_transferred, eof))
 			visit(Visitor{
-				[this](const IncompleteTask &t) { start_recv(t); },
-			    [this](const ReadyTask &t)      { run(t); },
-			    [this](const Task::Result &t)    { start_send(t); },
+				[this](const IncompleteTask& t) { start_recv(t); },
+			    [this](const ReadyTask& t)      { run(t); },
+			    [this](const Task::Result& t)    { start_send(t); },
 			}, t);
-	} catch (std::exception &re) {
+	} catch (std::exception& re) {
 		//TODO check if 'it' is actual task
 		it.lg().error(re.what());
 		start_send(TaskBuilder::make_error_task(it,
@@ -113,7 +113,7 @@ void Client::on_recv(const error_code &ec,
 	}
 }
 
-void Client::run(const ReadyTask &rt) noexcept
+void Client::run(const ReadyTask& rt) noexcept
 {
 	post(sock.get_executor(), ArenaHandler{ rt, [this, rt]
 		{
@@ -129,14 +129,14 @@ void Client::run(const ReadyTask &rt) noexcept
 	});
 }
 
-void Client::start_send(const Task::Result &tr)
+void Client::start_send(const Task::Result& tr)
 {
 	dispatch(send_barrier, ArenaHandler{ tr, [this, tr]
 		{
 			if (BOOST_LIKELY(tr.get_id() == next_send_id)) {
 				tr.lg().debug("sending task result..."sv);
 				async_write(sock, tr, ArenaHandler{ tr,
-					[this, tr](const error_code &ec, size_t) { on_sent(ec, tr); } });
+					[this, tr](const error_code& ec, size_t) { on_sent(ec, tr); } });
 			} else {
 				tr.lg().debug("queueing task result"sv);
 				BOOST_ASSERT(!contains(send_q, tr));
@@ -147,7 +147,7 @@ void Client::start_send(const Task::Result &tr)
 		} });
 }
 
-void Client::on_sent(const error_code &ec, const Task::Result &tr) noexcept
+void Client::on_sent(const error_code& ec, const Task::Result& tr) noexcept
 {
 	try {
 		if (ec) {
@@ -164,7 +164,7 @@ void Client::on_sent(const error_code &ec, const Task::Result &tr) noexcept
 				send_q.pop_front();
 			}
 		}
-	} catch (std::exception &e) {
+	} catch (std::exception& e) {
 		tr.lg().error("response queue error: "sv, e.what());
 	}
 }

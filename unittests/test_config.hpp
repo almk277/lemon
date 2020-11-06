@@ -47,7 +47,7 @@ public:
 };
 
 template <typename T>
-auto prop(std::string key, std::shared_ptr<T> &&value)
+auto prop(std::string key, std::shared_ptr<T>&& value)
 {
 	return Property{ std::make_unique<PropertyErrorHandler>(), move(key), std::move(*value) };
 }
@@ -58,13 +58,13 @@ auto prop(std::string key, T value)
 	return Property{ std::make_unique<PropertyErrorHandler>(), move(key), std::move(value) };
 }
 
-inline auto operator<<(std::shared_ptr<Table> t, Property &&p)
+inline auto operator<<(std::shared_ptr<Table> t, Property&& p)
 {
 	t->add(std::move(p));
 	return t;
 }
 
-inline auto operator<<(Table t, Property &&p)
+inline auto operator<<(Table t, Property&& p)
 {
 	t.add(std::move(p));
 	return t;

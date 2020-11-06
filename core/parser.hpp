@@ -19,17 +19,17 @@ public:
 
 	Parser() = default;
 
-	void reset(Request &req) noexcept;
+	void reset(Request& req) noexcept;
 	Result parse_chunk(string_view chunk) noexcept;
 
-	static void finalize(Request &req);
+	static void finalize(Request& req);
 
 protected:
 	struct Context
 	{
 		enum class HeaderState { KEY, VAL };
 
-		Request *r;
+		Request* r;
 		HeaderState hdr_state;
 		boost::optional<HttpError> error;
 		bool complete;

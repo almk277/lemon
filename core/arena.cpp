@@ -10,14 +10,14 @@
 #if 0
 #include <cstdio>
 #include <cstdlib>
-void *operator new(size_t size)
+void* operator new(size_t size)
 {
 	auto p = std::malloc(size);
 	std::printf("NEW %zu -> %p\n", size, p);
 	return p;
 }
 
-void operator delete(void *p)
+void operator delete(void* p)
 {
 	std::printf("DELETE %p\n", p);
 	std::free(p);
@@ -41,7 +41,7 @@ static_assert(is_power_of_two(block_align_wanted));
 static_assert(is_power_of_two(block_align));
 static_assert(max_alloc_compact_size < block_size);
 
-void *sys_alloc(size_t size)
+void* sys_alloc(size_t size)
 {
 	auto p = boost::alignment::aligned_alloc(block_align, size);
 	if (BOOST_UNLIKELY(!p))
@@ -49,7 +49,7 @@ void *sys_alloc(size_t size)
 	return p;
 }
 
-void sys_free(void *p) noexcept
+void sys_free(void* p) noexcept
 {
 	boost::alignment::aligned_free(p);
 }
@@ -59,22 +59,22 @@ struct AllocTag {};
 constexpr AllocTag alloc_tag{};
 
 
-void *ArenaImp::Block::operator new(size_t size, AllocTag, size_t space)
+void* ArenaImp::Block::operator new(size_t size, AllocTag, size_t space)
 {
 	return sys_alloc(size + space);
 }
 
-void ArenaImp::Block::operator delete(void *p)
+void ArenaImp::Block::operator delete(void* p)
 {
 	sys_free(p);
 }
 
-void ArenaImp::Block::operator delete(void *p, AllocTag, size_t)
+void ArenaImp::Block::operator delete(void* p, AllocTag, size_t)
 {
 	operator delete(p);
 }
 
-void *ArenaImp::Block::free_space() { return this + 1; }
+void* ArenaImp::Block::free_space() { return this + 1; }
 
 
 ArenaImp::StatefulBlock::StatefulBlock(size_t size):
@@ -83,7 +83,7 @@ ArenaImp::StatefulBlock::StatefulBlock(size_t size):
 	space{ size }
 {}
 
-void *ArenaImp::StatefulBlock::alloc(size_t size) noexcept
+void* ArenaImp::StatefulBlock::alloc(size_t size) noexcept
 {
 	BOOST_ASSERT(size <= space);
 	auto p = current;
@@ -92,11 +92,11 @@ void *ArenaImp::StatefulBlock::alloc(size_t size) noexcept
 	return p;
 }
 
-void *ArenaImp::StatefulBlock::free_space() { return this + 1; }
+void* ArenaImp::StatefulBlock::free_space() { return this + 1; }
 
 
 template <typename Block, typename BlockList>
-Block *make(size_t size, BlockList &where, size_t &n_bytes)
+Block* make(size_t size, BlockList& where, size_t& n_bytes)
 {
 	auto b = new (alloc_tag, size) Block{ size };
 	where.push_front(*b);
@@ -104,7 +104,7 @@ Block *make(size_t size, BlockList &where, size_t &n_bytes)
 	return b;
 }
 
-ArenaImp::ArenaImp(Logger &lg) noexcept:
+ArenaImp::ArenaImp(Logger& lg) noexcept:
 	lg{lg}
 {
 	lg.debug("arena: creating arena");
@@ -120,14 +120,14 @@ ArenaImp::~ArenaImp()
 	avail_blocks.clear_and_dispose(std::default_delete<StatefulBlock>{});
 }
 
-void *ArenaImp::alloc_as_separate_block(size_t size)
+void* ArenaImp::alloc_as_separate_block(size_t size)
 {
 	lg.debug("arena: allocating separate block of ", size, " bytes");
 	auto b = make<Block>(size, separate_blocks, n_bytes);
 	return b->free_space();
 }
 
-void *ArenaImp::alloc_from_block(StatefulBlock &b, size_t size)
+void* ArenaImp::alloc_from_block(StatefulBlock& b, size_t size)
 {
 	auto p = b.alloc(size);
 	if (BOOST_UNLIKELY(b.space < min_block_useful_size)) {
@@ -137,23 +137,23 @@ void *ArenaImp::alloc_from_block(StatefulBlock &b, size_t size)
 	return p;
 }
 
-void *ArenaImp::alloc_in_new_block(size_t size)
+void* ArenaImp::alloc_in_new_block(size_t size)
 {
 	lg.debug("arena: allocating block of ", size, " bytes");
 	auto b = make<StatefulBlock>(block_size, avail_blocks, n_bytes);
 	return alloc_from_block(*b, size);
 }
 
-void *ArenaImp::alloc_compact(size_t alignment, size_t size)
+void* ArenaImp::alloc_compact(size_t alignment, size_t size)
 {
-	for (auto &b : avail_blocks)
+	for (auto& b : avail_blocks)
 		if (std::align(alignment, size, b.current, b.space))
 			return alloc_from_block(b, size);
 
 	return alloc_in_new_block(size);
 }
 
-void *ArenaImp::aligned_alloc(size_t alignment, size_t size)
+void* ArenaImp::aligned_alloc(size_t alignment, size_t size)
 {
 	BOOST_ASSERT(is_power_of_two(alignment));
 	if (size <= max_alloc_compact_size)
@@ -161,12 +161,12 @@ void *ArenaImp::aligned_alloc(size_t alignment, size_t size)
 	return alloc_as_separate_block(size);
 }
 
-void ArenaImp::log_alloc(size_t size, const char *msg) const
+void ArenaImp::log_alloc(size_t size, const char* msg) const
 {
 	lg.trace(msg, " allocate ", size);
 }
 
-void ArenaImp::log_free(size_t size, const char *msg) const
+void ArenaImp::log_free(size_t size, const char* msg) const
 {
 	lg.trace(msg, " free ", size);
 }
@@ -183,27 +183,27 @@ auto ArenaImp::n_bytes_allocated() const noexcept -> size_t
 	return n_bytes;
 }
 
-inline ArenaImp *impl(Arena *a)
+inline ArenaImp* impl(Arena* a)
 {
 	return static_cast<ArenaImp*>(a);
 }
 
-inline const ArenaImp *impl(const Arena *a)
+inline const ArenaImp* impl(const Arena* a)
 {
 	return static_cast<const ArenaImp*>(a);
 }
 
-void *Arena::aligned_alloc_imp(size_t alignment, size_t size)
+void* Arena::aligned_alloc_imp(size_t alignment, size_t size)
 {
 	return impl(this)->aligned_alloc(alignment, size);
 }
 
-void Arena::log_alloc(size_t size, const char *msg) const
+void Arena::log_alloc(size_t size, const char* msg) const
 {
 	impl(this)->log_alloc(size, msg);
 }
 
-void Arena::log_free(size_t size, const char *msg) const
+void Arena::log_free(size_t size, const char* msg) const
 {
 	impl(this)->log_free(size, msg);
 }

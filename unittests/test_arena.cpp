@@ -30,8 +30,8 @@ struct ArenaFixture
 	ArenaImp a{ slg };
 };
 
-void test1(const buffer &b) { std::memset(b.data(), 0, b.size()); }
-void test(const buffer_list &list) { boost::range::for_each(list, test1); }
+void test1(const buffer& b) { std::memset(b.data(), 0, b.size()); }
+void test(const buffer_list& list) { boost::range::for_each(list, test1); }
 }
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(Arena::Allocator<char>)
@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_aligned_alloc)
 	for (size_t i = 0; i < n_arenas; ++i)
 		arenas.emplace_back(std::make_unique<ArenaImp>(slg), buffer_list{});
 
-	for (auto &[a, buffers] : arenas)
+	for (auto& [a, buffers] : arenas)
 		for (auto size: sizes)
 			for (size_t align = 1; align <= max_alignment; align *= 2)
 			{
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(test_aligned_alloc)
 	arenas.erase(arenas.begin() + arenas.size() / 2);
 	arenas.erase(arenas.begin());
 
-	for (auto &a : arenas)
+	for (auto& a : arenas)
 		test(a.second);
 }
 

@@ -16,7 +16,7 @@ struct CmdlineFixture
 {
 	CommandLineParser parser;
 
-	auto cmdline(const CmdlineArgs &args) const
+	auto cmdline(const CmdlineArgs& args) const
 	{
 		std::vector<const char*> argv = { "test-program" };
 		copy(args | boost::adaptors::transformed(mem_fn(&std::string::c_str)), back_inserter(argv));
@@ -24,7 +24,7 @@ struct CmdlineFixture
 		auto argc = static_cast<int>(argv.size());
 		return parser.parse(argc, argv.data());
 	}
-	auto to_parameters(const CmdlineArgs &args) const
+	auto to_parameters(const CmdlineArgs& args) const
 	{
 		return cmdline(args).to_parameters();
 	}

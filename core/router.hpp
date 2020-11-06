@@ -12,9 +12,9 @@ class RhManager;
 class Router: boost::noncopyable
 {
 public:
-	explicit Router(const RhManager &rhman, const Options::RouteList &routes);
+	explicit Router(const RhManager& rhman, const Options::RouteList& routes);
 
-	RequestHandler *resolve(string_view path) const;
+	RequestHandler* resolve(string_view path) const;
 	
 	struct Matcher
 	{

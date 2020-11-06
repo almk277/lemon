@@ -110,7 +110,7 @@ BOOST_SPIRIT_DEFINE(key, value, stmt, table);
 
 using Iterator = string_view::const_iterator;
 
-auto read(const boost::filesystem::path &path)
+auto read(const boost::filesystem::path& path)
 {
 	auto name = path.string();
 	std::ifstream f{ name,  std::ios::in | std::ios::binary | std::ios::ate };
@@ -136,13 +136,13 @@ namespace config
 //TODO proper tab handling
 struct TextView::Priv
 {
-	Priv(string_view data, const std::string &filename):
+	Priv(string_view data, const std::string& filename):
 		data{ data },
 		error_handler{ data.begin(), data.end(), error_stream, filename }
 	{
 	}
 
-	auto make_error_string(const grammar::position_tagged &where, const std::string& what) const
+	auto make_error_string(const grammar::position_tagged& where, const std::string& what) const
 	{
 		error_handler(where, what);
 		return error_stream.str();
@@ -154,7 +154,7 @@ struct TextView::Priv
 		return error_stream.str();
 	}
 
-	auto make_error(Iterator where, const std::string &msg) const
+	auto make_error(Iterator where, const std::string& msg) const
 	{
 		return SyntaxError{ static_cast<SyntaxError::Position>(where - data.begin()),
 			make_error_string(where, msg) };
@@ -166,7 +166,7 @@ struct TextView::Priv
 	ast::Table ast;
 };
 
-TextView::TextView(string_view data, const std::string &filename):
+TextView::TextView(string_view data, const std::string& filename):
 	p{ std::make_shared<Priv>(data, filename) }
 {
 }
@@ -177,7 +177,7 @@ Text::Text(std::string data, const std::string& filename):
 {
 }
 
-File::File(const boost::filesystem::path &path):
+File::File(const boost::filesystem::path& path):
 	Text{ read(path), path.string() }
 {
 }
@@ -188,7 +188,7 @@ class PropertyErrorHandler : public Property::ErrorHandler
 {
 public:
 	PropertyErrorHandler(std::shared_ptr<const TextView> text,
-		const grammar::position_tagged &key, const grammar::position_tagged &value) :
+		const grammar::position_tagged& key, const grammar::position_tagged& value) :
 		key{ key },
 		value{ value },
 		text{ move(text) }
@@ -206,8 +206,8 @@ public:
 	}
 
 private:
-	const grammar::position_tagged &key;
-	const grammar::position_tagged &value;
+	const grammar::position_tagged& key;
+	const grammar::position_tagged& value;
 	const std::shared_ptr<const TextView> text;
 };
 
@@ -215,7 +215,7 @@ class EmptyPropertyErrorHandler : public Property::ErrorHandler
 {
 public:
 	EmptyPropertyErrorHandler(std::shared_ptr<const TextView> text,
-		const grammar::position_tagged &table) :
+		const grammar::position_tagged& table) :
 		table{ table },
 		text{ move(text) }
 	{
@@ -232,7 +232,7 @@ public:
 	}
 
 private:
-	const grammar::position_tagged &table;
+	const grammar::position_tagged& table;
 	const std::shared_ptr<const TextView> text;
 };
 
@@ -240,7 +240,7 @@ class TableErrorHandler : public Table::ErrorHandler
 {
 public:
 	TableErrorHandler(std::shared_ptr<const TextView> text,
-		const grammar::position_tagged &table):
+		const grammar::position_tagged& table):
 		table{ table },
 		text{ move(text) }
 	{}
@@ -251,15 +251,15 @@ public:
 	}
 
 private:
-	const grammar::position_tagged &table;
+	const grammar::position_tagged& table;
 	const std::shared_ptr<const TextView> text;
 };
 
-auto make_table(const ast::Table &t, const std::shared_ptr<const TextView> &text) -> Table;
+auto make_table(const ast::Table& t, const std::shared_ptr<const TextView>& text) -> Table;
 
 struct PropertyVisitor : boost::static_visitor<Property>
 {
-	PropertyVisitor(const ast::Stmt &stmt, std::shared_ptr<const TextView> text):
+	PropertyVisitor(const ast::Stmt& stmt, std::shared_ptr<const TextView> text):
 		eh{ std::make_unique<PropertyErrorHandler>(text, stmt.key, stmt.val) },
 		key{ stmt.key.name },
 		text{ text }
@@ -268,11 +268,11 @@ struct PropertyVisitor : boost::static_visitor<Property>
 	auto operator()(bool v) { return Property{ move(eh), move(key), v }; }
 	auto operator()(Real v) { return Property{ move(eh), move(key), v }; }
 	auto operator()(Integer v) { return Property{ move(eh), move(key), v }; }
-	auto operator()(const ast::Table &t)
+	auto operator()(const ast::Table& t)
 	{
 		return Property{ move(eh), move(key), make_table(t, move(text)) };
 	}
-	auto operator()(const std::string &v)
+	auto operator()(const std::string& v)
 	{
 		return Property{ move(eh), move(key), v };
 	}
@@ -282,10 +282,10 @@ private:
 	std::shared_ptr<const TextView> text;
 };
 
-auto make_table(const ast::Table &t, const std::shared_ptr<const TextView> &text) -> Table
+auto make_table(const ast::Table& t, const std::shared_ptr<const TextView>& text) -> Table
 {
 	Table res{ std::make_unique<TableErrorHandler>(text, t) };
-	for (const auto &stmt : t.entries) {
+	for (const auto& stmt : t.entries) {
 		PropertyVisitor visitor{ stmt, text };
 		res.add(apply_visitor(visitor, stmt.val));
 	}
@@ -298,7 +298,7 @@ auto make_table(const ast::Table &t, const std::shared_ptr<const TextView> &text
 
 auto config::parse(std::shared_ptr<TextView> text) -> Table
 {
-	auto &txt = *text->p;
+	auto& txt = *text->p;
 	auto begin = txt.data.begin();
 	auto end = txt.data.end();
 
@@ -310,7 +310,7 @@ auto config::parse(std::shared_ptr<TextView> text) -> Table
 	try {
 		auto parsed = phrase_parse(begin, end, parser, grammar::space, txt.ast);
 		BOOST_ASSERT(parsed);
-	} catch (grammar::expectation_failure<Iterator> &e) {
+	} catch (grammar::expectation_failure<Iterator>& e) {
 		throw txt.make_error(e.where(), "Error! Expecting " + e.which() + " here:");
 	}
 

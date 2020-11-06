@@ -33,17 +33,17 @@ public:
 
 	struct Message
 	{
-		BasePrinter *first;
-		BasePrinter *last;
+		BasePrinter* first;
+		BasePrinter* last;
 	};
 
 	LoggerImp() = default;
-	LoggerImp(const LoggerImp &rhs) = delete;
+	LoggerImp(const LoggerImp& rhs) = delete;
 	virtual ~LoggerImp() = default;
 	
-	LoggerImp &operator=(const LoggerImp&) = delete;
+	LoggerImp& operator=(const LoggerImp&) = delete;
 
-	template <typename ...Args> void access(Args ...args)
+	template <typename... Args> void access(Args&&... args)
 	{
 #ifndef LEMON_NO_ACCESS_LOG
 		extern bool log_access_enabled;
@@ -54,11 +54,11 @@ public:
 #endif
 	}
 
-	Attribute add(const boost::log::attribute_name &name,
-		const boost::log::attribute &attr);
+	Attribute add(const boost::log::attribute_name& name,
+		const boost::log::attribute& attr);
 	void open_message(Severity s);
 	void open_access();
-	void push(BasePrinter &c) noexcept;
+	void push(BasePrinter& c) noexcept;
 	void finalize();
 
 	static const AttrName attr_name;
@@ -66,7 +66,7 @@ public:
 protected:
 	virtual void insert_attributes() = 0;
 
-	boost::log::attribute_value_set &attributes() noexcept
+	boost::log::attribute_value_set& attributes() noexcept
 	{
 		return rec.attribute_values();
 	}
@@ -97,7 +97,7 @@ struct ServerLogger: CommonLogger
 
 struct ClientLogger: ServerLogger
 {
-	ClientLogger(const ServerLogger &logger, boost::asio::ip::address address) noexcept:
+	ClientLogger(const ServerLogger& logger, boost::asio::ip::address address) noexcept:
 		ServerLogger{logger.port},
 		address{std::move(address)}
 	{}
@@ -109,7 +109,7 @@ struct ClientLogger: ServerLogger
 
 struct TaskLogger: ClientLogger
 {
-	TaskLogger(const ClientLogger &logger, TaskIdent id) noexcept:
+	TaskLogger(const ClientLogger& logger, TaskIdent id) noexcept:
 		ClientLogger{ logger, logger.address },
 		id{ id }
 	{}
@@ -122,7 +122,7 @@ struct TaskLogger: ClientLogger
 
 struct ModuleLoggerGuard: boost::noncopyable
 {
-	ModuleLoggerGuard(TaskLogger &lg, string_view name) noexcept:
+	ModuleLoggerGuard(TaskLogger& lg, string_view name) noexcept:
 		lg{lg}
 	{
 		lg.module_name = name;
@@ -134,5 +134,5 @@ struct ModuleLoggerGuard: boost::noncopyable
 	}
 
 private:
-	TaskLogger &lg;
+	TaskLogger& lg;
 };

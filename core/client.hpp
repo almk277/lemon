@@ -23,15 +23,15 @@ class Client:
 public:
 	using Socket = boost::asio::ip::tcp::socket;
 
-	Client(boost::asio::io_context &context, Socket &&sock, std::shared_ptr<const Options> opt,
-		std::shared_ptr<const Router> router, ServerLogger &lg) noexcept;
+	Client(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+		std::shared_ptr<const Router> router, ServerLogger& lg) noexcept;
 	~Client();
 
-	static void make(boost::asio::io_context &context, Socket &&sock, std::shared_ptr<const Options> opt,
-		std::shared_ptr<const Router> rout, ServerLogger &lg);
+	static void make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+		std::shared_ptr<const Router> rout, ServerLogger& lg);
 
-	ClientLogger &get_logger() noexcept { return lg; }
-	const Router &get_router() const noexcept { return *rout; }
+	ClientLogger& get_logger() noexcept { return lg; }
+	const Router& get_router() const noexcept { return *rout; }
 
 private:
 	static constexpr TaskIdent start_task_id = Task::start_id;
@@ -45,11 +45,11 @@ private:
 	boost::container::list<Task::Result> send_q;
 	boost::asio::io_context::strand send_barrier;
 
-	void start_recv(const IncompleteTask &it);
-	void on_recv(const boost::system::error_code &ec,
+	void start_recv(const IncompleteTask& it);
+	void on_recv(const boost::system::error_code& ec,
 		         std::size_t bytes_transferred,
-		         const IncompleteTask &it) noexcept;
-	void run(const ReadyTask &rt) noexcept;
-	void start_send(const Task::Result &tr);
-	void on_sent(const boost::system::error_code &ec, const Task::Result &tr) noexcept;
+		         const IncompleteTask& it) noexcept;
+	void run(const ReadyTask& rt) noexcept;
+	void start_send(const Task::Result& tr);
+	void on_sent(const boost::system::error_code& ec, const Task::Result& tr) noexcept;
 };

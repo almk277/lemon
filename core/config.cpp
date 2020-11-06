@@ -40,24 +40,24 @@ struct KeyComparator
 {
 	const string_view key;
 
-	auto operator()(const ValueTuple &el) const
+	auto operator()(const ValueTuple& el) const
 	{
 		return el.first.key() == key;
 	}
 };
 }
 
-Error::Error(const std::string &msg): runtime_error{ msg }
+Error::Error(const std::string& msg): runtime_error{ msg }
 {}
 
-BadKey::BadKey(const std::string &key, const std::string &msg):
+BadKey::BadKey(const std::string& key, const std::string& msg):
 	Error{ "key \"" + key + "\": " + msg },
 	k{ key }
 {
 }
 
-BadValue::BadValue(const std::string &key, const std::string &expected, const std::string &obtained,
-	const std::string &msg):
+BadValue::BadValue(const std::string& key, const std::string& expected, const std::string& obtained,
+	const std::string& msg):
 	BadKey{ key, msg }
 {
 }
@@ -77,7 +77,7 @@ struct Property::Priv
 	template <typename T>
 	auto get(string_view expected_type) const -> const T&
 	{
-		auto *v = std::get_if<T>(&val);
+		auto* v = std::get_if<T>(&val);
 		if (BOOST_UNLIKELY(!v)) {
 			if (is<EmptyValue>())
 				throw BadKey{ k, eh->key_error("not found") };
@@ -144,7 +144,7 @@ Property::Property(std::unique_ptr<const ErrorHandler> eh,
 {
 }
 
-Property::Property(Property &&rhs) noexcept :
+Property::Property(Property&& rhs) noexcept :
 	p{ std::exchange(rhs.p, nullptr) }
 {
 }
@@ -254,7 +254,7 @@ Table::Table(std::unique_ptr<ErrorHandler> eh):
 {
 }
 
-Table::Table(Table &&rhs) noexcept:
+Table::Table(Table&& rhs) noexcept:
 	p{ std::exchange(rhs.p, nullptr) }
 {
 }
@@ -283,15 +283,15 @@ auto Table::get_unique(string_view name) const -> const Property&
 	if (it2 != end)
 		throw BadKey{ it2->first.key(), it2->first.get_error_handler().key_error("non-unique") };
 
-	auto &[prop, used] = *it;
+	auto& [prop, used] = *it;
 	used = true;
 	return prop;
 }
 
 auto Table::get_last(string_view name) const -> const Property&
 {
-	const Property *result = nullptr;
-	for (auto &[prop, used] : p->map | boost::adaptors::filtered(KeyComparator{ name })) {
+	const Property* result = nullptr;
+	for (auto& [prop, used] : p->map | boost::adaptors::filtered(KeyComparator{ name })) {
 		result = &prop;
 		used = true;
 	}
@@ -302,7 +302,7 @@ auto Table::get_last(string_view name) const -> const Property&
 auto Table::get_all(string_view name) const -> std::vector<const Property*>
 {
 	std::vector<const Property*> res;
-	for (auto &[prop, used] : p->map | boost::adaptors::filtered(KeyComparator{ name })) {
+	for (auto& [prop, used] : p->map | boost::adaptors::filtered(KeyComparator{ name })) {
 		res.push_back(&prop);
 		used = true;
 	}
@@ -342,7 +342,7 @@ auto Table::cend() const -> const_iterator
 
 auto Table::throw_on_unknown_key() const -> void
 {
-	for (auto &[prop, used] : p->map) {
+	for (auto& [prop, used] : p->map) {
 		if (!used)
 			throw BadKey{ prop.key(), prop.get_error_handler().key_error("unknown key") };
 		if (prop.is<Table>())
@@ -360,7 +360,7 @@ Table::const_iterator::const_iterator() :
 {
 }
 
-Table::const_iterator::const_iterator(const Table *tbl, begin_tag) :
+Table::const_iterator::const_iterator(const Table* tbl, begin_tag) :
 	p{ new Priv{ tbl->p->map.begin() } }
 {
 }
@@ -370,12 +370,12 @@ Table::const_iterator::const_iterator(const Table* tbl, end_tag) :
 {
 }
 
-Table::const_iterator::const_iterator(const const_iterator &rhs) :
+Table::const_iterator::const_iterator(const const_iterator& rhs) :
 	p{ new Priv{ *rhs.p } }
 {
 }
 
-Table::const_iterator::const_iterator(const_iterator &&rhs) noexcept :
+Table::const_iterator::const_iterator(const_iterator&& rhs) noexcept :
 	p{ std::exchange(rhs.p, nullptr) }
 {
 }
@@ -422,12 +422,12 @@ auto Table::const_iterator::operator++(int) -> const_iterator
 	return tmp;
 }
 
-auto operator==(const Property &lhs, const Property &rhs) noexcept -> bool
+auto operator==(const Property& lhs, const Property& rhs) noexcept -> bool
 {
 	return lhs.p->as_tuple() == rhs.p->as_tuple();
 }
 
-auto operator!=(const Property &lhs, const Property &rhs) noexcept -> bool
+auto operator!=(const Property& lhs, const Property& rhs) noexcept -> bool
 {
 	return lhs.p->as_tuple() != rhs.p->as_tuple();
 }

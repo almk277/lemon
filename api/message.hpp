@@ -24,7 +24,7 @@ struct Message
 
 		constexpr Header(string_view name, string_view value) noexcept : name{name}, value{value} {}
 
-		bool operator==(const Header &rhs) const noexcept
+		bool operator==(const Header& rhs) const noexcept
 		{
 			return lowercase_name == rhs.lowercase_name && value == rhs.value;
 		}
@@ -36,7 +36,7 @@ struct Message
 
 		[[nodiscard]] static auto make_is(lowercase_string_view name) noexcept
 		{
-			return [name](const Header &hdr) { return hdr.is(name); };
+			return [name](const Header& hdr) { return hdr.is(name); };
 		}
 
 		static constexpr string_view sep = ": "sv;
@@ -51,17 +51,17 @@ struct Message
 	using HeaderList = std::list<Header, Arena::Allocator<Header>>;
 	using ChunkList = std::list<string_view, Arena::Allocator<string_view>>;
 
-	explicit Message(Arena &a) noexcept :
+	explicit Message(Arena& a) noexcept :
 	    http_version{},
 	    headers{a.make_allocator<Header>("message::headers")},
 	    body{a.make_allocator<string_view>("message::body")},
 	    a{a}
 	{}
 
-	Message(const Message &) = delete;
-	Message(Message &&) = delete;
-	Message &operator=(const Message &) = delete;
-	Message &operator=(Message &&) = delete;
+	Message(const Message&) = delete;
+	Message(Message&&) = delete;
+	Message& operator=(const Message&) = delete;
+	Message& operator=(Message&&) = delete;
 	~Message() = default;
 
 	// HTTP new line
@@ -71,7 +71,7 @@ struct Message
 	HeaderList headers;
 	ChunkList body;
 
-	Arena &a;
+	Arena& a;
 };
 
 struct Request : Message
@@ -89,7 +89,7 @@ struct Request : Message
 		string_view name;
 	};
 
-	explicit Request(Arena &a) noexcept : Message{a} {}
+	explicit Request(Arena& a) noexcept : Message{a} {}
 
 	Method method;
 	Url url;
@@ -102,7 +102,7 @@ struct Response : Message
 	enum class Status;
 	class const_iterator;
 
-	explicit Response(Arena &a) noexcept;
+	explicit Response(Arena& a) noexcept;
 
 	Status code;
 
@@ -185,8 +185,8 @@ class Response::const_iterator
 {
 public:
 	using value_type = string_view;
-	using reference = const value_type &;
-	using pointer = const value_type *;
+	using reference = const value_type&;
+	using pointer = const value_type*;
 	using difference_type = int;
 	using iterator_category = std::bidirectional_iterator_tag;
 
@@ -194,38 +194,38 @@ public:
 	struct end_tag {};
 
 	const_iterator() noexcept;
-	const_iterator(const Response *r, begin_tag) noexcept;
-	const_iterator(const Response *r, end_tag) noexcept;
-	const_iterator(const const_iterator &) = default;
-	const_iterator(const_iterator &&) = default;
+	const_iterator(const Response* r, begin_tag) noexcept;
+	const_iterator(const Response* r, end_tag) noexcept;
+	const_iterator(const const_iterator&) = default;
+	const_iterator(const_iterator&&) = default;
 	~const_iterator() = default;
 
-	auto operator=(const const_iterator &) -> const_iterator & = default;
-	auto operator=(const_iterator &&) -> const_iterator & = default;
+	auto operator=(const const_iterator&) -> const_iterator& = default;
+	auto operator=(const_iterator&&) -> const_iterator& = default;
 
 	auto operator*() const -> reference;
 	auto operator-> () const -> pointer;
-	auto operator++() -> const_iterator &;
+	auto operator++() -> const_iterator&;
 	auto operator++(int) -> const_iterator;
-	auto operator--() -> const_iterator &;
+	auto operator--() -> const_iterator&;
 	auto operator--(int) -> const_iterator;
 
-	friend auto operator==(const const_iterator &it1, const const_iterator &it2) -> bool;
-	friend auto operator!=(const const_iterator &it1, const const_iterator &it2) -> bool;
+	friend auto operator==(const const_iterator& it1, const const_iterator& it2) -> bool;
+	friend auto operator!=(const const_iterator& it1, const const_iterator& it2) -> bool;
 
 private:
 	enum class State;
 
-	const Response *r;
+	const Response* r;
 	State s;
 	HeaderList::const_iterator header_it;
 	ChunkList::const_iterator body_it;
 };
 
-inline Response::Response(Arena &a) noexcept : Message{a}, code{Status::internal_server_error} {}
+inline Response::Response(Arena& a) noexcept : Message{a}, code{Status::internal_server_error} {}
 
 string_view to_string(Response::Status status);
 
-std::ostream &operator<<(std::ostream &stream, Response::Status status);
+std::ostream& operator<<(std::ostream& stream, Response::Status status);
 
-auto calc_content_length(const Message &msg) noexcept -> std::size_t;
+auto calc_content_length(const Message& msg) noexcept -> std::size_t;

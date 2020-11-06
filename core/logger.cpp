@@ -3,7 +3,7 @@
 
 namespace
 {
-LoggerImp *impl(Logger *lg)
+LoggerImp* impl(Logger* lg)
 {
 	return static_cast<LoggerImp*>(lg);
 }
@@ -20,7 +20,7 @@ bool Logger::open(Severity s)
 	return true;
 }
 
-void Logger::push(BasePrinter &c) noexcept
+void Logger::push(BasePrinter& c) noexcept
 {
 	impl(this)->push(c);
 }

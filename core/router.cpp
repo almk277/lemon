@@ -36,7 +36,7 @@ private:
 class RegexMatcher: public Router::Matcher
 {
 public:
-	explicit RegexMatcher(const std::string &s): re{s} {}
+	explicit RegexMatcher(const std::string& s): re{s} {}
 	bool match(string_view s) const override
 	{
 		return regex_match(s.begin(), s.end(), re);
@@ -49,25 +49,25 @@ struct MatchBuilder
 {
 	using result_type = std::unique_ptr<Router::Matcher>;
 
-	auto operator()(const Options::Route::Equal &r) const -> result_type
+	auto operator()(const Options::Route::Equal& r) const -> result_type
 	{
 		return std::make_unique<ExactMatcher>(r.str);
 	}
-	auto operator()(const Options::Route::Prefix &r) const -> result_type
+	auto operator()(const Options::Route::Prefix& r) const -> result_type
 	{
 		return std::make_unique<PrefixMatcher>(r.str);
 	}
-	auto operator()(const Options::Route::Regex &r) const -> result_type
+	auto operator()(const Options::Route::Regex& r) const -> result_type
 	{
 		return std::make_unique<RegexMatcher>(r.re);
 	}
 };
 }
 
-Router::Router(const RhManager &rhman, const Options::RouteList &routes)
+Router::Router(const RhManager& rhman, const Options::RouteList& routes)
 {
 	matchers.reserve(routes.size());
-	for (auto &r: routes) {
+	for (auto& r: routes) {
 		auto rh = rhman[r.handler];
 		if (!rh)
 			throw Options::Error(r.handler + ": module not found");
@@ -77,9 +77,9 @@ Router::Router(const RhManager &rhman, const Options::RouteList &routes)
 	}
 }
 
-RequestHandler *Router::resolve(string_view path) const
+RequestHandler* Router::resolve(string_view path) const
 {
-	for (auto &[matcher, handler]: matchers) {
+	for (auto& [matcher, handler]: matchers) {
 		if (matcher->match(path))
 			return handler.get();
 	}

@@ -30,7 +30,7 @@ CommandLineParser::CommandLineParser():
 {
 }
 
-auto CommandLineParser::parse(int argc, const char *const argv[]) const -> CommandLine
+auto CommandLineParser::parse(int argc, const char* const argv[]) const -> CommandLine
 {
 	namespace style = boost::program_options::command_line_style;
 
@@ -43,12 +43,12 @@ auto CommandLineParser::parse(int argc, const char *const argv[]) const -> Comma
 	return result;
 }
 
-auto CommandLineParser::print_options(std::ostream &stream) const -> void
+auto CommandLineParser::print_options(std::ostream& stream) const -> void
 {
 	stream << desc;
 }
 
-auto CommandLine::has(const std::string &parameter) const noexcept -> bool
+auto CommandLine::has(const std::string& parameter) const noexcept -> bool
 {
 	return vars.count(parameter) > 0;
 }

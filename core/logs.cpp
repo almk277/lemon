@@ -31,12 +31,12 @@ constexpr std::array severity_strings = {
 	"TRC "sv,
 };
 
-static std::ostream &operator<<(std::ostream &s, Logger::Severity sev)
+static std::ostream &operator<<(std::ostream& s, Logger::Severity sev)
 {
 	return s << severity_strings[static_cast<int>(sev)];
 }
 
-static std::ostream &operator<<(std::ostream &s, LoggerImp::Message msg)
+static std::ostream &operator<<(std::ostream& s, LoggerImp::Message msg)
 {
 	for (auto c = msg.first; c; c = c->next)
 		c->print(s);
@@ -85,7 +85,7 @@ struct LogAdder
 		boost::log::add_console_log(std::clog, filter, fmt);
 		return true;
 	}
-	bool operator()(const Options::LogTypes::File &f) const
+	bool operator()(const Options::LogTypes::File& f) const
 	{
 		using namespace boost::log;
 
@@ -101,7 +101,7 @@ struct LogAdder
 	Fmt fmt;
 };
 
-bool add_messages_sink(const Options::LogTypes::MessagesLog &log)
+bool add_messages_sink(const Options::LogTypes::MessagesLog& log)
 {
 	using namespace boost::log;
 
@@ -130,7 +130,7 @@ bool add_messages_sink(const Options::LogTypes::MessagesLog &log)
 		}, log.dest);
 }
 
-bool add_access_sink(const Options::LogTypes::AccessLog &log)
+bool add_access_sink(const Options::LogTypes::AccessLog& log)
 {
 #ifndef LEMON_NO_ACCESS_LOG
 	using namespace boost::log;
@@ -159,7 +159,7 @@ void logs::preinit()
 	add_messages_sink(startup_log);
 }
 
-void logs::init(const Options &opt)
+void logs::init(const Options& opt)
 {
 	using namespace boost::log;
 

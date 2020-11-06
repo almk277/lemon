@@ -9,7 +9,7 @@ namespace
 {
 struct RequestToQuit : std::exception {};
 
-auto make_parameters(int argc, char *argv[])
+auto make_parameters(int argc, char* argv[])
 {
 	const auto parser = CommandLineParser{};
 	const auto cmdline = parser.parse(argc, argv);
@@ -26,7 +26,7 @@ auto make_parameters(int argc, char *argv[])
 }
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	try {
 		auto params = make_parameters(argc, argv);
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 		man.run();
 	} catch(RequestToQuit&) {
 		// nothing to do
-	} catch(std::exception &error) {
+	} catch(std::exception& error) {
 		std::cerr << argv[0] << ": " << error.what() << std::endl;
 		return 1;
 	}

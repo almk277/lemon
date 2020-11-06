@@ -8,8 +8,8 @@ using boost::log::attributes::make_attribute_value;
 const LoggerImp::AttrName LoggerImp::attr_name{};
 const boost::log::attributes::local_clock clock_attr{};
 
-auto LoggerImp::add(const boost::log::attribute_name &name,
-	const boost::log::attribute &attr) -> Attribute
+auto LoggerImp::add(const boost::log::attribute_name& name,
+	const boost::log::attribute& attr) -> Attribute
 {
 	auto r = lg.add_attribute(name, attr);
 	return r.first;
@@ -36,7 +36,7 @@ void LoggerImp::open_access()
 	attributes().insert(attr_name.time, clock_attr.get_value());
 }
 
-void LoggerImp::push(BasePrinter &c) noexcept
+void LoggerImp::push(BasePrinter& c) noexcept
 {
 	const auto p = &c;
 	if (!msg.first)

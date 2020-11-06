@@ -17,7 +17,7 @@ class Server;
 class Manager: boost::noncopyable
 {
 public:
-	explicit Manager(const Parameters &params);
+	explicit Manager(const Parameters& params);
 	~Manager();
 
 	void run();
@@ -26,8 +26,8 @@ public:
 
 private:
 	void init();
-	void init_servers(const std::shared_ptr<const Options> &opts);
-	void init_workers(const std::shared_ptr<const Options> &opts);
+	void init_servers(const std::shared_ptr<const Options>& opts);
+	void init_workers(const std::shared_ptr<const Options>& opts);
 	void add_worker();
 	void remove_worker();
 	void run_worker() noexcept;

@@ -7,9 +7,9 @@ struct RhStaticFile : RequestHandler
 
 	string_view get_name() const noexcept override;
 
-	void get(Request &req, Response &resp, Context &ctx) override;
-	void head(Request &req, Response &resp, Context &ctx) override;
+	void get(Request& req, Response& resp, Context& ctx) override;
+	void head(Request& req, Response& resp, Context& ctx) override;
 
 private:
-	static void finalize(Request &req, Response &resp, Context &ctx, std::size_t length);
+	static void finalize(Request& req, Response& resp, Context& ctx, std::size_t length);
 };

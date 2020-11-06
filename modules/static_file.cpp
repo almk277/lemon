@@ -19,7 +19,7 @@ const std::fstream::pos_type max_size = 100 * 1024 * 1024;
 constexpr string_view www_dir = "/var/www"sv;
 
 std::pair<std::ifstream, std::size_t> open_file(
-	const Request &req, const RhStaticFile::Context &ctx)
+	const Request& req, const RhStaticFile::Context& ctx)
 {
 	const auto path = req.url.path;
 	//TODO filesystem::path
@@ -48,7 +48,7 @@ string_view RhStaticFile::get_name() const noexcept
 	return "StaticFile"sv;
 }
 
-void RhStaticFile::get(Request &req, Response &resp, Context &ctx)
+void RhStaticFile::get(Request& req, Response& resp, Context& ctx)
 {
 	auto [f, length] = open_file(req, ctx);
 
@@ -61,14 +61,14 @@ void RhStaticFile::get(Request &req, Response &resp, Context &ctx)
 	finalize(req, resp, ctx, length);
 }
 
-void RhStaticFile::head(Request &req, Response &resp, Context &ctx)
+void RhStaticFile::head(Request& req, Response& resp, Context& ctx)
 {
 	auto open_result = open_file(req, ctx);
 	auto length = open_result.second;
 	finalize(req, resp, ctx, length);
 }
 
-void RhStaticFile::finalize(Request &req, Response &resp, Context &ctx, std::size_t length)
+void RhStaticFile::finalize(Request& req, Response& resp, Context& ctx, std::size_t length)
 {
 	resp.http_version = req.http_version;
 	//TODO Content-Type

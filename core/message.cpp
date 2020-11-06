@@ -30,7 +30,7 @@ const string_view &to_string_ref(Message::ProtocolVersion v)
 
 struct StringList
 {
-	const string_view *data;
+	const string_view* data;
 	int size;
 
 	template <int N>
@@ -131,7 +131,7 @@ constexpr StringList strings[] = {
 	throw std::runtime_error{ "bad response code: "s + std::to_string(n) };
 }
 
-const string_view &to_string_other(int status)
+const string_view& to_string_other(int status)
 {
 	static const std::unordered_map<int, string_view> string_map = {
 		{ 226, "226 IM Used"sv },
@@ -144,7 +144,7 @@ const string_view &to_string_other(int status)
 	return status_it->second;
 }
 
-const string_view &to_string_ref(Response::Status status)
+const string_view& to_string_ref(Response::Status status)
 {
 	const auto status_n = static_cast<int>(status);
 	auto dv = std::div(status_n, 100);
@@ -187,12 +187,12 @@ string_view to_string(Response::Status status)
 	return to_string_ref(status);
 }
 
-std::ostream &operator<<(std::ostream &stream, Response::Status status)
+std::ostream& operator<<(std::ostream& stream, Response::Status status)
 {
 	return stream << static_cast<int>(status);
 }
 
-auto calc_content_length(const Message &msg) noexcept -> std::size_t
+auto calc_content_length(const Message& msg) noexcept -> std::size_t
 {
 	auto length = accumulate(
 		msg.body | boost::adaptors::transformed(mem_fn(&string_view::size)),
@@ -219,12 +219,12 @@ Response::const_iterator::const_iterator() noexcept:
 	s{ State::end }
 {}
 
-Response::const_iterator::const_iterator(const Response *r, begin_tag) noexcept :
+Response::const_iterator::const_iterator(const Response* r, begin_tag) noexcept :
 	r{ r },
 	s{ State::http_version }
 {}
 
-Response::const_iterator::const_iterator(const Response *r, end_tag) noexcept :
+Response::const_iterator::const_iterator(const Response* r, end_tag) noexcept :
 	r{ r },
 	s{ State::end }
 {}

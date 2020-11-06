@@ -24,14 +24,14 @@ public:
 			iterator, value, std::input_iterator_tag, value>
 		{
 		public:
-			explicit iterator(Results *r) noexcept: r{r} {}
+			explicit iterator(Results* r) noexcept: r{r} {}
 
 		private:
 			auto dereference() const
 			{
 				return current.value();
 			}
-			auto equal(const iterator &rhs) const noexcept
+			auto equal(const iterator& rhs) const noexcept
 			{
 				return !current == !rhs.current;
 			}
@@ -40,13 +40,13 @@ public:
 				current = r->next();
 			}
 
-			Results *r;
+			Results* r;
 			std::optional<value> current;
 
 			friend class boost::iterator_core_access;
 		};
 
-		Results(TaskBuilder &builder, const std::shared_ptr<Client> &cl,
+		Results(TaskBuilder& builder, const std::shared_ptr<Client>& cl,
 		        IncompleteTask it, string_view data, bool stop);
 
 		auto begin() -> iterator;
@@ -55,26 +55,26 @@ public:
 		auto next() -> std::optional<value>;
 
 	private:
-		auto make_ready_task(const std::shared_ptr<Client> &cl, IncompleteTask &it) -> ReadyTask;
+		auto make_ready_task(const std::shared_ptr<Client>& cl, IncompleteTask& it) -> ReadyTask;
 		
 		string_view data;
-		TaskBuilder &builder;
-		const std::shared_ptr<Client> &cl;
+		TaskBuilder& builder;
+		const std::shared_ptr<Client>& cl;
 		IncompleteTask it;
 		bool stop;
 	};
 
-	TaskBuilder(Task::Ident start_id, const Options &opt);
+	TaskBuilder(Task::Ident start_id, const Options& opt);
 
-	auto prepare_task(const std::shared_ptr<Client> &cl) -> IncompleteTask;
-	auto get_memory(const IncompleteTask &it) -> boost::asio::mutable_buffer;
-	auto make_tasks(const std::shared_ptr<Client> &cl, const IncompleteTask &it,
+	auto prepare_task(const std::shared_ptr<Client>& cl) -> IncompleteTask;
+	auto get_memory(const IncompleteTask& it) -> boost::asio::mutable_buffer;
+	auto make_tasks(const std::shared_ptr<Client>& cl, const IncompleteTask& it,
 		std::size_t bytes_recv, bool stop) -> Results;
-	static auto make_error_task(IncompleteTask it, const HttpError &error) -> Task::Result;
+	static auto make_error_task(IncompleteTask it, const HttpError& error) -> Task::Result;
 
 private:
 	Parser p;
-	const Options &opt;
+	const Options& opt;
 	Task::Ident task_id;
 	boost::asio::mutable_buffer recv_buf;
 };

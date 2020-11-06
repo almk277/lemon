@@ -13,13 +13,13 @@ namespace config
 class Error : public std::runtime_error
 {
 public:
-	explicit Error(const std::string &msg);
+	explicit Error(const std::string& msg);
 };
 
 class BadKey : public Error
 {
 public:
-	BadKey(const std::string &key, const std::string &msg);
+	BadKey(const std::string& key, const std::string& msg);
 	auto key() const noexcept -> const std::string& { return k; }
 private:
 	const std::string k;
@@ -28,8 +28,8 @@ private:
 class BadValue : public BadKey
 {
 public:
-	BadValue(const std::string &key, const std::string &expected, const std::string &obtained,
-		const std::string &msg);
+	BadValue(const std::string& key, const std::string& expected, const std::string& obtained,
+		const std::string& msg);
 };
 
 using Boolean = bool;
@@ -45,8 +45,8 @@ public:
 	struct ErrorHandler
 	{
 		virtual ~ErrorHandler() = default;
-		virtual auto key_error(const std::string &msg) const -> std::string = 0;
-		virtual auto value_error(const std::string &msg) const -> std::string = 0;
+		virtual auto key_error(const std::string& msg) const -> std::string = 0;
+		virtual auto value_error(const std::string& msg) const -> std::string = 0;
 	};
 
 	struct EmptyType {};
@@ -66,12 +66,12 @@ public:
 		std::string key, String val);
 	Property(std::unique_ptr<const ErrorHandler> eh,
 		std::string key, Table val);
-	Property(const Property &rhs) = delete;
-	Property(Property &&rhs) noexcept;
+	Property(const Property& rhs) = delete;
+	Property(Property&& rhs) noexcept;
 	~Property();
 
-	auto operator=(const Property& rhs)->Property& = delete;
-	auto operator=(Property&& rhs)->Property& = delete;
+	auto operator=(const Property& rhs) -> Property& = delete;
+	auto operator=(Property&& rhs) -> Property& = delete;
 
 	[[nodiscard]] auto has_value() const noexcept -> bool;
 	explicit operator bool() const noexcept;
@@ -93,12 +93,12 @@ public:
 
 	auto get_error_handler() const -> const ErrorHandler&;
 
-	friend auto operator==(const Property &lhs, const Property &rhs) noexcept -> bool;
-	friend auto operator!=(const Property &lhs, const Property &rhs) noexcept -> bool;
+	friend auto operator==(const Property& lhs, const Property& rhs) noexcept -> bool;
+	friend auto operator!=(const Property& lhs, const Property& rhs) noexcept -> bool;
 
 private:
 	struct Priv;
-	Priv *p;
+	Priv* p;
 };
 
 class Table
@@ -114,8 +114,8 @@ public:
 	using value_type = Property;
 
 	explicit Table(std::unique_ptr<ErrorHandler> eh);
-	Table(const Table &rhs) = delete;
-	Table(Table &&rhs) noexcept;
+	Table(const Table& rhs) = delete;
+	Table(Table&& rhs) noexcept;
 	~Table();
 
 	auto operator=(const Table&) -> Table& = delete;
@@ -137,12 +137,12 @@ public:
 
 	auto throw_on_unknown_key() const -> void;
 
-	friend auto operator==(const Table &lhs, const Table &rhs) noexcept -> bool;
-	friend auto operator!=(const Table &lhs, const Table &rhs) noexcept -> bool;
+	friend auto operator==(const Table& lhs, const Table& rhs) noexcept -> bool;
+	friend auto operator!=(const Table& lhs, const Table& rhs) noexcept -> bool;
 
 private:
 	struct Priv;
-	Priv *p;
+	Priv* p;
 	friend class const_iterator;
 };
 
@@ -191,19 +191,19 @@ public:
 	struct end_tag {};
 
 	const_iterator();
-	const_iterator(const Table *tbl, begin_tag);
-	const_iterator(const Table *tbl, end_tag);
-	const_iterator(const const_iterator &rhs);
-	const_iterator(const_iterator &&rhs) noexcept;
+	const_iterator(const Table* tbl, begin_tag);
+	const_iterator(const Table* tbl, end_tag);
+	const_iterator(const const_iterator& rhs);
+	const_iterator(const_iterator&& rhs) noexcept;
 	~const_iterator();
 
-	auto operator=(const const_iterator &rhs)->const_iterator&;
-	auto operator=(const_iterator &&rhs) noexcept->const_iterator&;
+	auto operator=(const const_iterator& rhs) -> const_iterator&;
+	auto operator=(const_iterator&& rhs) noexcept -> const_iterator&;
 
-	auto operator*() const->reference;
-	auto operator->() const->pointer;
-	auto operator++()->const_iterator&;
-	auto operator++(int)->const_iterator;
+	auto operator*() const -> reference;
+	auto operator->() const -> pointer;
+	auto operator++() -> const_iterator&;
+	auto operator++(int) -> const_iterator;
 
 	friend auto operator==(const const_iterator& it1,
 		const const_iterator& it2) -> bool;
@@ -212,6 +212,6 @@ public:
 
 private:
 	struct Priv;
-	Priv *p;
+	Priv* p;
 };
 }

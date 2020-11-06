@@ -9,7 +9,7 @@ struct Parameters;
 class CommandLine
 {
 public:
-	auto has(const std::string &parameter) const noexcept -> bool;
+	auto has(const std::string& parameter) const noexcept -> bool;
 	auto to_parameters() const -> Parameters;
 
 private:
@@ -22,8 +22,8 @@ class CommandLineParser
 public:
 	CommandLineParser();
 	// throws std::logic_error
-	auto parse(int argc, const char *const argv[]) const -> CommandLine;
-	auto print_options(std::ostream &stream) const -> void;
+	auto parse(int argc, const char* const argv[]) const -> CommandLine;
+	auto print_options(std::ostream& stream) const -> void;
 
 private:
 	const boost::program_options::options_description desc;
