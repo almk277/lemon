@@ -6,16 +6,16 @@
 #include <iterator>
 #include <list>
 
-struct url_s
+struct Url
 {
 	string_view all;
 	string_view path;
 	string_view query;
 };
 
-struct message
+struct Message
 {
-	struct header
+	struct Header
 	{
 		using lowercase_string_view = string_view;
 
@@ -23,9 +23,9 @@ struct message
 		lowercase_string_view lowercase_name;
 		string_view value;
 
-		constexpr header(string_view name, string_view value) noexcept : name{name}, value{value} {}
+		constexpr Header(string_view name, string_view value) noexcept : name{name}, value{value} {}
 
-		bool operator==(const header &rhs) const noexcept
+		bool operator==(const Header &rhs) const noexcept
 		{
 			return lowercase_name == rhs.lowercase_name && value == rhs.value;
 		}
@@ -37,75 +37,75 @@ struct message
 
 		[[nodiscard]] static auto make_is(lowercase_string_view name) noexcept
 		{
-			return [name](const header &hdr) { return hdr.is(name); };
+			return [name](const Header &hdr) { return hdr.is(name); };
 		}
 
-		static constexpr string_view SEP = ": "sv;
+		static constexpr string_view sep = ": "sv;
 	};
 
-	enum class http_version_type
+	enum class ProtocolVersion
 	{
-		HTTP_1_0 = 0,
-		HTTP_1_1 = 1,
+		http_1_0 = 0,
+		http_1_1 = 1,
 	};
 
-	using header_list = std::list<header, arena::allocator<header>>;
-	using chunk_list = std::list<string_view, arena::allocator<string_view>>;
+	using HeaderList = std::list<Header, Arena::Allocator<Header>>;
+	using ChunkList = std::list<string_view, Arena::Allocator<string_view>>;
 
-	explicit message(arena &a) noexcept :
+	explicit Message(Arena &a) noexcept :
 	    http_version{},
-	    headers{a.make_allocator<header>("message::headers")},
+	    headers{a.make_allocator<Header>("message::headers")},
 	    body{a.make_allocator<string_view>("message::body")},
 	    a{a}
 	{}
 
-	message(const message &) = delete;
-	message(message &&) = delete;
-	message &operator=(const message &) = delete;
-	message &operator=(message &&) = delete;
-	~message() = default;
+	Message(const Message &) = delete;
+	Message(Message &&) = delete;
+	Message &operator=(const Message &) = delete;
+	Message &operator=(Message &&) = delete;
+	~Message() = default;
 
 	// HTTP new line
-	static constexpr string_view NL = "\r\n"sv;
+	static constexpr string_view nl = "\r\n"sv;
 
-	http_version_type http_version;
-	header_list headers;
-	chunk_list body;
+	ProtocolVersion http_version;
+	HeaderList headers;
+	ChunkList body;
 
-	arena &a;
+	Arena &a;
 };
 
-struct request : message
+struct Request : Message
 {
-	struct method_s
+	struct Method
 	{
-		enum class type_e
+		enum class Type
 		{
-			GET,
-			HEAD,
-			POST,
-			OTHER
+			get,
+			head,
+			post,
+			other
 		};
-		type_e type = type_e::OTHER;
+		Type type = Type::other;
 		string_view name;
 	};
 
-	explicit request(arena &a) noexcept : message{a} {}
+	explicit Request(Arena &a) noexcept : Message{a} {}
 
-	method_s method;
-	url_s url;
+	Method method;
+	Url url;
 	bool keep_alive = false;
 	std::size_t content_length = 0;
 };
 
-struct response : message
+struct Response : Message
 {
-	enum class status;
+	enum class Status;
 	class const_iterator;
 
-	explicit response(arena &a) noexcept;
+	explicit Response(Arena &a) noexcept;
 
-	status code;
+	Status code;
 
 	const_iterator begin() const noexcept;
 	const_iterator cbegin() const noexcept;
@@ -113,76 +113,76 @@ struct response : message
 	const_iterator cend() const noexcept;
 };
 
-enum class response::status
+enum class Response::Status
 {
-	CONTINUE = 100,
-	SWITCHING_PROTOCOLS = 101,
-	PROCESSING = 102,
+	continue_ = 100,
+	switching_protocols = 101,
+	processing = 102,
 
-	OK = 200,
-	CREATED = 201,
-	ACCEPTED = 202,
-	NON_AUTHORITATIVE_INFORMATION = 203,
-	NO_CONTENT = 204,
-	RESET_CONTENT = 205,
-	PARTIAL_CONTENT = 206,
-	MULTI_STATUS = 207,
-	ALREADY_REPORTED = 208,
-	IM_USED = 226,
+	ok = 200,
+	created = 201,
+	accepted = 202,
+	non_authoritative_information = 203,
+	no_content = 204,
+	reset_content = 205,
+	partial_content = 206,
+	multi_status = 207,
+	already_reported = 208,
+	im_used = 226,
 
-	MULTIPLE_CHOICES = 300,
-	MOVED_PERMANENTLY = 301,
-	FOUND = 302,
-	SEE_OTHER = 303,
-	NOT_MODIFIED = 304,
-	USE_PROXY = 305,
-	SWITCH_PROXY = 306,
-	TEMPORARY_REDIRECT = 307,
-	PERMANENT_REDIRECT = 308,
+	multiple_choices = 300,
+	moved_permanently = 301,
+	found = 302,
+	see_other = 303,
+	not_modified = 304,
+	use_proxy = 305,
+	switch_proxy = 306,
+	temporary_redirect = 307,
+	permanent_redirect = 308,
 
-	BAD_REQUEST = 400,
-	UNAUTHORIZED = 401,
-	PAYMENT_REQUIRED = 402,
-	FORBIDDEN = 403,
-	NOT_FOUND = 404,
-	METHOD_NOT_ALLOWED = 405,
-	NOT_ACCEPTABLE = 406,
-	PROXY_AUTHENTICATION_REQUIRED = 407,
-	REQUEST_TIMEOUT = 408,
-	CONFLICT = 409,
-	GONE = 410,
-	LENGTH_REQUIRED = 411,
-	PRECONDITION_FAILED = 412,
-	PAYLOAD_TOO_LARGE = 413,
-	URI_TOO_LONG = 414,
-	UNSUPPORTED_MEDIA_TYPE = 415,
-	RANGE_NOT_SATISFIABLE = 416,
-	EXPECTATION_FAILED = 417,
-	IM_A_TEAPOT = 418,
-	MISDIRECTED_REQUEST = 421,
-	UNPROCESSABLE_ENTITY = 422,
-	LOCKED = 423,
-	FAILED_DEPENDENCY = 424,
-	UPGRADE_REQUIRED = 426,
-	PRECONDITION_REQUIRED = 428,
-	TOO_MANY_REQUESTS = 429,
-	REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
-	UNAVAILABLE_FOR_LEGAL_REASONS = 451,
+	bad_request = 400,
+	unauthorized = 401,
+	payment_required = 402,
+	forbidden = 403,
+	not_found = 404,
+	method_not_allowed = 405,
+	not_acceptable = 406,
+	proxy_authentication_required = 407,
+	request_timeout = 408,
+	conflict = 409,
+	gone = 410,
+	length_required = 411,
+	precondition_failed = 412,
+	payload_too_large = 413,
+	uri_too_long = 414,
+	unsupported_media_type = 415,
+	range_not_satisfiable = 416,
+	expectation_failed = 417,
+	im_a_teapot = 418,
+	misdirected_request = 421,
+	unprocessable_entity = 422,
+	locked = 423,
+	failed_dependency = 424,
+	upgrade_required = 426,
+	precondition_required = 428,
+	too_many_requests = 429,
+	request_header_fields_too_large = 431,
+	unavailable_for_legal_reasons = 451,
 
-	INTERNAL_SERVER_ERROR = 500,
-	NOT_IMPLEMENTED = 501,
-	BAD_GATEWAY = 502,
-	SERVICE_UNAVAILABLE = 503,
-	GATEWAY_TIMEOUT = 504,
-	HTTP_VERSION_NOT_SUPPORTED = 505,
-	VARIANT_ALSO_NEGOTIATES = 506,
-	INSUFFICIENT_STORAGE = 507,
-	LOOP_DETECTED = 508,
-	NOT_EXTENDED = 510,
-	NETWORK_AUTHENTICATION_REQUIRED = 511,
+	internal_server_error = 500,
+	not_implemented = 501,
+	bad_gateway = 502,
+	service_unavailable = 503,
+	gateway_timeout = 504,
+	http_version_not_supported = 505,
+	variant_also_negotiates = 506,
+	insufficient_storage = 507,
+	loop_detected = 508,
+	not_extended = 510,
+	network_authentication_required = 511,
 };
 
-class response::const_iterator
+class Response::const_iterator
 {
 public:
 	using value_type = string_view;
@@ -195,8 +195,8 @@ public:
 	struct end_tag {};
 
 	const_iterator() noexcept;
-	const_iterator(const response *r, begin_tag) noexcept;
-	const_iterator(const response *r, end_tag) noexcept;
+	const_iterator(const Response *r, begin_tag) noexcept;
+	const_iterator(const Response *r, end_tag) noexcept;
 	const_iterator(const const_iterator &) = default;
 	const_iterator(const_iterator &&) = default;
 	~const_iterator() = default;
@@ -215,18 +215,18 @@ public:
 	friend auto operator!=(const const_iterator &it1, const const_iterator &it2) -> bool;
 
 private:
-	enum class state;
+	enum class State;
 
-	const response *r;
-	state s;
-	header_list::const_iterator header_it;
-	chunk_list::const_iterator body_it;
+	const Response *r;
+	State s;
+	HeaderList::const_iterator header_it;
+	ChunkList::const_iterator body_it;
 };
 
-inline response::response(arena &a) noexcept : message{a}, code{status::INTERNAL_SERVER_ERROR} {}
+inline Response::Response(Arena &a) noexcept : Message{a}, code{Status::internal_server_error} {}
 
-string_view to_string(response::status status);
+string_view to_string(Response::Status status);
 
-std::ostream &operator<<(std::ostream &stream, response::status status);
+std::ostream &operator<<(std::ostream &stream, Response::Status status);
 
-auto calc_content_length(const message &msg) noexcept -> std::size_t;
+auto calc_content_length(const Message &msg) noexcept -> std::size_t;

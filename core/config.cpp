@@ -11,62 +11,62 @@ namespace config
 {
 namespace
 {
-BOOST_CONCEPT_ASSERT((boost::ForwardIterator<table::const_iterator>));
+BOOST_CONCEPT_ASSERT((boost::ForwardIterator<Table::const_iterator>));
 
 constexpr auto REAL_EPS = 0.001;
 
-struct empty_value_t {};
-auto operator==(empty_value_t, empty_value_t) noexcept { return true; }
-[[maybe_unused]] auto operator!=(empty_value_t, empty_value_t) noexcept { return false; }
+struct EmptyValue {};
+auto operator==(EmptyValue, EmptyValue) noexcept { return true; }
+[[maybe_unused]] auto operator!=(EmptyValue, EmptyValue) noexcept { return false; }
 
-struct rough_real
+struct RoughReal
 {
-	real val;
+	Real val;
 };
 
-auto operator==(rough_real lhs, rough_real rhs) noexcept
+auto operator==(RoughReal lhs, RoughReal rhs) noexcept
 {
 	return std::abs(lhs.val - rhs.val) < REAL_EPS;
 }
 
-[[maybe_unused]] auto operator!=(rough_real lhs, rough_real rhs) noexcept
+[[maybe_unused]] auto operator!=(RoughReal lhs, RoughReal rhs) noexcept
 {
 	return std::abs(lhs.val - rhs.val) > REAL_EPS;
 }
 
-using value_tuple = std::pair<property, bool>;
+using ValueTuple = std::pair<Property, bool>;
 
-struct key_comparator
+struct KeyComparator
 {
 	const string_view key;
 
-	auto operator()(const value_tuple &el) const
+	auto operator()(const ValueTuple &el) const
 	{
 		return el.first.key() == key;
 	}
 };
 }
 
-error::error(const std::string &msg): runtime_error{ msg }
+Error::Error(const std::string &msg): runtime_error{ msg }
 {}
 
-bad_key::bad_key(const std::string &key, const std::string &msg):
-	error{ "key \"" + key + "\": " + msg },
+BadKey::BadKey(const std::string &key, const std::string &msg):
+	Error{ "key \"" + key + "\": " + msg },
 	k{ key }
 {
 }
 
-bad_value::bad_value(const std::string &key, const std::string &expected, const std::string &obtained,
+BadValue::BadValue(const std::string &key, const std::string &expected, const std::string &obtained,
 	const std::string &msg):
-	bad_key{ key, msg }
+	BadKey{ key, msg }
 {
 }
 
-struct property::priv
+struct Property::Priv
 {
-	const string k;
-	const std::variant<empty_value_t, boolean, integer, rough_real, string, table> val;
-	const std::unique_ptr<const error_handler> eh;
+	const String k;
+	const std::variant<EmptyValue, Boolean, Integer, RoughReal, String, Table> val;
+	const std::unique_ptr<const ErrorHandler> eh;
 
 	template <typename T>
 	auto is() const noexcept
@@ -79,12 +79,12 @@ struct property::priv
 	{
 		auto *v = std::get_if<T>(&val);
 		if (BOOST_UNLIKELY(!v)) {
-			if (is<empty_value_t>())
-				throw bad_key{ k, eh->key_error("not found") };
+			if (is<EmptyValue>())
+				throw BadKey{ k, eh->key_error("not found") };
 			auto expected = std::string{ expected_type };
 			auto obtained = type_string();
 			auto msg = "expected: " + expected + ", but got: " + obtained;
-			throw bad_value{ k, expected, obtained, eh->value_error(msg) };
+			throw BadValue{ k, expected, obtained, eh->value_error(msg) };
 		}
 
 		return *v;
@@ -92,13 +92,13 @@ struct property::priv
 
 	auto type_string() const
 	{
-		return visit(visitor{
-			[](empty_value_t)  { return "empty"; },
-			[](boolean)        { return "boolean"; },
-			[](integer)        { return "integer"; },
-			[](rough_real)     { return "real"; },
-			[](const string&)  { return "string"; },
-			[](const table&)   { return "table"; },
+		return visit(Visitor{
+			[](EmptyValue)    { return "empty"; },
+			[](Boolean)       { return "boolean"; },
+			[](Integer)       { return "integer"; },
+			[](RoughReal)     { return "real"; },
+			[](const String&) { return "string"; },
+			[](const Table&)  { return "table"; },
 		}, val);
 	}
 
@@ -108,171 +108,171 @@ struct property::priv
 	}
 };
 
-property::property(std::unique_ptr<const error_handler> eh,
-	std::string key, empty_type) :
-	p{ new priv{ move(key), {}, move(eh) } }
+Property::Property(std::unique_ptr<const ErrorHandler> eh,
+	std::string key, EmptyType) :
+	p{ new Priv{ move(key), {}, move(eh) } }
 {
 }
 
-property::property(std::unique_ptr<const error_handler> eh,
-	std::string key, boolean val) :
-	p{ new priv{ move(key), val, move(eh) } }
+Property::Property(std::unique_ptr<const ErrorHandler> eh,
+	std::string key, Boolean val) :
+	p{ new Priv{ move(key), val, move(eh) } }
 {
 }
 
-property::property(std::unique_ptr<const error_handler> eh,
-	std::string key, integer val) :
-	p{ new priv{ move(key), val, move(eh) } }
+Property::Property(std::unique_ptr<const ErrorHandler> eh,
+	std::string key, Integer val) :
+	p{ new Priv{ move(key), val, move(eh) } }
 {
 }
 
-property::property(std::unique_ptr<const error_handler> eh,
-	std::string key, real val) :
-	p{ new priv{ move(key), rough_real{val}, move(eh) } }
+Property::Property(std::unique_ptr<const ErrorHandler> eh,
+	std::string key, Real val) :
+	p{ new Priv{ move(key), RoughReal{val}, move(eh) } }
 {
 }
 
-property::property(std::unique_ptr<const error_handler> eh,
-	std::string key, string val) :
-	p{ new priv{ move(key), std::move(val), move(eh) } }
+Property::Property(std::unique_ptr<const ErrorHandler> eh,
+	std::string key, String val) :
+	p{ new Priv{ move(key), std::move(val), move(eh) } }
 {
 }
 
-property::property(std::unique_ptr<const error_handler> eh,
-	std::string key, table val) :
-	p{ new priv{ move(key), std::move(val), move(eh) } }
+Property::Property(std::unique_ptr<const ErrorHandler> eh,
+	std::string key, Table val) :
+	p{ new Priv{ move(key), std::move(val), move(eh) } }
 {
 }
 
-property::property(property &&rhs) noexcept :
+Property::Property(Property &&rhs) noexcept :
 	p{ std::exchange(rhs.p, nullptr) }
 {
 }
 
-property::~property()
+Property::~Property()
 {
 	delete p;
 }
 
-property::operator bool() const noexcept
+Property::operator bool() const noexcept
 {
-	return !p->is<empty_value_t>();
+	return !p->is<EmptyValue>();
 }
 
-auto property::operator!() const noexcept -> bool
+auto Property::operator!() const noexcept -> bool
 {
-	return p->is<empty_value_t>();
+	return p->is<EmptyValue>();
 }
 
-auto property::key() const noexcept -> const string&
+auto Property::key() const noexcept -> const String&
 {
 	return p->k;
 }
 
-auto property::get_error_handler() const -> const error_handler&
+auto Property::get_error_handler() const -> const ErrorHandler&
 {
 	return *p->eh;
 }
 
 template <>
-auto property::is<boolean>() const noexcept -> bool
+auto Property::is<Boolean>() const noexcept -> bool
 {
-	return p->is<boolean>();
+	return p->is<Boolean>();
 }
 
 template <>
-auto property::is<integer>() const noexcept -> bool
+auto Property::is<Integer>() const noexcept -> bool
 {
-	return p->is<integer>();
+	return p->is<Integer>();
 }
 
 template <>
-auto property::is<real>() const noexcept -> bool
+auto Property::is<Real>() const noexcept -> bool
 {
-	return p->is<rough_real>();
+	return p->is<RoughReal>();
 }
 
 template <>
-auto property::is<string>() const noexcept -> bool
+auto Property::is<String>() const noexcept -> bool
 {
-	return p->is<string>();
+	return p->is<String>();
 }
 
 template <>
-auto property::is<table>() const noexcept -> bool
+auto Property::is<Table>() const noexcept -> bool
 {
-	return p->is<table>();
+	return p->is<Table>();
 }
 
 template <>
-auto property::as<boolean>() const -> const boolean&
+auto Property::as<Boolean>() const -> const Boolean&
 {
-	return p->get<boolean>("boolean"sv);
+	return p->get<Boolean>("boolean"sv);
 }
 
 template <>
-auto property::as<integer>() const -> const integer&
+auto Property::as<Integer>() const -> const Integer&
 {
-	return p->get<integer>("integer"sv);
+	return p->get<Integer>("integer"sv);
 }
 
 template <>
-auto property::as<real>() const -> const real&
+auto Property::as<Real>() const -> const Real&
 {
-	return p->get<rough_real>("real"sv).val;
+	return p->get<RoughReal>("real"sv).val;
 }
 
 template <>
-auto property::as<string>() const -> const string&
+auto Property::as<String>() const -> const String&
 {
-	return p->get<string>("string"sv);
+	return p->get<String>("string"sv);
 }
 
 template <>
-auto property::as<table>() const -> const table&
+auto Property::as<Table>() const -> const Table&
 {
-	return p->get<table>("table"sv);
+	return p->get<Table>("table"sv);
 }
 
-struct table::priv
+struct Table::Priv
 {
-	const std::unique_ptr<error_handler> eh;
-	std::vector<value_tuple> map;
-	std::vector<property> empty_vals;
+	const std::unique_ptr<ErrorHandler> eh;
+	std::vector<ValueTuple> map;
+	std::vector<Property> empty_vals;
 
-	explicit priv(std::unique_ptr<error_handler> eh): eh(move(eh)) {}
+	explicit Priv(std::unique_ptr<ErrorHandler> eh): eh(move(eh)) {}
 
-	auto empty_value(string_view key) -> const property&
+	auto empty_value(string_view key) -> const Property&
 	{
-		empty_vals.emplace_back(eh->make_error_handler(), string{ key }, property::empty);
+		empty_vals.emplace_back(eh->make_error_handler(), String{ key }, Property::empty);
 		return empty_vals.back();
 	}
 };
 
-table::table(std::unique_ptr<error_handler> eh):
-	p{ new priv{ move(eh) } }
+Table::Table(std::unique_ptr<ErrorHandler> eh):
+	p{ new Priv{ move(eh) } }
 {
 }
 
-table::table(table &&rhs) noexcept:
+Table::Table(Table &&rhs) noexcept:
 	p{ std::exchange(rhs.p, nullptr) }
 {
 }
 
-table::~table()
+Table::~Table()
 {
 	delete p;
 }
 
-auto table::add(property val) -> table&
+auto Table::add(Property val) -> Table&
 {
 	p->map.emplace_back(std::move(val), false);
 	return *this;
 }
 
-auto table::get_unique(string_view name) const -> const property&
+auto Table::get_unique(string_view name) const -> const Property&
 {
-	const key_comparator pred{ name };
+	const KeyComparator pred{ name };
 	const auto end = p->map.end();
 
 	auto it = boost::find_if(p->map, pred);
@@ -281,17 +281,17 @@ auto table::get_unique(string_view name) const -> const property&
 
 	auto it2 = find_if(next(it), end, pred);
 	if (it2 != end)
-		throw bad_key{ it2->first.key(), it2->first.get_error_handler().key_error("non-unique") };
+		throw BadKey{ it2->first.key(), it2->first.get_error_handler().key_error("non-unique") };
 
 	auto &[prop, used] = *it;
 	used = true;
 	return prop;
 }
 
-auto table::get_last(string_view name) const -> const property&
+auto Table::get_last(string_view name) const -> const Property&
 {
-	const property *result = nullptr;
-	for (auto &[prop, used] : p->map | boost::adaptors::filtered(key_comparator{ name })) {
+	const Property *result = nullptr;
+	for (auto &[prop, used] : p->map | boost::adaptors::filtered(KeyComparator{ name })) {
 		result = &prop;
 		used = true;
 	}
@@ -299,10 +299,10 @@ auto table::get_last(string_view name) const -> const property&
 	return result ? *result : p->empty_value(name);
 }
 
-auto table::get_all(string_view name) const -> std::vector<const property*>
+auto Table::get_all(string_view name) const -> std::vector<const Property*>
 {
-	std::vector<const property*> res;
-	for (auto &[prop, used] : p->map | boost::adaptors::filtered(key_comparator{ name })) {
+	std::vector<const Property*> res;
+	for (auto &[prop, used] : p->map | boost::adaptors::filtered(KeyComparator{ name })) {
 		res.push_back(&prop);
 		used = true;
 	}
@@ -310,144 +310,144 @@ auto table::get_all(string_view name) const -> std::vector<const property*>
 	return res;
 }
 
-auto table::size() const -> std::size_t
+auto Table::size() const -> std::size_t
 {
 	return p->map.size();
 }
 
-auto table::operator[](string_view name) const -> const property&
+auto Table::operator[](string_view name) const -> const Property&
 {
 	return get_unique(name);
 }
 
-auto table::begin() const -> const_iterator
+auto Table::begin() const -> const_iterator
 {
 	return { this, const_iterator::begin_tag{} };
 }
 
-auto table::cbegin() const -> const_iterator
+auto Table::cbegin() const -> const_iterator
 {
 	return begin();
 }
 
-auto table::end() const -> const_iterator
+auto Table::end() const -> const_iterator
 {
 	return { this, const_iterator::end_tag{} };
 }
 
-auto table::cend() const -> const_iterator
+auto Table::cend() const -> const_iterator
 {
 	return end();
 }
 
-auto table::throw_on_unknown_key() const -> void
+auto Table::throw_on_unknown_key() const -> void
 {
 	for (auto &[prop, used] : p->map) {
 		if (!used)
-			throw bad_key{ prop.key(), prop.get_error_handler().key_error("unknown key") };
-		if (prop.is<table>())
-			prop.as<table>().throw_on_unknown_key();
+			throw BadKey{ prop.key(), prop.get_error_handler().key_error("unknown key") };
+		if (prop.is<Table>())
+			prop.as<Table>().throw_on_unknown_key();
 	}
 }
 
-struct table::const_iterator::priv
+struct Table::const_iterator::Priv
 {
-	decltype(table::priv::map)::const_iterator it;
+	decltype(Table::Priv::map)::const_iterator it;
 };
 
-table::const_iterator::const_iterator() :
-	p{ new priv{} }
+Table::const_iterator::const_iterator() :
+	p{ new Priv{} }
 {
 }
 
-table::const_iterator::const_iterator(const table *tbl, begin_tag) :
-	p{ new priv{ tbl->p->map.begin() } }
+Table::const_iterator::const_iterator(const Table *tbl, begin_tag) :
+	p{ new Priv{ tbl->p->map.begin() } }
 {
 }
 
-table::const_iterator::const_iterator(const table* tbl, end_tag) :
-	p{ new priv{ tbl->p->map.end() } }
+Table::const_iterator::const_iterator(const Table* tbl, end_tag) :
+	p{ new Priv{ tbl->p->map.end() } }
 {
 }
 
-table::const_iterator::const_iterator(const const_iterator &rhs) :
-	p{ new priv{ *rhs.p } }
+Table::const_iterator::const_iterator(const const_iterator &rhs) :
+	p{ new Priv{ *rhs.p } }
 {
 }
 
-table::const_iterator::const_iterator(const_iterator &&rhs) noexcept :
+Table::const_iterator::const_iterator(const_iterator &&rhs) noexcept :
 	p{ std::exchange(rhs.p, nullptr) }
 {
 }
 
-table::const_iterator::~const_iterator()
+Table::const_iterator::~const_iterator()
 {
 	delete p;
 }
 
-auto table::const_iterator::operator=(const const_iterator& rhs) -> const_iterator&
+auto Table::const_iterator::operator=(const const_iterator& rhs) -> const_iterator&
 {
 	delete p;
-	p = new priv{ *rhs.p };
+	p = new Priv{ *rhs.p };
 	return *this;
 }
 
-auto table::const_iterator::operator=(const_iterator&& rhs) noexcept -> const_iterator&
+auto Table::const_iterator::operator=(const_iterator&& rhs) noexcept -> const_iterator&
 {
 	delete p;
 	p = std::exchange(rhs.p, nullptr);
 	return *this;
 }
 
-auto table::const_iterator::operator*() const -> reference
+auto Table::const_iterator::operator*() const -> reference
 {
 	return p->it->first;
 }
 
-auto table::const_iterator::operator->() const -> pointer
+auto Table::const_iterator::operator->() const -> pointer
 {
 	return &**this;
 }
 
-auto table::const_iterator::operator++() -> const_iterator&
+auto Table::const_iterator::operator++() -> const_iterator&
 {
 	++p->it;
 	return *this;
 }
 
-auto table::const_iterator::operator++(int) -> const_iterator
+auto Table::const_iterator::operator++(int) -> const_iterator
 {
 	auto tmp(*this);
 	++p->it;
 	return tmp;
 }
 
-auto operator==(const property &lhs, const property &rhs) noexcept -> bool
+auto operator==(const Property &lhs, const Property &rhs) noexcept -> bool
 {
 	return lhs.p->as_tuple() == rhs.p->as_tuple();
 }
 
-auto operator!=(const property &lhs, const property &rhs) noexcept -> bool
+auto operator!=(const Property &lhs, const Property &rhs) noexcept -> bool
 {
 	return lhs.p->as_tuple() != rhs.p->as_tuple();
 }
 
-auto operator==(const table& lhs, const table& rhs) noexcept -> bool
+auto operator==(const Table& lhs, const Table& rhs) noexcept -> bool
 {
 	return lhs.p->map == rhs.p->map;
 }
 
-auto operator!=(const table& lhs, const table& rhs) noexcept -> bool
+auto operator!=(const Table& lhs, const Table& rhs) noexcept -> bool
 {
 	return lhs.p->map != rhs.p->map;
 }
 
-auto operator==(const table::const_iterator& it1, const table::const_iterator& it2) -> bool
+auto operator==(const Table::const_iterator& it1, const Table::const_iterator& it2) -> bool
 {
 	return it1.p->it == it2.p->it;
 }
 
-auto operator!=(const table::const_iterator& it1, const table::const_iterator& it2) -> bool
+auto operator!=(const Table::const_iterator& it1, const Table::const_iterator& it2) -> bool
 {
 	return !(it1 == it2);
 }

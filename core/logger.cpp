@@ -3,15 +3,15 @@
 
 namespace
 {
-logger_imp *impl(logger *lg)
+LoggerImp *impl(Logger *lg)
 {
-	return static_cast<logger_imp*>(lg);
+	return static_cast<LoggerImp*>(lg);
 }
 }
 
-bool logger::open(severity s)
+bool Logger::open(Severity s)
 {
-	extern severity log_severity_level;
+	extern Severity log_severity_level;
 
 	if (s > log_severity_level)
 		return false;
@@ -20,12 +20,12 @@ bool logger::open(severity s)
 	return true;
 }
 
-void logger::push(base_printer &c) noexcept
+void Logger::push(BasePrinter &c) noexcept
 {
 	impl(this)->push(c);
 }
 
-template <> void logger::log1<>()
+template <> void Logger::log1<>()
 {
 	impl(this)->finalize();
 }

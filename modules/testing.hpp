@@ -2,16 +2,16 @@
 
 #include "request_handler.hpp"
 
-struct rh_testing : request_handler
+struct RhTesting : RequestHandler
 {
-	rh_testing() = default;
+	RhTesting() = default;
 
 	string_view get_name() const noexcept override;
 
-	void get(request &req, response &resp, context &ctx) override;
-	void post(request &req, response &resp, context &ctx) override;
-	void method(string_view method_name, request&, response&, context&) override;
+	void get(Request &req, Response &resp, Context &ctx) override;
+	void post(Request &req, Response &resp, Context &ctx) override;
+	void method(string_view method_name, Request&, Response&, Context&) override;
 
 private:
-	static void finalize(request &req, response &resp, context &ctx);
+	static void finalize(Request &req, Response &resp, Context &ctx);
 };

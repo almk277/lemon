@@ -1,12 +1,12 @@
 #include "stub_logger.hpp"
 
-bool logger::open(severity)
+bool Logger::open(Severity)
 {
 	return true;
 }
 
-void logger::push(base_printer&) noexcept {}
+void Logger::push(BasePrinter&) noexcept {}
 
-template<> void logger::log1<>() {}
+template<> void Logger::log1<>() {}
 
-stub_logger slg;
+StubLogger slg;

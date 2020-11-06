@@ -10,10 +10,10 @@
 static_assert(LEMON_LOG_LEVEL >= 1 && LEMON_LOG_LEVEL <= 5,
 	"log level should be in [1(error), 5(trace)]");
 
-class logger
+class Logger
 {
 public:
-	enum class severity
+	enum class Severity
 	{
 		error   = 1,
 		warning = 2,
@@ -22,7 +22,7 @@ public:
 		trace   = 5,
 	};
 
-	static constexpr severity severity_barrier = static_cast<severity>(LEMON_LOG_LEVEL);
+	static constexpr Severity severity_barrier = Severity{ LEMON_LOG_LEVEL };
 
 	template <typename ...Args> void error(Args ...args);
 	template <typename ...Args> void warning(Args ...args);
@@ -30,68 +30,68 @@ public:
 	template <typename ...Args> void debug(Args ...args);
 	template <typename ...Args> void trace(Args ...args);
 
-	template <severity S, typename ...Args> void message(Args ...args);
+	template <Severity S, typename ...Args> void message(Args ...args);
 
-	struct base_printer
+	struct BasePrinter
 	{
-		virtual ~base_printer() = default;
+		virtual ~BasePrinter() = default;
 		virtual void print(std::ostream &stream) = 0;
 
-		base_printer *next{};
+		BasePrinter *next{};
 	};
-	template <typename T> class printer;
+	template <typename T> class Printer;
 
-	logger(logger &&rhs) = delete;
+	Logger(Logger &&rhs) = delete;
 
-	logger &operator=(const logger &rhs) = delete;
-	logger &operator=(logger &&rhs) = delete;
+	Logger &operator=(const Logger &rhs) = delete;
+	Logger &operator=(Logger &&rhs) = delete;
 
 protected:
-	logger() = default;
-	logger(const logger &rhs) = default;
-	~logger() = default;
+	Logger() = default;
+	Logger(const Logger &rhs) = default;
+	~Logger() = default;
 
 	template <typename ...Args> void log1(Args ...);
 	template <typename T, typename ...Args>
 	void log1(T &&a, Args ...args);
 
 private:
-	bool open(severity s);
-	void push(base_printer &c) noexcept;
+	bool open(Severity s);
+	void push(BasePrinter &c) noexcept;
 };
 
 template <typename ... Args>
-void logger::error(Args... args)
+void Logger::error(Args... args)
 {
-	message<severity::error>(std::forward<Args>(args)...);
+	message<Severity::error>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
-void logger::warning(Args... args)
+void Logger::warning(Args... args)
 {
-	message<severity::warning>(std::forward<Args>(args)...);
+	message<Severity::warning>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
-void logger::info(Args... args)
+void Logger::info(Args... args)
 {
-	message<severity::info>(std::forward<Args>(args)...);
+	message<Severity::info>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
-void logger::debug(Args... args)
+void Logger::debug(Args... args)
 {
-	message<severity::debug>(std::forward<Args>(args)...);
+	message<Severity::debug>(std::forward<Args>(args)...);
 }
 
 template <typename ... Args>
-void logger::trace(Args... args)
+void Logger::trace(Args... args)
 {
-	message<severity::trace>(std::forward<Args>(args)...);
+	message<Severity::trace>(std::forward<Args>(args)...);
 }
 
-template <logger::severity S, typename ... Args>
-void logger::message(Args ... args)
+template <Logger::Severity S, typename ... Args>
+void Logger::message(Args ... args)
 {
 	if constexpr(S <= severity_barrier)
 	{
@@ -103,20 +103,20 @@ void logger::message(Args ... args)
 }
 
 template <typename T, typename ... Args>
-void logger::log1(T &&a, Args... args)
+void Logger::log1(T &&a, Args... args)
 {
-	printer<T> p{a};
+	Printer<T> p{a};
 	push(p);
 	log1(std::forward<Args>(args)...);
 }
 
-template <> void logger::log1<>();
+template <> void Logger::log1<>();
 
 template<typename T>
-class logger::printer : public base_printer
+class Logger::Printer : public BasePrinter
 {
 public:
-	explicit printer(const T &n) noexcept: n{ n } {}
+	explicit Printer(const T &n) noexcept: n{ n } {}
 	void print(std::ostream &stream) override
 	{
 		stream << n;

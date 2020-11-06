@@ -6,7 +6,7 @@
 
 namespace
 {
-struct handler1 : request_handler
+struct Handler1 : RequestHandler
 {
 	string_view get_name() const noexcept override
 	{
@@ -14,7 +14,7 @@ struct handler1 : request_handler
 	}
 };
 
-struct handler2 : request_handler
+struct Handler2 : RequestHandler
 {
 	string_view get_name() const noexcept override
 	{
@@ -22,20 +22,20 @@ struct handler2 : request_handler
 	}
 };
 
-struct router_fixture
+struct RouterFixture
 {
-	router_fixture()
+	RouterFixture()
 	{
 		man.add(h1);
 		man.add(h2);
 		routes.clear();
 	}
 
-	const std::shared_ptr<request_handler> h1 = std::make_shared<handler1>();
-	const std::shared_ptr<request_handler> h2 = std::make_shared<handler2>();
-	rh_manager man;
-	decltype(options::servers) servers = { {} };
-	options::route_list &routes = servers.at(0).routes;
+	const std::shared_ptr<RequestHandler> h1 = std::make_shared<Handler1>();
+	const std::shared_ptr<RequestHandler> h2 = std::make_shared<Handler2>();
+	RhManager man;
+	decltype(Options::servers) servers = { {} };
+	Options::RouteList &routes = servers.at(0).routes;
 };
 }
 
@@ -51,19 +51,19 @@ struct router_fixture
 		BOOST_TEST(!r.resolve(path)); \
 	} while(0)
 
-BOOST_FIXTURE_TEST_SUITE(router_tests, router_fixture)
+BOOST_FIXTURE_TEST_SUITE(router_tests, RouterFixture)
 
 BOOST_AUTO_TEST_CASE(test_non_existent_module)
 {
-	routes.push_back({ options::route::equal{"path"}, "bad_name" });
-	BOOST_CHECK_THROW(router(man, routes), std::exception);
+	routes.push_back({ Options::Route::Equal{"path"}, "bad_name" });
+	BOOST_CHECK_THROW(Router(man, routes), std::exception);
 }
 
 BOOST_AUTO_TEST_CASE(test_match_exact)
 {
-	routes.push_back({ options::route::equal{"path1"}, "h1" });
-	routes.push_back({ options::route::equal{"path2"}, "h2" });
-	const router r{ man, routes };
+	routes.push_back({ Options::Route::Equal{"path1"}, "h1" });
+	routes.push_back({ Options::Route::Equal{"path2"}, "h2" });
+	const Router r{ man, routes };
 
 	assert_yes(r, "path1", h1);
 	assert_yes(r, "path2", h2);
@@ -74,9 +74,9 @@ BOOST_AUTO_TEST_CASE(test_match_exact)
 
 BOOST_AUTO_TEST_CASE(test_match_prefix)
 {
-	routes.push_back({ options::route::prefix{"path1"}, "h1" });
-	routes.push_back({ options::route::prefix{"path2"}, "h2" });
-	const router r{ man, routes };
+	routes.push_back({ Options::Route::Prefix{"path1"}, "h1" });
+	routes.push_back({ Options::Route::Prefix{"path2"}, "h2" });
+	const Router r{ man, routes };
 
 	assert_yes(r, "path1", h1);
 	assert_yes(r, "path10", h1);
@@ -89,9 +89,9 @@ BOOST_AUTO_TEST_CASE(test_match_prefix)
 
 BOOST_AUTO_TEST_CASE(test_match_regex)
 {
-	routes.push_back({ options::route::regex{"path[0-9]+"}, "h1" });
-	routes.push_back({ options::route::regex{"v1|v2|[abc]"}, "h2" });
-	const router r{ man, routes };
+	routes.push_back({ Options::Route::Regex{"path[0-9]+"}, "h1" });
+	routes.push_back({ Options::Route::Regex{"v1|v2|[abc]"}, "h2" });
+	const Router r{ man, routes };
 
 	assert_yes(r, "path0", h1);
 	assert_yes(r, "path9", h1);

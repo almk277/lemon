@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-struct parameters
+struct Parameters
 {
 	std::string config_path;
 };

@@ -13,23 +13,23 @@ using namespace std::string_literals;
 using boost::unit_test::data::make;
 
 //FIXME string not accounted?
-using value_types = boost::mpl::set<boolean, integer, real, string, table>;
+using ValueTypes = boost::mpl::set<Boolean, Integer, Real, String, Table>;
 using boost::adaptors::indirect;
 
 namespace
 {
 auto operator""_i(unsigned long long v)
 {
-	return static_cast<integer>(v);
+	return static_cast<Integer>(v);
 }
 
 auto tbl()
 {
-	return table(std::make_unique<table_error_handler>());
+	return Table(std::make_unique<TableErrorHandler>());
 }
 }
 
-auto config::operator<<(std::ostream& stream, const property &p) -> std::ostream&
+auto config::operator<<(std::ostream& stream, const Property &p) -> std::ostream&
 {
 	auto flags = stream.flags();
 	BOOST_SCOPE_EXIT(&stream, flags) {
@@ -40,16 +40,16 @@ auto config::operator<<(std::ostream& stream, const property &p) -> std::ostream
 	stream << "property{\"" << p.key() << "\" -> ";
 	if (!p)
 		stream << "empty";
-	else if (p.is<boolean>())
-		stream << "boolean: " << p.as<boolean>();
-	else if (p.is<integer>())
-		stream << "integer: " << p.as<integer>();
-	else if (p.is<real>())
-		stream << "real: " << p.as<real>();
-	else if (p.is<string>())
-		stream << "string: \"" << p.as<string>() << "\"";
-	else if (p.is<table>())
-		stream << "table: " << p.as<table>();
+	else if (p.is<Boolean>())
+		stream << "boolean: " << p.as<Boolean>();
+	else if (p.is<Integer>())
+		stream << "integer: " << p.as<Integer>();
+	else if (p.is<Real>())
+		stream << "real: " << p.as<Real>();
+	else if (p.is<String>())
+		stream << "string: \"" << p.as<String>() << "\"";
+	else if (p.is<Table>())
+		stream << "table: " << p.as<Table>();
 	else
 		throw std::logic_error
 			{ "operator<<(std::ostream &stream, const property &v): unknown type" };
@@ -58,24 +58,24 @@ auto config::operator<<(std::ostream& stream, const property &p) -> std::ostream
 	return stream;
 }
 
-auto config::operator<<(std::ostream& stream, const property::empty_type&) -> std::ostream&
+auto config::operator<<(std::ostream& stream, const Property::EmptyType&) -> std::ostream&
 {
 	return stream << "empty";
 }
 
-auto config::operator<<(std::ostream &stream, const table &t) -> std::ostream&
+auto config::operator<<(std::ostream &stream, const Table &t) -> std::ostream&
 {
 	stream << "table {";
-	boost::copy(t, std::ostream_iterator<property>{stream, ", "});
+	boost::copy(t, std::ostream_iterator<Property>{stream, ", "});
 	stream << "}";
 	return stream;
 }
 
 #define CHECK_THROW(_key, expr) \
-	BOOST_CHECK_EXCEPTION(expr, config::bad_key, [](auto &exc){ return exc.key() == (_key); })
+	BOOST_CHECK_EXCEPTION(expr, config::BadKey, [](auto &exc){ return exc.key() == (_key); })
 
 template <typename InitType>
-void check_good_type(const property &p, const InitType &init)
+void check_good_type(const Property &p, const InitType &init)
 {
 	BOOST_TEST(static_cast<bool>(p));
 	BOOST_TEST(!!p);
@@ -84,7 +84,7 @@ void check_good_type(const property &p, const InitType &init)
 }
 
 template <typename TestType>
-void check_bad_type(const property &p)
+void check_bad_type(const Property &p)
 {
 	BOOST_TEST_CONTEXT("TestType=" << typeid(TestType).name()) {
 		BOOST_TEST(!p.is<TestType>());
@@ -93,7 +93,7 @@ void check_bad_type(const property &p)
 }
 
 template <typename InitType, typename TestType>
-void check_type(const property &p, const InitType &init)
+void check_type(const Property &p, const InitType &init)
 {
 	using PlainInitType = std::remove_cv_t<std::remove_reference_t<InitType>>;
 	if constexpr(std::is_same_v<TestType, PlainInitType>)
@@ -105,13 +105,13 @@ void check_type(const property &p, const InitType &init)
 template <typename InitType>
 void check(InitType &&init1, InitType &&init2)
 {
-	property p{ std::make_unique<property_error_handler>(), "testkey"s, std::forward<InitType>(init1) };
+	Property p{ std::make_unique<PropertyErrorHandler>(), "testkey"s, std::forward<InitType>(init1) };
 	BOOST_TEST_CONTEXT(p) {
-		check_type<InitType, boolean>(p, init2);
-		check_type<InitType, integer>(p, init2);
-		check_type<InitType, real>(p, init2);
-		check_type<InitType, string>(p, init2);
-		check_type<InitType, table>(p, init2);
+		check_type<InitType, Boolean>(p, init2);
+		check_type<InitType, Integer>(p, init2);
+		check_type<InitType, Real>(p, init2);
+		check_type<InitType, String>(p, init2);
+		check_type<InitType, Table>(p, init2);
 	}
 }
 
@@ -128,14 +128,14 @@ BOOST_AUTO_TEST_SUITE(config_tests)
 
 BOOST_AUTO_TEST_CASE(test_empty_value)
 {
-	const property v{ std::make_unique<property_error_handler>(), "testkey"s };
+	const Property v{ std::make_unique<PropertyErrorHandler>(), "testkey"s };
 	BOOST_TEST(!static_cast<bool>(v));
 	BOOST_TEST(!v);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_empty_value_fail, T, value_types)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_empty_value_fail, T, ValueTypes)
 {
-	check_bad_type<T>(property{ std::make_unique<property_error_handler>(),  "testkey" });
+	check_bad_type<T>(Property{ std::make_unique<PropertyErrorHandler>(),  "testkey" });
 }
 
 BOOST_DATA_TEST_CASE(test_bool_value, make({false, true}))
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(test_empty_table)
 	BOOST_TEST(t.get_all("key").empty());
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_table_bad_key, T, value_types)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_table_bad_key, T, ValueTypes)
 {
 	auto t = tbl();
 	CHECK_THROW("badkey", t["badkey"].as<T>());
@@ -189,9 +189,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_table_bad_key, T, value_types)
 
 struct List
 {
-	std::vector<property> Data;
+	std::vector<Property> Data;
 
-	List &&operator<<(property &&p) &&
+	List &&operator<<(Property &&p) &&
 	{
 		Data.push_back(std::move(p));
 		return std::move(*this);
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_plain_table)
 		<< prop("key1", 4)
 		;
 
-	std::vector<property> vals2;
+	std::vector<Property> vals2;
 	vals2.push_back(prop("key2", 3));
 
 	const auto vals = List{}
@@ -227,13 +227,13 @@ BOOST_AUTO_TEST_CASE(test_plain_table)
 
 	CHECK_THROW("key1", static_cast<void>(t["key1"]));
 	CHECK_THROW("key1", static_cast<void>(t.get_unique("key1")));
-	BOOST_TEST(t.get_last("key1").as<integer>() == 4);
+	BOOST_TEST(t.get_last("key1").as<Integer>() == 4);
 	auto get_all1 = t.get_all("key1");
 	BOOST_TEST(indirect(get_all1) == vals1.Data, boost::test_tools::per_element());
 
-	BOOST_TEST(t["key2"].as<integer>() == 3);
-	BOOST_TEST(t.get_unique("key2").as<integer>() == 3);
-	BOOST_TEST(t.get_last("key2").as<integer>() == 3);
+	BOOST_TEST(t["key2"].as<Integer>() == 3);
+	BOOST_TEST(t.get_unique("key2").as<Integer>() == 3);
+	BOOST_TEST(t.get_last("key2").as<Integer>() == 3);
 	auto get_all2 = t.get_all("key2");
 	BOOST_TEST(indirect(get_all2) == vals2, boost::test_tools::per_element());
 
@@ -255,11 +255,11 @@ BOOST_AUTO_TEST_CASE(test_nested_table)
 		<< prop("k11", "v1" )
 		<< prop("k12", t2_gen());
 
-	BOOST_TEST(t1["k11"].as<string>() == "v1");
-	BOOST_TEST(t1["k12"].as<table>() == t2_gen());
-	BOOST_TEST(t1["k12"].as<table>()["k21"].as<string>() == "v2");
-	BOOST_TEST(t1["k12"].as<table>()["k22"].as<table>() == t3_gen());
-	BOOST_TEST(t1["k12"].as<table>()["k22"].as<table>()["k31"].as<string>() == "v3");
+	BOOST_TEST(t1["k11"].as<String>() == "v1");
+	BOOST_TEST(t1["k12"].as<Table>() == t2_gen());
+	BOOST_TEST(t1["k12"].as<Table>()["k21"].as<String>() == "v2");
+	BOOST_TEST(t1["k12"].as<Table>()["k22"].as<Table>() == t3_gen());
+	BOOST_TEST(t1["k12"].as<Table>()["k22"].as<Table>()["k31"].as<String>() == "v3");
 }
 
 BOOST_AUTO_TEST_CASE(test_nested_table_same_key)
@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(test_nested_table_same_key)
 			<< prop("k", tbl()
 				<< prop("k", 1)));
 
-	BOOST_TEST(t["k"].as<table>()["k"].as<table>()["k"].as<integer>() == 1);
+	BOOST_TEST(t["k"].as<Table>()["k"].as<Table>()["k"].as<Integer>() == 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_plain_table_unknown_key)
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_nested_table_unknown_key)
 	CHECK_THROW("k0", t.throw_on_unknown_key());
 	static_cast<void>(t["k0"]);
 	CHECK_THROW("k1", t.throw_on_unknown_key());
-	static_cast<void>(t["k0"].as<table>()["k1"]);
+	static_cast<void>(t["k0"].as<Table>()["k1"]);
 	BOOST_CHECK_NO_THROW(t.throw_on_unknown_key());
 }
 

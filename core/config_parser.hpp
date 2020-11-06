@@ -6,44 +6,44 @@
 
 namespace config
 {
-class syntax_error : public error
+class SyntaxError : public Error
 {
 public:
-	using position = std::size_t;
+	using Position = std::size_t;
 
-	syntax_error(position where, const std::string &what):
-		error{ what },
+	SyntaxError(Position where, const std::string &what):
+		Error{ what },
 		pos{ where }
 	{}
 
-	auto where() const noexcept -> position { return pos; }
+	auto where() const noexcept -> Position { return pos; }
 
 private:
-	const position pos;
+	const Position pos;
 };
 
-class text_view
+class TextView
 {
 public:
-	explicit text_view(string_view data, const std::string &filename = {});
+	explicit TextView(string_view data, const std::string &filename = {});
 
-	struct priv;
-	const std::shared_ptr<priv> p;
+	struct Priv;
+	const std::shared_ptr<Priv> p;
 };
 
-class text: public text_view
+class Text: public TextView
 {
 public:
-	explicit text(std::string data, const std::string& filename = {});
+	explicit Text(std::string data, const std::string& filename = {});
 private:
 	const std::string data;
 };
 
-class file : public text
+class File : public Text
 {
 public:
-	explicit file(const boost::filesystem::path &path);
+	explicit File(const boost::filesystem::path &path);
 };
 
-auto parse(std::shared_ptr<text_view> text) -> table;
+auto parse(std::shared_ptr<TextView> text) -> Table;
 }

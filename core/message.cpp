@@ -14,9 +14,9 @@ using namespace std::string_literals;
 
 namespace
 {
-BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<response::const_iterator>));
+BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Response::const_iterator>));
 
-const string_view &to_string_ref(message::http_version_type v)
+const string_view &to_string_ref(Message::ProtocolVersion v)
 {
 	static constexpr std::array strings = {
 		"HTTP/1.0 "sv,
@@ -28,13 +28,13 @@ const string_view &to_string_ref(message::http_version_type v)
 	return strings[idx];
 }
 
-struct string_list
+struct StringList
 {
 	const string_view *data;
 	int size;
 
 	template <int N>
-	constexpr string_list(const string_view(&a)[N]) :
+	constexpr StringList(const string_view(&a)[N]) :
 		data{a},
 		size{N}
 	{}
@@ -122,7 +122,7 @@ constexpr string_view m5[] = {
 	"511 Network Authentication Required"sv,
 };
 
-constexpr string_list strings[] = {
+constexpr StringList strings[] = {
 	m0, m1, m2, m3, m4, m5
 };
 
@@ -144,7 +144,7 @@ const string_view &to_string_other(int status)
 	return status_it->second;
 }
 
-const string_view &to_string_ref(response::status status)
+const string_view &to_string_ref(Response::Status status)
 {
 	const auto status_n = static_cast<int>(status);
 	auto dv = std::div(status_n, 100);
@@ -162,37 +162,37 @@ const string_view &to_string_ref(response::status status)
 }
 }
 
-auto response::begin() const noexcept -> const_iterator
+auto Response::begin() const noexcept -> const_iterator
 {
 	return { this, const_iterator::begin_tag{} };
 }
 
-auto response::cbegin() const noexcept -> const_iterator
+auto Response::cbegin() const noexcept -> const_iterator
 {
 	return begin();
 }
 
-auto response::end() const noexcept -> const_iterator
+auto Response::end() const noexcept -> const_iterator
 {
 	return { this, const_iterator::end_tag{} };
 }
 
-auto response::cend() const noexcept -> const_iterator
+auto Response::cend() const noexcept -> const_iterator
 {
 	return end();
 }
 
-string_view to_string(response::status status)
+string_view to_string(Response::Status status)
 {
 	return to_string_ref(status);
 }
 
-std::ostream &operator<<(std::ostream &stream, response::status status)
+std::ostream &operator<<(std::ostream &stream, Response::Status status)
 {
 	return stream << static_cast<int>(status);
 }
 
-auto calc_content_length(const message &msg) noexcept -> std::size_t
+auto calc_content_length(const Message &msg) noexcept -> std::size_t
 {
 	auto length = accumulate(
 		msg.body | boost::adaptors::transformed(mem_fn(&string_view::size)),
@@ -200,179 +200,179 @@ auto calc_content_length(const message &msg) noexcept -> std::size_t
 	return length;
 }
 
-enum class response::const_iterator::state
+enum class Response::const_iterator::State
 {
-	HTTP_VERSION,
-	STATUS,
-	STATUS_NL,
-	HEADER_NAME,
-	HEADER_NAME_SEP,
-	HEADER_VAL,
-	HEADER_VAL_NL,
-	HEADER_NL,
-	BODY,
-	END
+	http_version,
+	status,
+	status_nl,
+	header_name,
+	header_name_sep,
+	header_val,
+	header_val_nl,
+	header_nl,
+	body,
+	end
 };
 
-response::const_iterator::const_iterator() noexcept:
+Response::const_iterator::const_iterator() noexcept:
 	r{ nullptr },
-	s{ state::END }
+	s{ State::end }
 {}
 
-response::const_iterator::const_iterator(const response *r, begin_tag) noexcept :
+Response::const_iterator::const_iterator(const Response *r, begin_tag) noexcept :
 	r{ r },
-	s{ state::HTTP_VERSION }
+	s{ State::http_version }
 {}
 
-response::const_iterator::const_iterator(const response *r, end_tag) noexcept :
+Response::const_iterator::const_iterator(const Response *r, end_tag) noexcept :
 	r{ r },
-	s{ state::END }
+	s{ State::end }
 {}
 
-auto response::const_iterator::operator*() const -> reference
+auto Response::const_iterator::operator*() const -> reference
 {
 	switch (s)
 	{
-	case state::HTTP_VERSION:
+	case State::http_version:
 		return to_string_ref(r->http_version);
-	case state::STATUS:
+	case State::status:
 		return to_string_ref(r->code);
-	case state::STATUS_NL:
-		return NL;
-	case state::HEADER_NAME:
+	case State::status_nl:
+		return nl;
+	case State::header_name:
 		return header_it->name;
-	case state::HEADER_NAME_SEP:
-		return header::SEP;
-	case state::HEADER_VAL:
+	case State::header_name_sep:
+		return Header::sep;
+	case State::header_val:
 		return header_it->value;
-	case state::HEADER_VAL_NL:
-		return NL;
-	case state::HEADER_NL:
-		return NL;
-	case state::BODY:
+	case State::header_val_nl:
+		return nl;
+	case State::header_nl:
+		return nl;
+	case State::body:
 		return *body_it;
-	case state::END:
+	case State::end:
 		break;
 	}
 
 	throw std::logic_error{ "response::const_iterator::operator*: non-dereferenceable" };
 }
 
-auto response::const_iterator::operator->() const -> pointer
+auto Response::const_iterator::operator->() const -> pointer
 {
 	return &**this;
 }
 
-auto response::const_iterator::operator++() -> const_iterator&
+auto Response::const_iterator::operator++() -> const_iterator&
 {
 	switch (s)
 	{
-	case state::HTTP_VERSION:
-		s = state::STATUS;
+	case State::http_version:
+		s = State::status;
 		break;
-	case state::STATUS:
-		s = state::STATUS_NL;
+	case State::status:
+		s = State::status_nl;
 		break;
-	case state::STATUS_NL:
+	case State::status_nl:
 		if (!r->headers.empty()) {
-			s = state::HEADER_NAME;
+			s = State::header_name;
 			header_it = r->headers.begin();
 		} else {
-			s = state::HEADER_NL;
+			s = State::header_nl;
 		}
 		break;
-	case state::HEADER_NAME:
-		s = state::HEADER_NAME_SEP;
+	case State::header_name:
+		s = State::header_name_sep;
 		break;
-	case state::HEADER_NAME_SEP:
-		s = state::HEADER_VAL;
+	case State::header_name_sep:
+		s = State::header_val;
 		break;
-	case state::HEADER_VAL:
-		s = state::HEADER_VAL_NL;
+	case State::header_val:
+		s = State::header_val_nl;
 		break;
-	case state::HEADER_VAL_NL:
+	case State::header_val_nl:
 		++header_it;
 		if (header_it != r->headers.end())
-			s = state::HEADER_NAME;
+			s = State::header_name;
 		else
-			s = state::HEADER_NL;
+			s = State::header_nl;
 		break;
-	case state::HEADER_NL:
+	case State::header_nl:
 		if (!r->body.empty()) {
-			s = state::BODY;
+			s = State::body;
 			body_it = r->body.begin();
 		} else {
-			s = state::END;
+			s = State::end;
 		}
 		break;
-	case state::BODY:
+	case State::body:
 		++body_it;
 		if (body_it == r->body.end())
-			s = state::END;
+			s = State::end;
 		break;
-	case state::END:
+	case State::end:
 		throw std::logic_error{ "response::const_iterator::operator++: non-incrementable" };
 	}
 
 	return *this;
 }
 
-auto response::const_iterator::operator++(int) -> const_iterator
+auto Response::const_iterator::operator++(int) -> const_iterator
 {
 	auto tmp{ *this };
 	++*this;
 	return tmp;
 }
 
-auto response::const_iterator::operator--() -> const_iterator&
+auto Response::const_iterator::operator--() -> const_iterator&
 {
 	switch (s)
 	{
-	case state::HTTP_VERSION:
+	case State::http_version:
 		throw std::logic_error{ "response::const_iterator::operator--: non-decrementable" };
-	case state::STATUS:
-		s = state::HTTP_VERSION;
+	case State::status:
+		s = State::http_version;
 		break;
-	case state::STATUS_NL:
-		s = state::STATUS;
+	case State::status_nl:
+		s = State::status;
 		break;
-	case state::HEADER_NAME:
+	case State::header_name:
 		if (header_it == r->headers.begin()) {
-			s = state::STATUS_NL;
+			s = State::status_nl;
 		} else {
 			--header_it;
-			s = state::HEADER_VAL_NL;
+			s = State::header_val_nl;
 		}
 		break;
-	case state::HEADER_NAME_SEP:
-		s = state::HEADER_NAME;
+	case State::header_name_sep:
+		s = State::header_name;
 		break;
-	case state::HEADER_VAL:
-		s = state::HEADER_NAME_SEP;
+	case State::header_val:
+		s = State::header_name_sep;
 		break;
-	case state::HEADER_VAL_NL:
-		s = state::HEADER_VAL;
+	case State::header_val_nl:
+		s = State::header_val;
 		break;
-	case state::HEADER_NL:
+	case State::header_nl:
 		if (!r->headers.empty()) {
-			s = state::HEADER_VAL_NL;
+			s = State::header_val_nl;
 			header_it = --r->headers.end();
 		} else {
-			s = state::STATUS_NL;
+			s = State::status_nl;
 		}
 		break;
-	case state::BODY:
+	case State::body:
 		if (body_it != r->body.begin())
 			--body_it;
 		else
-			s = state::HEADER_NL;
+			s = State::header_nl;
 		break;
-	case state::END:
+	case State::end:
 		if (!r->body.empty()) {
-			s = state::BODY;
+			s = State::body;
 			body_it = --r->body.end();
 		} else {
-			s = state::HEADER_NL;
+			s = State::header_nl;
 		}
 		break;
 	}
@@ -380,15 +380,15 @@ auto response::const_iterator::operator--() -> const_iterator&
 	return *this;
 }
 
-auto response::const_iterator::operator--(int) -> const_iterator
+auto Response::const_iterator::operator--(int) -> const_iterator
 {
 	auto tmp{ *this };
 	--*this;
 	return tmp;
 }
 
-auto operator==(const response::const_iterator& it1,
-	const response::const_iterator& it2) -> bool
+auto operator==(const Response::const_iterator& it1,
+	const Response::const_iterator& it2) -> bool
 {
 	if (BOOST_UNLIKELY(it1.r != it2.r))
 		throw std::logic_error{ "response::const_iterator::operator==: "
@@ -399,21 +399,21 @@ auto operator==(const response::const_iterator& it1,
 
 	switch (it1.s)
 	{
-	using state = response::const_iterator::state;
-	case state::HEADER_NAME: [[fallthrough]];
-	case state::HEADER_NAME_SEP: [[fallthrough]];
-	case state::HEADER_VAL: [[fallthrough]];
-	case state::HEADER_VAL_NL:
+	using state = Response::const_iterator::State;
+	case state::header_name: [[fallthrough]];
+	case state::header_name_sep: [[fallthrough]];
+	case state::header_val: [[fallthrough]];
+	case state::header_val_nl:
 		return it1.header_it == it2.header_it;
-	case state::BODY:
+	case state::body:
 		return it1.body_it == it2.body_it;
 	default:
 		return true;
 	}
 }
 
-auto operator!=(const response::const_iterator& it1,
-	const response::const_iterator& it2) -> bool
+auto operator!=(const Response::const_iterator& it1,
+	const Response::const_iterator& it2) -> bool
 {
 	return !(it1 == it2);
 }

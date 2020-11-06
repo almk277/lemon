@@ -19,7 +19,7 @@
 #include <iostream>
 #include <array>
 
-logger::severity log_severity_level = logger::severity::info;
+Logger::Severity log_severity_level = Logger::Severity::info;
 bool log_access_enabled = true;
 
 constexpr std::array severity_strings = {
@@ -31,12 +31,12 @@ constexpr std::array severity_strings = {
 	"TRC "sv,
 };
 
-static std::ostream &operator<<(std::ostream &s, logger::severity sev)
+static std::ostream &operator<<(std::ostream &s, Logger::Severity sev)
 {
 	return s << severity_strings[static_cast<int>(sev)];
 }
 
-static std::ostream &operator<<(std::ostream &s, logger_imp::message_type msg)
+static std::ostream &operator<<(std::ostream &s, LoggerImp::Message msg)
 {
 	for (auto c = msg.first; c; c = c->next)
 		c->print(s);
@@ -45,13 +45,13 @@ static std::ostream &operator<<(std::ostream &s, logger_imp::message_type msg)
 
 namespace
 {
-static_assert(severity_strings[static_cast<int>(logger::severity::error)] == "ERR "sv);
-static_assert(severity_strings[static_cast<int>(logger::severity::trace)] == "TRC "sv);
+static_assert(severity_strings[static_cast<int>(Logger::Severity::error)] == "ERR "sv);
+static_assert(severity_strings[static_cast<int>(Logger::Severity::trace)] == "TRC "sv);
 
-logger_imp::severity convert(options::log_types::severity s)
+LoggerImp::Severity convert(Options::LogTypes::Severity s)
 {
-	using opt = options::log_types::severity;
-	using lg = logger::severity;
+	using opt = Options::LogTypes::Severity;
+	using lg = Logger::Severity;
 	switch (s) {
 	case opt::trace: return lg::trace;
 	case opt::debug: return lg::debug;
@@ -63,29 +63,29 @@ logger_imp::severity convert(options::log_types::severity s)
 	return lg::error;
 }
 
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_lazymessage, logger_imp::attr_name.lazy_message,
-	logger_imp::message_type)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_severity, logger_imp::attr_name.severity, logger::severity)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_server, logger_imp::attr_name.server, std::uint16_t)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_taskid, logger_imp::attr_name.task, task_ident)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_address, logger_imp::attr_name.address,
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_lazymessage, LoggerImp::attr_name.lazy_message,
+	LoggerImp::Message)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_severity, LoggerImp::attr_name.severity, Logger::Severity)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_server, LoggerImp::attr_name.server, std::uint16_t)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_taskid, LoggerImp::attr_name.task, TaskIdent)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_address, LoggerImp::attr_name.address,
 	boost::asio::ip::address)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_module, logger_imp::attr_name.module, string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(kw_time, logger_imp::attr_name.time,
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_module, LoggerImp::attr_name.module, string_view)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_time, LoggerImp::attr_name.time,
 	boost::log::attributes::local_clock::value_type)
 
 template <typename Filter, typename Fmt>
-struct log_adder
+struct LogAdder
 {
-	log_adder(Filter filter, Fmt fmt) : filter{ filter }, fmt { fmt } {}
+	LogAdder(Filter filter, Fmt fmt) : filter{ filter }, fmt { fmt } {}
 
-	bool operator()(const options::log_types::null&) const { return false; }
-	bool operator()(const options::log_types::console&) const
+	bool operator()(const Options::LogTypes::Null&) const { return false; }
+	bool operator()(const Options::LogTypes::Console&) const
 	{
 		boost::log::add_console_log(std::clog, filter, fmt);
 		return true;
 	}
-	bool operator()(const options::log_types::file &f) const
+	bool operator()(const Options::LogTypes::File &f) const
 	{
 		using namespace boost::log;
 
@@ -101,11 +101,11 @@ struct log_adder
 	Fmt fmt;
 };
 
-bool add_messages_sink(const options::log_types::messages_log &log)
+bool add_messages_sink(const Options::LogTypes::MessagesLog &log)
 {
 	using namespace boost::log;
 
-	return visit(log_adder{
+	return visit(LogAdder{
 		keywords::filter =
 			!has_attr(kw_time),
 		keywords::format = expressions::stream
@@ -130,12 +130,12 @@ bool add_messages_sink(const options::log_types::messages_log &log)
 		}, log.dest);
 }
 
-bool add_access_sink(const options::log_types::access_log &log)
+bool add_access_sink(const Options::LogTypes::AccessLog &log)
 {
 #ifndef LEMON_NO_ACCESS_LOG
 	using namespace boost::log;
 
-	return visit(log_adder{
+	return visit(LogAdder{
 		keywords::filter =
 			has_attr(kw_time),
 		keywords::format = expressions::stream
@@ -152,20 +152,20 @@ bool add_access_sink(const options::log_types::access_log &log)
 
 void logs::preinit()
 {
-	const options::log_types::messages_log startup_log{
-		options::log_types::console{},
-		options::log_types::severity::info
+	const Options::LogTypes::MessagesLog startup_log{
+		Options::LogTypes::Console{},
+		Options::LogTypes::Severity::info
 	};
 	add_messages_sink(startup_log);
 }
 
-void logs::init(const options &opt)
+void logs::init(const Options &opt)
 {
 	using namespace boost::log;
 
 	log_severity_level = convert(opt.log.messages.level);
 
-	if (log_severity_level > logger::severity_barrier)
+	if (log_severity_level > Logger::severity_barrier)
 		throw std::runtime_error{ "requested log level ("
 			+ std::to_string(static_cast<int>(log_severity_level))
 			+ ") is too high, supported: "

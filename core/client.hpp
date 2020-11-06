@@ -13,44 +13,44 @@
 #include <cstddef>
 #include <memory>
 
-class options;
-class router;
+class Options;
+class Router;
 
-class client:
-	public std::enable_shared_from_this<client>,
+class Client:
+	public std::enable_shared_from_this<Client>,
 	boost::noncopyable,
-	leak_checked<client>
+	LeakChecked<Client>
 {
 public:
-	using socket = boost::asio::ip::tcp::socket;
+	using Socket = boost::asio::ip::tcp::socket;
 
-	client(boost::asio::io_context &context, socket &&sock, std::shared_ptr<const options> opt,
-		std::shared_ptr<const router> router, server_logger &lg) noexcept;
-	~client();
+	Client(boost::asio::io_context &context, Socket &&sock, std::shared_ptr<const Options> opt,
+		std::shared_ptr<const Router> router, ServerLogger &lg) noexcept;
+	~Client();
 
-	static void make(boost::asio::io_context &context, socket &&sock, std::shared_ptr<const options> opt,
-		std::shared_ptr<const router> rout, server_logger &lg);
+	static void make(boost::asio::io_context &context, Socket &&sock, std::shared_ptr<const Options> opt,
+		std::shared_ptr<const Router> rout, ServerLogger &lg);
 
-	client_logger &get_logger() noexcept { return lg; }
-	const router &get_router() const noexcept { return *rout; }
+	ClientLogger &get_logger() noexcept { return lg; }
+	const Router &get_router() const noexcept { return *rout; }
 
 private:
-	static constexpr task_ident start_task_id = task::start_id;
+	static constexpr TaskIdent start_task_id = Task::start_id;
 
-	socket sock;
-	const std::shared_ptr<const options> opt;
-	const std::shared_ptr<const router> rout;
-	client_logger lg;
-	task_builder builder;
-	task_ident next_send_id;
-	boost::container::list<task::result> send_q;
+	Socket sock;
+	const std::shared_ptr<const Options> opt;
+	const std::shared_ptr<const Router> rout;
+	ClientLogger lg;
+	TaskBuilder builder;
+	TaskIdent next_send_id;
+	boost::container::list<Task::Result> send_q;
 	boost::asio::io_context::strand send_barrier;
 
-	void start_recv(const incomplete_task &it);
+	void start_recv(const IncompleteTask &it);
 	void on_recv(const boost::system::error_code &ec,
 		         std::size_t bytes_transferred,
-		         const incomplete_task &it) noexcept;
-	void run(const ready_task &rt) noexcept;
-	void start_send(const task::result &tr);
-	void on_sent(const boost::system::error_code &ec, const task::result &tr) noexcept;
+		         const IncompleteTask &it) noexcept;
+	void run(const ReadyTask &rt) noexcept;
+	void start_send(const Task::Result &tr);
+	void on_sent(const boost::system::error_code &ec, const Task::Result &tr) noexcept;
 };

@@ -6,7 +6,7 @@
 #include <cstring>
 
 //TODO test this
-string_view string_builder::convert(std::size_t n)
+string_view StringBuilder::convert(std::size_t n)
 {
 	constexpr int s_len = std::numeric_limits<std::size_t>::digits10
 		+ 1; // not accounted by digits10

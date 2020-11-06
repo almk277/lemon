@@ -6,37 +6,37 @@
 #include <boost/core/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include <variant>
-struct request;
+struct Request;
 
-class parser: boost::noncopyable
+class Parser: boost::noncopyable
 {
 public:
-	struct incomplete_request {};
-	struct complete_request
+	struct IncompleteRequest {};
+	struct CompleteRequest
 	{
 		string_view rest;
 	};
-	using result = std::variant<http_error, incomplete_request, complete_request>;
+	using Result = std::variant<HttpError, IncompleteRequest, CompleteRequest>;
 
-	parser() = default;
+	Parser() = default;
 
-	void reset(request &req) noexcept;
-	result parse_chunk(string_view chunk) noexcept;
+	void reset(Request &req) noexcept;
+	Result parse_chunk(string_view chunk) noexcept;
 
-	static void finalize(request &req);
+	static void finalize(Request &req);
 
 protected:
-	struct context
+	struct Context
 	{
-		enum class hdr { KEY, VAL };
+		enum class HeaderState { KEY, VAL };
 
-		request *r;
-		hdr hdr_state;
-		boost::optional<http_error> error;
+		Request *r;
+		HeaderState hdr_state;
+		boost::optional<HttpError> error;
 		bool complete;
 	};
 
 	//TODO pImpl
 	http_parser p;
-	context ctx;
+	Context ctx;
 };

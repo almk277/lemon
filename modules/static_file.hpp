@@ -2,15 +2,15 @@
 
 #include "request_handler.hpp"
 
-struct rh_static_file : request_handler
+struct RhStaticFile : RequestHandler
 {
-	rh_static_file() = default;
+	RhStaticFile() = default;
 
 	string_view get_name() const noexcept override;
 
-	void get(request &req, response &resp, context &ctx) override;
-	void head(request &req, response &resp, context &ctx) override;
+	void get(Request &req, Response &resp, Context &ctx) override;
+	void head(Request &req, Response &resp, Context &ctx) override;
 
 private:
-	static void finalize(request &req, response &resp, context &ctx, std::size_t length);
+	static void finalize(Request &req, Response &resp, Context &ctx, std::size_t length);
 };

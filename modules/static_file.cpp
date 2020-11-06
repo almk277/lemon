@@ -14,41 +14,41 @@
 
 namespace
 {
-const std::fstream::pos_type MAX_SIZE = 100 * 1024 * 1024;
+const std::fstream::pos_type max_size = 100 * 1024 * 1024;
 //TODO configurable file directory
-constexpr string_view WWW_DIR = "/var/www"sv;
+constexpr string_view www_dir = "/var/www"sv;
 
 std::pair<std::ifstream, std::size_t> open_file(
-	const request &req, const rh_static_file::context &ctx)
+	const Request &req, const RhStaticFile::Context &ctx)
 {
 	const auto path = req.url.path;
 	//TODO filesystem::path
-	lemon::string fname{ WWW_DIR.begin(), WWW_DIR.end(), ctx.a.make_allocator<char>() };
+	lemon::String fname{ www_dir.begin(), www_dir.end(), ctx.a.make_allocator<char>() };
 	fname.append(path.begin(), path.end());
 
 	//TODO consider other IO APIs
 	std::ifstream f{ fname.c_str(), std::ios::in | std::ios::binary | std::ios::ate };
 	if (!f.is_open())
-		throw http_exception{ response::status::NOT_FOUND };
+		throw HttpException{ Response::Status::not_found };
 	f.exceptions(std::ios::badbit | std::ios::failbit);
 
 	//TODO size from metadata
 	auto size = f.tellg();
 	ctx.lg.debug("open file: '"sv, fname, "', size: "sv, size);
-	if (size > MAX_SIZE)
-		throw http_exception{ response::status::PAYLOAD_TOO_LARGE };
+	if (size > max_size)
+		throw HttpException{ Response::Status::payload_too_large };
 	auto mem_length = static_cast<std::size_t>(size);
 
 	return make_pair(move(f), mem_length);
 }
 }
 
-string_view rh_static_file::get_name() const noexcept
+string_view RhStaticFile::get_name() const noexcept
 {
 	return "StaticFile"sv;
 }
 
-void rh_static_file::get(request &req, response &resp, context &ctx)
+void RhStaticFile::get(Request &req, Response &resp, Context &ctx)
 {
 	auto [f, length] = open_file(req, ctx);
 
@@ -61,17 +61,17 @@ void rh_static_file::get(request &req, response &resp, context &ctx)
 	finalize(req, resp, ctx, length);
 }
 
-void rh_static_file::head(request &req, response &resp, context &ctx)
+void RhStaticFile::head(Request &req, Response &resp, Context &ctx)
 {
 	auto open_result = open_file(req, ctx);
 	auto length = open_result.second;
 	finalize(req, resp, ctx, length);
 }
 
-void rh_static_file::finalize(request &req, response &resp, context &ctx, std::size_t length)
+void RhStaticFile::finalize(Request &req, Response &resp, Context &ctx, std::size_t length)
 {
 	resp.http_version = req.http_version;
 	//TODO Content-Type
-	resp.headers.emplace_back("Content-Length"sv, string_builder{ ctx.a }.convert(length));
-	resp.code = response::status::OK;
+	resp.headers.emplace_back("Content-Length"sv, StringBuilder{ ctx.a }.convert(length));
+	resp.code = Response::Status::ok;
 }

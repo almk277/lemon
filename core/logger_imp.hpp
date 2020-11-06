@@ -8,20 +8,20 @@
 #include <boost/log/sources/logger.hpp>
 #include <boost/asio/ip/address.hpp>
 
-class logger_imp: public logger, boost::noncopyable
+class LoggerImp: public Logger, boost::noncopyable
 {
 public:
-	enum class channel
+	enum class Channel
 	{
 		message,
 		access,
 	};
 
-	using attribute = boost::log::attribute_set::iterator;
+	using Attribute = boost::log::attribute_set::iterator;
 
-	struct attr_name_type
+	struct AttrName
 	{
-		attr_name_type();
+		AttrName();
 
 		boost::log::attribute_name lazy_message;
 		boost::log::attribute_name time;
@@ -32,17 +32,17 @@ public:
 		boost::log::attribute_name module;
 	};
 
-	struct message_type
+	struct Message
 	{
-		base_printer *first;
-		base_printer *last;
+		BasePrinter *first;
+		BasePrinter *last;
 	};
 
-	logger_imp() = default;
-	logger_imp(const logger_imp &rhs) = delete;
-	virtual ~logger_imp() = default;
+	LoggerImp() = default;
+	LoggerImp(const LoggerImp &rhs) = delete;
+	virtual ~LoggerImp() = default;
 	
-	logger_imp &operator=(const logger_imp&) = delete;
+	LoggerImp &operator=(const LoggerImp&) = delete;
 
 	template <typename ...Args> void access(Args ...args)
 	{
@@ -55,14 +55,14 @@ public:
 #endif
 	}
 
-	attribute add(const boost::log::attribute_name &name,
+	Attribute add(const boost::log::attribute_name &name,
 		const boost::log::attribute &attr);
-	void open_message(severity s);
+	void open_message(Severity s);
 	void open_access();
-	void push(base_printer &c) noexcept;
+	void push(BasePrinter &c) noexcept;
 	void finalize();
 
-	static const attr_name_type attr_name;
+	static const AttrName attr_name;
 
 protected:
 	virtual void insert_attributes() = 0;
@@ -77,17 +77,17 @@ private:
 
 	boost::log::sources::logger lg;
 	boost::log::record rec;
-	message_type msg{};
+	Message msg{};
 };
 
-struct common_logger: logger_imp
+struct CommonLogger: LoggerImp
 {
 	void insert_attributes() override {}
 };
 
-struct server_logger: common_logger
+struct ServerLogger: CommonLogger
 {
-	explicit server_logger(std::uint16_t port) noexcept:
+	explicit ServerLogger(std::uint16_t port) noexcept:
 		port{port}
 	{}
 
@@ -96,10 +96,10 @@ struct server_logger: common_logger
 	const std::uint16_t port;
 };
 
-struct client_logger: server_logger
+struct ClientLogger: ServerLogger
 {
-	client_logger(const server_logger &logger, boost::asio::ip::address address) noexcept:
-		server_logger{logger.port},
+	ClientLogger(const ServerLogger &logger, boost::asio::ip::address address) noexcept:
+		ServerLogger{logger.port},
 		address{std::move(address)}
 	{}
 
@@ -108,32 +108,32 @@ struct client_logger: server_logger
 	const boost::asio::ip::address address;
 };
 
-struct task_logger: client_logger
+struct TaskLogger: ClientLogger
 {
-	task_logger(const client_logger &logger, task_ident id) noexcept:
-		client_logger{ logger, logger.address },
+	TaskLogger(const ClientLogger &logger, TaskIdent id) noexcept:
+		ClientLogger{ logger, logger.address },
 		id{ id }
 	{}
 
 	void insert_attributes() override;
 
-	const task_ident id;
+	const TaskIdent id;
 	string_view module_name;
 };
 
-struct module_logger_guard: boost::noncopyable
+struct ModuleLoggerGuard: boost::noncopyable
 {
-	module_logger_guard(task_logger &lg, string_view name) noexcept:
+	ModuleLoggerGuard(TaskLogger &lg, string_view name) noexcept:
 		lg{lg}
 	{
 		lg.module_name = name;
 	}
 
-	~module_logger_guard()
+	~ModuleLoggerGuard()
 	{
 		lg.module_name = {};
 	}
 
 private:
-	task_logger &lg;
+	TaskLogger &lg;
 };

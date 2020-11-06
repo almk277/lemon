@@ -11,7 +11,7 @@
 
 namespace
 {
-struct test_case
+struct TestCase
 {
 	int no;
 	std::string response;
@@ -19,15 +19,15 @@ struct test_case
 	std::vector<std::string> body;
 };
 
-struct response_fixture
+struct ResponseFixture
 {
-	arena_imp a{ slg };
-	response r{ a };
+	ArenaImp a{ slg };
+	Response r{ a };
 
-	void fill(const test_case &c)
+	void fill(const TestCase &c)
 	{
-		r.http_version = message::http_version_type::HTTP_1_1;
-		r.code = response::status::OK;
+		r.http_version = Message::ProtocolVersion::http_1_1;
+		r.code = Response::Status::ok;
 		for (auto &h : c.headers)
 			r.headers.emplace_back(h.first, h.second);
 		for (auto &b : c.body)
@@ -41,12 +41,12 @@ const auto concat = [](const auto &begin, const auto &end)
 		[](auto acc, auto s) { return acc + std::string{ s }; });
 };
 
-std::ostream &operator<<(std::ostream &s, const test_case &t)
+std::ostream &operator<<(std::ostream &s, const TestCase &t)
 {
 	return s << "No " << t.no << ": " << t.response;
 }
 
-const std::vector<test_case> response_samples =
+const std::vector<TestCase> response_samples =
 {
 	{
 		1,
@@ -143,17 +143,17 @@ const std::vector<test_case> response_samples =
 };
 }
 
-BOOST_TEST_DONT_PRINT_LOG_VALUE(response::const_iterator);
+BOOST_TEST_DONT_PRINT_LOG_VALUE(Response::const_iterator);
 
-BOOST_FIXTURE_TEST_SUITE(response_iterator_tests, response_fixture)
+BOOST_FIXTURE_TEST_SUITE(response_iterator_tests, ResponseFixture)
 
 BOOST_AUTO_TEST_CASE(test_common)
 {
 	BOOST_TEST(r.begin() == r.begin());
 	BOOST_TEST(r.end() == r.end());
-	BOOST_TEST(response::const_iterator{} == response::const_iterator{});
+	BOOST_TEST(Response::const_iterator{} == Response::const_iterator{});
 	
-	response::const_iterator begin{};
+	Response::const_iterator begin{};
 	begin = r.begin();
 	BOOST_TEST(begin == r.begin());
 

@@ -5,17 +5,17 @@
 
 using boost::log::attributes::make_attribute_value;
 
-const logger_imp::attr_name_type logger_imp::attr_name{};
+const LoggerImp::AttrName LoggerImp::attr_name{};
 const boost::log::attributes::local_clock clock_attr{};
 
-auto logger_imp::add(const boost::log::attribute_name &name,
-	const boost::log::attribute &attr) -> attribute
+auto LoggerImp::add(const boost::log::attribute_name &name,
+	const boost::log::attribute &attr) -> Attribute
 {
 	auto r = lg.add_attribute(name, attr);
 	return r.first;
 }
 
-void logger_imp::open_internal()
+void LoggerImp::open_internal()
 {
 	rec = lg.open_record();
 	BOOST_ASSERT(static_cast<bool>(rec));
@@ -24,19 +24,19 @@ void logger_imp::open_internal()
 	msg = {};
 }
 
-void logger_imp::open_message(severity s)
+void LoggerImp::open_message(Severity s)
 {
 	open_internal();
 	attributes().insert(attr_name.severity, make_attribute_value(s));
 }
 
-void logger_imp::open_access()
+void LoggerImp::open_access()
 {
 	open_internal();
 	attributes().insert(attr_name.time, clock_attr.get_value());
 }
 
-void logger_imp::push(base_printer &c) noexcept
+void LoggerImp::push(BasePrinter &c) noexcept
 {
 	const auto p = &c;
 	if (!msg.first)
@@ -46,36 +46,36 @@ void logger_imp::push(base_printer &c) noexcept
 	msg.last = p;
 }
 
-void logger_imp::finalize()
+void LoggerImp::finalize()
 {
 	attributes().insert(attr_name.lazy_message, make_attribute_value(msg));
 	lg.push_record(std::move(rec));
 }
 
-void server_logger::insert_attributes()
+void ServerLogger::insert_attributes()
 {
-	common_logger::insert_attributes();
+	CommonLogger::insert_attributes();
 
 	attributes().insert(attr_name.server, make_attribute_value(port));
 }
 
-void client_logger::insert_attributes()
+void ClientLogger::insert_attributes()
 {
-	server_logger::insert_attributes();
+	ServerLogger::insert_attributes();
 
 	attributes().insert(attr_name.address, make_attribute_value(address));
 }
 
-void task_logger::insert_attributes()
+void TaskLogger::insert_attributes()
 {
-	client_logger::insert_attributes();
+	ClientLogger::insert_attributes();
 
 	attributes().insert(attr_name.task, make_attribute_value(id));
 	if (!module_name.empty())
 		attributes().insert(attr_name.module, make_attribute_value(module_name));
 }
 
-logger_imp::attr_name_type::attr_name_type():
+LoggerImp::AttrName::AttrName():
 	lazy_message{"LazyMessage"},
 	time{"TimeStamp"},
 	severity{"Severity"},

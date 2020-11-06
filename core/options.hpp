@@ -12,21 +12,21 @@
 
 namespace config
 {
-class table;
+class Table;
 }
 
-class options: boost::noncopyable
+class Options: boost::noncopyable
 {
 public:
-	struct error: std::runtime_error
+	struct Error: std::runtime_error
 	{
-		explicit error(const std::string &s):
+		explicit Error(const std::string &s):
 			runtime_error("options error: " + s) {}
 	};
 
-	struct log_types
+	struct LogTypes
 	{
-		enum class severity {
+		enum class Severity {
 			error,
 			warning,
 			info,
@@ -34,57 +34,57 @@ public:
 			trace,
 		};
 
-		struct null {};
-		struct console {};
-		struct file { std::string path; };
+		struct Null {};
+		struct Console {};
+		struct File { std::string path; };
 
-		struct messages_log
+		struct MessagesLog
 		{
-			std::variant<console, file> dest;
-			severity level = severity::info;
+			std::variant<Console, File> dest;
+			Severity level = Severity::info;
 		};
-		struct access_log
+		struct AccessLog
 		{
-			std::variant<console, file, null> dest;
+			std::variant<Console, File, Null> dest;
 		};
-		struct logs
+		struct Logs
 		{
-			messages_log messages;
-			access_log access;
+			MessagesLog messages;
+			AccessLog access;
 		};
 	};
 
-	struct route
+	struct Route
 	{
-		struct equal { std::string str; };
-		struct prefix { std::string str; };
-		struct regex { std::string re; };
+		struct Equal { std::string str; };
+		struct Prefix { std::string str; };
+		struct Regex { std::string re; };
 
-		std::variant<equal, prefix, regex> matcher;
+		std::variant<Equal, Prefix, Regex> matcher;
 		std::string handler;
 	};
 
-	using route_list = std::list<route>;
+	using RouteList = std::list<Route>;
 
-	struct server
+	struct Server
 	{
 		std::uint16_t listen_port = 80;
-		route_list routes;
+		RouteList routes;
 	};
 
-	options();
+	Options();
 
 #ifndef LEMON_NO_CONFIG
-	explicit options(const config::table &config);
+	explicit Options(const config::Table &config);
 #endif
 
 	boost::optional<unsigned> n_workers = 1;
 	std::size_t headers_size = 4 * 1024;
-	log_types::logs log = {
-		{ log_types::console{}, log_types::severity::debug },
-		{ log_types::console{} }
+	LogTypes::Logs log = {
+		{ LogTypes::Console{}, LogTypes::Severity::debug },
+		{ LogTypes::Console{} }
 	};
-	std::vector<server> servers;
+	std::vector<Server> servers;
 };
 
-bool operator==(const options::server &lhs, const options::server &rhs);
+bool operator==(const Options::Server &lhs, const Options::Server &rhs);

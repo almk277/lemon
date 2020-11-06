@@ -4,33 +4,33 @@
 
 #ifdef BOOST_ASSERT_IS_VOID
 
-template <typename> class leak_checked {};
+template <typename> class LeakChecked {};
 
 #else
 
 template <typename T>
-class leak_checked
+class LeakChecked
 {
 protected:
-	leak_checked() { ++d.counter; }
-	leak_checked(const leak_checked&) { ++d.counter; }
-	leak_checked(leak_checked&&) noexcept { ++d.counter; }
-	~leak_checked() { --d.counter; }
-	leak_checked &operator=(const leak_checked&) = default;
-	leak_checked &operator=(leak_checked&&) = default;
+	LeakChecked() { ++d.counter; }
+	LeakChecked(const LeakChecked&) { ++d.counter; }
+	LeakChecked(LeakChecked&&) noexcept { ++d.counter; }
+	~LeakChecked() { --d.counter; }
+	LeakChecked &operator=(const LeakChecked&) = default;
+	LeakChecked &operator=(LeakChecked&&) = default;
 private:
-	struct checker
+	struct Checker
 	{
-		checker() = default;
-		~checker()
+		Checker() = default;
+		~Checker()
 		{
 			BOOST_ASSERT(counter == 0);
 		}
 		std::atomic_size_t counter{ 0 };
 	};
-	static checker d;
+	static Checker d;
 };
 
 template <typename T>
-typename leak_checked<T>::checker leak_checked<T>::d{};
+typename LeakChecked<T>::Checker LeakChecked<T>::d{};
 #endif

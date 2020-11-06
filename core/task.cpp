@@ -9,12 +9,12 @@
 
 namespace
 {
-BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<task::result::const_iterator>));
+BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Task::Result::const_iterator>));
 
-boost::fast_pool_allocator<task, boost::default_user_allocator_malloc_free> task_allocator;
+boost::fast_pool_allocator<Task, boost::default_user_allocator_malloc_free> task_allocator;
 }
 
-task::task(ident id, std::shared_ptr<client> cl) noexcept:
+Task::Task(Ident id, std::shared_ptr<Client> cl) noexcept:
 	id{id},
 	cl{cl},
 	lg{cl->get_logger(), id},
@@ -26,17 +26,17 @@ task::task(ident id, std::shared_ptr<client> cl) noexcept:
 	lg.debug("task created");
 }
 
-task::~task()
+Task::~Task()
 {
 	lg.debug("task removed");
 }
 
-std::shared_ptr<task> task::make(ident id, std::shared_ptr<client> cl)
+std::shared_ptr<Task> Task::make(Ident id, std::shared_ptr<Client> cl)
 {
-	return std::allocate_shared<task>(task_allocator, id, cl);
+	return std::allocate_shared<Task>(task_allocator, id, cl);
 }
 
-void task::run()
+void Task::run()
 {
 	lg.access(req.method.name, " ", req.url.all);
 
@@ -50,39 +50,39 @@ void task::run()
 			lg.debug("handler finished: ", h->get_name());
 		} else {
 			lg.debug("HTTP error 404");
-			make_error(response::status::NOT_FOUND);
+			make_error(Response::Status::not_found);
 		}
-	} catch (http_exception &he) {
+	} catch (HttpException &he) {
 		lg.debug("HTTP error ", he.status_code(), " ", he.detail_string());
 		make_error(he.status_code());
 	} catch (std::exception &e) {
 		lg.error("internal error in module: ", h->get_name(), ": ", e.what());
-		make_error(response::status::INTERNAL_SERVER_ERROR);
+		make_error(Response::Status::internal_server_error);
 	} catch (...) {
 		lg.error("unknown exception in module: ", h->get_name());
-		make_error(response::status::INTERNAL_SERVER_ERROR);
+		make_error(Response::Status::internal_server_error);
 	}
 }
 
-void task::handle_request(request_handler &h)
+void Task::handle_request(RequestHandler &h)
 {
-	module_logger_guard mlg{ lg, h.get_name() };
-	parser::finalize(req);
-	request_handler::context ctx{ a, lg };
+	ModuleLoggerGuard mlg{ lg, h.get_name() };
+	Parser::finalize(req);
+	RequestHandler::Context ctx{ a, lg };
 	
 	switch (req.method.type) {
-	using method = request::method_s::type_e;
-	case method::GET: h.get(req, resp, ctx); break;
-	case method::HEAD: h.head(req, resp, ctx); break;
-	case method::POST: h.post(req, resp, ctx); break;
-	case method::OTHER:
+	using method = Request::Method::Type;
+	case method::get: h.get(req, resp, ctx); break;
+	case method::head: h.head(req, resp, ctx); break;
+	case method::post: h.post(req, resp, ctx); break;
+	case method::other:
 		h.method(req.method.name, req, resp, ctx);
 		break;
 	default: BOOST_ASSERT(0);
 	}
 }
 
-void task::make_error(response::status code) noexcept
+void Task::make_error(Response::Status code) noexcept
 {
 	//TODO cache buffers
 	resp.http_version = req.http_version;
@@ -93,6 +93,6 @@ void task::make_error(response::status code) noexcept
 	resp.headers.clear();
 	resp.headers.emplace_back("Content-Type"sv, "text/plain"sv);
 
-	auto clen_str = string_builder{ a }.convert(resp.body.front().length());
+	auto clen_str = StringBuilder{ a }.convert(resp.body.front().length());
 	resp.headers.emplace_back("Content-Length"sv, clen_str);
 }

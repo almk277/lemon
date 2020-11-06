@@ -11,64 +11,64 @@
 #include <memory>
 #include <utility>
 
-struct request_handler;
-class client;
-class router;
+struct RequestHandler;
+class Client;
+class Router;
 
-class task:
+class Task:
 	boost::noncopyable,
-	leak_checked<task>
+	LeakChecked<Task>
 {
 public:
-	using ident = task_ident;
+	using Ident = TaskIdent;
 
-	struct ptr
+	struct Ptr
 	{
-		explicit ptr(std::shared_ptr<task> t) noexcept: t{move(t)} {}
+		explicit Ptr(std::shared_ptr<Task> t) noexcept: t{move(t)} {}
 
-		task_logger &lg() const noexcept { return t->lg; }
-		arena &get_arena() const noexcept { return t->a; }
+		TaskLogger &lg() const noexcept { return t->lg; }
+		Arena &get_arena() const noexcept { return t->a; }
 
-		std::shared_ptr<task> t;
+		std::shared_ptr<Task> t;
 	};
 
-	class result;
+	class Result;
 
-	static constexpr ident start_id = 1;
+	static constexpr Ident start_id = 1;
 
-	task(ident id, std::shared_ptr<client> cl) noexcept;
-	~task();
+	Task(Ident id, std::shared_ptr<Client> cl) noexcept;
+	~Task();
 
 	auto is_last() const { return !req.keep_alive; }
 
 private:
-	static std::shared_ptr<task> make(ident id, std::shared_ptr<client> cl);
+	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<Client> cl);
 
 	void run();
-	void handle_request(request_handler &h);
-	void make_error(response::status code) noexcept;
+	void handle_request(RequestHandler &h);
+	void make_error(Response::Status code) noexcept;
 
-	const ident id;
-	const std::shared_ptr<const client> cl; // keep client alive
-	task_logger lg;
-	arena_imp a;
-	request req;
-	response resp;
-	const router &rout;
+	const Ident id;
+	const std::shared_ptr<const Client> cl; // keep client alive
+	TaskLogger lg;
+	ArenaImp a;
+	Request req;
+	Response resp;
+	const Router &rout;
 
-	friend class task_builder;
-	friend class ready_task;
-	friend class incomplete_task;
+	friend class TaskBuilder;
+	friend class ReadyTask;
+	friend class IncompleteTask;
 };
 
-class task::result: public ptr
+class Task::Result: public Ptr
 // implements boost::asio::ConstBufferSequence
 {
-	result(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
-	friend class task_builder;
-	friend class ready_task;
+	Result(std::shared_ptr<Task> t) noexcept: Ptr{ move(t) } {}
+	friend class TaskBuilder;
+	friend class ReadyTask;
 
-	struct buffer_adapter
+	struct BufferAdapter
 	{
 		const auto &operator()(string_view s) const noexcept
 		{
@@ -79,52 +79,52 @@ class task::result: public ptr
 		mutable boost::asio::const_buffer buffer;
 	};
 public:
-	result(const result&) = default;
-	result(result&&) = default;
-	result &operator=(const result&) = default;
-	result &operator=(result&&) = default;
-	~result() = default;
+	Result(const Result&) = default;
+	Result(Result&&) = default;
+	Result &operator=(const Result&) = default;
+	Result &operator=(Result&&) = default;
+	~Result() = default;
 
-	ident get_id() const noexcept { return t->id; }
-	bool operator<(const result &rhs) const noexcept
+	Ident get_id() const noexcept { return t->id; }
+	bool operator<(const Result &rhs) const noexcept
 	{
 		return get_id() < rhs.get_id();
 	}
-	bool operator==(const result &rhs) const noexcept
+	bool operator==(const Result &rhs) const noexcept
 	{
 		return t == rhs.t;
 	}
 
 	using value_type = boost::asio::const_buffer;
-	using const_iterator = boost::transform_iterator<buffer_adapter,
-		response::const_iterator>;
+	using const_iterator = boost::transform_iterator<BufferAdapter,
+		Response::const_iterator>;
 
 	const_iterator begin() const { return const_iterator{ t->resp.begin() }; }
 	const_iterator end()   const { return const_iterator{ t->resp.end() }; }
 };
 
-class ready_task : public task::ptr
+class ReadyTask : public Task::Ptr
 {
-	ready_task(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
-	friend class task_builder;
+	ReadyTask(std::shared_ptr<Task> t) noexcept: Ptr{ move(t) } {}
+	friend class TaskBuilder;
 public:
-	ready_task(const ready_task&) = default;
-	ready_task(ready_task&&) = default;
-	ready_task &operator=(const ready_task&) = default;
-	ready_task &operator=(ready_task&&) = default;
-	~ready_task() = default;
+	ReadyTask(const ReadyTask&) = default;
+	ReadyTask(ReadyTask&&) = default;
+	ReadyTask &operator=(const ReadyTask&) = default;
+	ReadyTask &operator=(ReadyTask&&) = default;
+	~ReadyTask() = default;
 
-	task::result run() const { t->run(); return { t }; }
+	Task::Result run() const { t->run(); return { t }; }
 };
 
-class incomplete_task : public task::ptr
+class IncompleteTask : public Task::Ptr
 {
-	incomplete_task(std::shared_ptr<task> t) noexcept: ptr{ move(t) } {}
-	friend class task_builder;
+	IncompleteTask(std::shared_ptr<Task> t) noexcept: Ptr{ move(t) } {}
+	friend class TaskBuilder;
 public:
-	incomplete_task(const incomplete_task&) = default;
-	incomplete_task(incomplete_task&&) = default;
-	incomplete_task &operator=(const incomplete_task&) = default;
-	incomplete_task &operator=(incomplete_task&&) = default;
-	~incomplete_task() = default;
+	IncompleteTask(const IncompleteTask&) = default;
+	IncompleteTask(IncompleteTask&&) = default;
+	IncompleteTask &operator=(const IncompleteTask&) = default;
+	IncompleteTask &operator=(IncompleteTask&&) = default;
+	~IncompleteTask() = default;
 };

@@ -6,24 +6,24 @@
 #include <vector>
 #include <memory>
 #include <utility>
-struct request_handler;
-class rh_manager;
+struct RequestHandler;
+class RhManager;
 
-class router: boost::noncopyable
+class Router: boost::noncopyable
 {
 public:
-	explicit router(const rh_manager &rhman, const options::route_list &routes);
+	explicit Router(const RhManager &rhman, const Options::RouteList &routes);
 
-	request_handler *resolve(string_view path) const;
+	RequestHandler *resolve(string_view path) const;
 	
-	struct matcher
+	struct Matcher
 	{
-		virtual ~matcher() = default;
+		virtual ~Matcher() = default;
 
 		virtual bool match(string_view s) const = 0;
 	};
 
 private:
-	std::vector<std::pair<std::unique_ptr<const matcher>,
-		std::shared_ptr<request_handler>>> matchers;
+	std::vector<std::pair<std::unique_ptr<const Matcher>,
+		std::shared_ptr<RequestHandler>>> matchers;
 };

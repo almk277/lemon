@@ -10,22 +10,22 @@
 #include <variant>
 #include <iterator>
 
-class options;
-class client;
+class Options;
+class Client;
 
-class task_builder: boost::noncopyable
+class TaskBuilder: boost::noncopyable
 {
 public:
-	class results
+	class Results
 	{
 	public:
-		using value = std::variant<incomplete_task, ready_task, task::result>;
+		using value = std::variant<IncompleteTask, ReadyTask, Task::Result>;
 
 		class iterator : public boost::iterator_facade<
 			iterator, value, std::input_iterator_tag, value>
 		{
 		public:
-			explicit iterator(results *r) noexcept: r{r} {}
+			explicit iterator(Results *r) noexcept: r{r} {}
 
 		private:
 			auto dereference() const
@@ -41,14 +41,14 @@ public:
 				current = r->next();
 			}
 
-			results *r;
+			Results *r;
 			std::optional<value> current;
 
 			friend class boost::iterator_core_access;
 		};
 
-		results(task_builder &builder, const std::shared_ptr<client> &cl,
-		        incomplete_task it, string_view data, bool stop);
+		Results(TaskBuilder &builder, const std::shared_ptr<Client> &cl,
+		        IncompleteTask it, string_view data, bool stop);
 
 		auto begin() -> iterator;
 		auto end() -> iterator;
@@ -56,26 +56,26 @@ public:
 		auto next() -> std::optional<value>;
 
 	private:
-		auto make_ready_task(const std::shared_ptr<client> &cl, incomplete_task &it) -> ready_task;
+		auto make_ready_task(const std::shared_ptr<Client> &cl, IncompleteTask &it) -> ReadyTask;
 		
 		string_view data;
-		task_builder &builder;
-		const std::shared_ptr<client> &cl;
-		incomplete_task it;
+		TaskBuilder &builder;
+		const std::shared_ptr<Client> &cl;
+		IncompleteTask it;
 		bool stop;
 	};
 
-	task_builder(task::ident start_id, const options &opt);
+	TaskBuilder(Task::Ident start_id, const Options &opt);
 
-	auto prepare_task(const std::shared_ptr<client> &cl) -> incomplete_task;
-	auto get_memory(const incomplete_task &it) -> boost::asio::mutable_buffer;
-	auto make_tasks(const std::shared_ptr<client> &cl, const incomplete_task &it,
-		std::size_t bytes_recv, bool stop) -> results;
-	static auto make_error_task(incomplete_task it, const http_error &error) -> task::result;
+	auto prepare_task(const std::shared_ptr<Client> &cl) -> IncompleteTask;
+	auto get_memory(const IncompleteTask &it) -> boost::asio::mutable_buffer;
+	auto make_tasks(const std::shared_ptr<Client> &cl, const IncompleteTask &it,
+		std::size_t bytes_recv, bool stop) -> Results;
+	static auto make_error_task(IncompleteTask it, const HttpError &error) -> Task::Result;
 
 private:
-	parser p;
-	const options &opt;
-	task::ident task_id;
+	Parser p;
+	const Options &opt;
+	Task::Ident task_id;
 	boost::asio::mutable_buffer recv_buf;
 };

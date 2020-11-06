@@ -8,29 +8,28 @@
 #include <array>
 
 using namespace config::test;
-using config::table;
+using config::Table;
 using boost::unit_test::data::make;
 
-struct bad_sample
+struct BadSample
 {
 	string_view text;
 	std::size_t error_pos;
 	std::string error_msg;
 };
 
-using sample_list0 = std::initializer_list<std::pair<string_view, table>>;
-using sample_list = std::initializer_list<std::pair<string_view, std::shared_ptr<table>>>;
-using bad_sample_list = std::initializer_list<bad_sample>;
+using SampleList = std::initializer_list<std::pair<string_view, std::shared_ptr<Table>>>;
+using BadSampleList = std::initializer_list<BadSample>;
 
 namespace config
 {
-static std::ostream &operator<<(std::ostream &stream, sample_list::const_reference sample)
+static std::ostream &operator<<(std::ostream &stream, SampleList::const_reference sample)
 {
 	return stream << "TEXT{\"" << sample.first << "\"} -> " << *sample.second;
 }
 }
 
-static std::ostream &operator<<(std::ostream &stream, bad_sample_list::const_reference sample)
+static std::ostream &operator<<(std::ostream &stream, BadSampleList::const_reference sample)
 {
 	return stream << "TEXT{\"" << sample.text << "\"} -> error at "
 		<< sample.error_pos << ": " << sample.error_msg;
@@ -40,7 +39,7 @@ namespace
 {
 auto tbl()
 {
-	return std::make_shared<table>(std::make_unique<table_error_handler>());
+	return std::make_shared<Table>(std::make_unique<TableErrorHandler>());
 }
 
 std::string expect(string_view what)
@@ -57,7 +56,7 @@ std::string expect(string_view what)
 	return std::string{ "Expecting " } + what_s;
 }
 
-sample_list basic_samples = {
+SampleList basic_samples = {
 	{
 		"", tbl()
 	},
@@ -82,7 +81,7 @@ sample_list basic_samples = {
 	},
 };
 
-const bad_sample_list bad_basic_samples = {
+const BadSampleList bad_basic_samples = {
 	{ "abc",         3,  expect("=") },
 	{ "a b",         2,  expect("=") },
 	{ "a 0",         2,  expect("=") },
@@ -95,7 +94,7 @@ const bad_sample_list bad_basic_samples = {
 	{ "a = { b = c", 11, expect("}") },
 };
 
-const sample_list key_samples = {
+const SampleList key_samples = {
 	{
 		"snake_key_name = 1",
 		tbl() << prop("snake_key_name", 1)
@@ -122,7 +121,7 @@ const sample_list key_samples = {
 	},
 };
 
-const sample_list bool_samples = {
+const SampleList bool_samples = {
 	{
 		"key = true",
 		tbl() << prop("key", true)
@@ -137,7 +136,7 @@ const sample_list bool_samples = {
 	},
 };
 
-const sample_list int_samples = {
+const SampleList int_samples = {
 	{
 		"key = 0",
 		tbl() << prop("key", 0)
@@ -156,7 +155,7 @@ const sample_list int_samples = {
 	},
 };
 
-const sample_list real_samples = {
+const SampleList real_samples = {
 	{
 		"key = 0.0",
 		tbl() << prop("key", 0.0)
@@ -195,7 +194,7 @@ const sample_list real_samples = {
 	},
 };
 
-const sample_list string_samples = {
+const SampleList string_samples = {
 	{
 		"key = value",
 		tbl() << prop("key", "value")
@@ -250,7 +249,7 @@ const sample_list string_samples = {
 	},
 };
 
-const sample_list table_samples = {
+const SampleList table_samples = {
 	{
 		"k = { }",
 		tbl() << prop("k", tbl())
@@ -276,7 +275,7 @@ const sample_list table_samples = {
 	},
 };
 
-const sample_list plain_config_samples = {
+const SampleList plain_config_samples = {
 	{
 		"key1 = true key2 = 42 key3 = 3.14 key4 = some_string",
 		tbl()
@@ -315,7 +314,7 @@ const sample_list plain_config_samples = {
 	},
 };
 
-const sample_list nested_config_samples = {
+const SampleList nested_config_samples = {
 	{
 		R"(k1 = v1
 		k2 = false
@@ -347,18 +346,18 @@ const sample_list nested_config_samples = {
 	},
 };
 
-void test(sample_list::const_reference sample)
+void test(SampleList::const_reference sample)
 {
-	auto f = std::make_shared<config::text_view>(sample.first);
+	auto f = std::make_shared<config::TextView>(sample.first);
 	BOOST_TEST(config::parse(f) == *sample.second,
 		boost::test_tools::per_element());
 }
 
-void error(bad_sample_list::const_reference sample)
+void error(BadSampleList::const_reference sample)
 {
-	auto f = std::make_shared<config::text_view>(sample.text);
-	BOOST_CHECK_EXCEPTION(config::parse(f), config::syntax_error,
-		[&sample](const config::syntax_error &exc)
+	auto f = std::make_shared<config::TextView>(sample.text);
+	BOOST_CHECK_EXCEPTION(config::parse(f), config::SyntaxError,
+		[&sample](const config::SyntaxError &exc)
 		{
 			BOOST_TEST_INFO("exception position " << exc.where());
 			BOOST_TEST_INFO("exception: " << exc.what());

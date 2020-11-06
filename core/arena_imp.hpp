@@ -2,14 +2,14 @@
 #include "arena.hpp"
 #include <boost/intrusive/list.hpp>
 
-class logger;
-struct alloc_tag_t;
+class Logger;
+struct AllocTag;
 
-class arena_imp : public arena
+class ArenaImp : public Arena
 {
 public:
-	explicit arena_imp(logger &lg) noexcept;
-	~arena_imp();
+	explicit ArenaImp(Logger &lg) noexcept;
+	~ArenaImp();
 
 	void *aligned_alloc(size_t alignment, size_t size);
 
@@ -20,22 +20,22 @@ public:
 	size_t n_bytes_allocated() const noexcept;
 
 private:
-	struct alignas(std::max_align_t) block : boost::intrusive::list_base_hook<>
+	struct alignas(std::max_align_t) Block : boost::intrusive::list_base_hook<>
 	{
-		explicit block(size_t) {}
-		block(const block&) = delete;
-		block(block&&) = delete;
+		explicit Block(size_t) {}
+		Block(const Block&) = delete;
+		Block(Block&&) = delete;
 
 		void *operator new(size_t size) = delete;
-		void *operator new(size_t size, alloc_tag_t, size_t space);
+		void *operator new(size_t size, AllocTag, size_t space);
 		void operator delete(void *p);
-		void operator delete(void *p, alloc_tag_t, size_t);
+		void operator delete(void *p, AllocTag, size_t);
 		void *free_space();
 	};
 
-	struct stateful_block : block
+	struct StatefulBlock : Block
 	{
-		explicit stateful_block(size_t size);
+		explicit StatefulBlock(size_t size);
 
 		void *alloc(size_t size) noexcept;
 		void *free_space();
@@ -45,14 +45,14 @@ private:
 	};
 
 	void *alloc_as_separate_block(size_t size);
-	void *alloc_from_block(stateful_block &b, size_t size);
+	void *alloc_from_block(StatefulBlock &b, size_t size);
 	void *alloc_in_new_block(size_t size);
 	void *alloc_compact(size_t alignment, size_t size);
 
-	logger &lg;
+	Logger &lg;
 	size_t n_bytes = 0;
 
-	boost::intrusive::list<stateful_block> avail_blocks;
-	boost::intrusive::list<stateful_block> unavail_blocks;
-	boost::intrusive::list<block> separate_blocks;
+	boost::intrusive::list<StatefulBlock> avail_blocks;
+	boost::intrusive::list<StatefulBlock> unavail_blocks;
+	boost::intrusive::list<Block> separate_blocks;
 };

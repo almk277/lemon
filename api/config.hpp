@@ -10,68 +10,68 @@
 
 namespace config
 {
-class error : public std::runtime_error
+class Error : public std::runtime_error
 {
 public:
-	explicit error(const std::string &msg);
+	explicit Error(const std::string &msg);
 };
 
-class bad_key : public error
+class BadKey : public Error
 {
 public:
-	bad_key(const std::string &key, const std::string &msg);
+	BadKey(const std::string &key, const std::string &msg);
 	auto key() const noexcept -> const std::string& { return k; }
 private:
 	const std::string k;
 };
 
-class bad_value : public bad_key
+class BadValue : public BadKey
 {
 public:
-	bad_value(const std::string &key, const std::string &expected, const std::string &obtained,
+	BadValue(const std::string &key, const std::string &expected, const std::string &obtained,
 		const std::string &msg);
 };
 
-using boolean = bool;
-using integer = std::int32_t;
-using real = double;
-using string = std::string;
-class table;
-class file;
+using Boolean = bool;
+using Integer = std::int32_t;
+using Real = double;
+using String = std::string;
+class Table;
+class File;
 
-class property
+class Property
 {
 public:
-	struct error_handler
+	struct ErrorHandler
 	{
-		virtual ~error_handler() = default;
+		virtual ~ErrorHandler() = default;
 		virtual auto key_error(const std::string &msg) const -> std::string = 0;
 		virtual auto value_error(const std::string &msg) const -> std::string = 0;
 	};
 
-	struct empty_type {};
-	static constexpr empty_type empty{};
+	struct EmptyType {};
+	static constexpr EmptyType empty{};
 
-	property(std::unique_ptr<const error_handler> eh,
-		std::string key, empty_type = empty);
-	property(std::unique_ptr<const error_handler> eh,
-		std::string key, boolean val);
-	property(std::unique_ptr<const error_handler> eh,
-		std::string key, integer val);
-	property(std::unique_ptr<const error_handler> eh,
-		std::string key, real val);
-	property(std::unique_ptr<const error_handler> eh,
+	Property(std::unique_ptr<const ErrorHandler> eh,
+		std::string key, EmptyType = empty);
+	Property(std::unique_ptr<const ErrorHandler> eh,
+		std::string key, Boolean val);
+	Property(std::unique_ptr<const ErrorHandler> eh,
+		std::string key, Integer val);
+	Property(std::unique_ptr<const ErrorHandler> eh,
+		std::string key, Real val);
+	Property(std::unique_ptr<const ErrorHandler> eh,
 		std::string key, const char *val);
-	property(std::unique_ptr<const error_handler> eh,
-		std::string key, string val);
-	property(std::unique_ptr<const error_handler> eh,
-		std::string key, table val);
-	property(const property &rhs) = delete;
-	property(property &&rhs) noexcept;
-	~property();
+	Property(std::unique_ptr<const ErrorHandler> eh,
+		std::string key, String val);
+	Property(std::unique_ptr<const ErrorHandler> eh,
+		std::string key, Table val);
+	Property(const Property &rhs) = delete;
+	Property(Property &&rhs) noexcept;
+	~Property();
 
-	auto operator=(const property& rhs)->property& = delete;
-	auto operator=(property&& rhs)->property& = delete;
+	auto operator=(const Property& rhs)->Property& = delete;
+	auto operator=(Property&& rhs)->Property& = delete;
 
 	[[nodiscard]] auto has_value() const noexcept -> bool;
 	explicit operator bool() const noexcept;
@@ -84,49 +84,49 @@ public:
 
 	template <typename T>
 	std::enable_if_t<
-		   std::is_same_v<T, boolean>
-		|| std::is_same_v<T, integer>
-		|| std::is_same_v<T, real>
-		|| std::is_same_v<T, string>
-		|| std::is_same_v<T, table>
+		   std::is_same_v<T, Boolean>
+		|| std::is_same_v<T, Integer>
+		|| std::is_same_v<T, Real>
+		|| std::is_same_v<T, String>
+		|| std::is_same_v<T, Table>
 		, const T&> as() const;
 
-	auto get_error_handler() const -> const error_handler&;
+	auto get_error_handler() const -> const ErrorHandler&;
 
-	friend auto operator==(const property &lhs, const property &rhs) noexcept -> bool;
-	friend auto operator!=(const property &lhs, const property &rhs) noexcept -> bool;
+	friend auto operator==(const Property &lhs, const Property &rhs) noexcept -> bool;
+	friend auto operator!=(const Property &lhs, const Property &rhs) noexcept -> bool;
 
 private:
-	struct priv;
-	priv *p;
+	struct Priv;
+	Priv *p;
 };
 
-class table
+class Table
 {
 public:
-	struct error_handler
+	struct ErrorHandler
 	{
-		virtual ~error_handler() = default;
-		virtual auto make_error_handler() -> std::unique_ptr<property::error_handler> = 0;
+		virtual ~ErrorHandler() = default;
+		virtual auto make_error_handler() -> std::unique_ptr<Property::ErrorHandler> = 0;
 	};
 	
 	class const_iterator;
-	using value_type = property;
+	using value_type = Property;
 
-	explicit table(std::unique_ptr<error_handler> eh);
-	table(const table &rhs) = delete;
-	table(table &&rhs) noexcept;
-	~table();
+	explicit Table(std::unique_ptr<ErrorHandler> eh);
+	Table(const Table &rhs) = delete;
+	Table(Table &&rhs) noexcept;
+	~Table();
 
-	auto operator=(const table&) -> table& = delete;
-	auto operator=(table&&) -> table& = delete;
+	auto operator=(const Table&) -> Table& = delete;
+	auto operator=(Table&&) -> Table& = delete;
 
-	auto add(property val) -> table&;
+	auto add(Property val) -> Table&;
 
-	[[nodiscard]] auto get_unique(string_view name) const -> const property&;
-	[[nodiscard]] auto get_last(string_view name) const -> const property&;
-	[[nodiscard]] auto operator[](string_view name) const -> const property&;
-	[[nodiscard]] auto get_all(string_view name) const -> std::vector<const property*>;
+	[[nodiscard]] auto get_unique(string_view name) const -> const Property&;
+	[[nodiscard]] auto get_last(string_view name) const -> const Property&;
+	[[nodiscard]] auto operator[](string_view name) const -> const Property&;
+	[[nodiscard]] auto get_all(string_view name) const -> std::vector<const Property*>;
 
 	auto size() const -> std::size_t;
 
@@ -137,51 +137,51 @@ public:
 
 	auto throw_on_unknown_key() const -> void;
 
-	friend auto operator==(const table &lhs, const table &rhs) noexcept -> bool;
-	friend auto operator!=(const table &lhs, const table &rhs) noexcept -> bool;
+	friend auto operator==(const Table &lhs, const Table &rhs) noexcept -> bool;
+	friend auto operator!=(const Table &lhs, const Table &rhs) noexcept -> bool;
 
 private:
-	struct priv;
-	priv *p;
+	struct Priv;
+	Priv *p;
 	friend class const_iterator;
 };
 
 template <>
-auto property::is<boolean>() const noexcept -> bool;
+auto Property::is<Boolean>() const noexcept -> bool;
 
 template <>
-auto property::is<integer>() const noexcept -> bool;
+auto Property::is<Integer>() const noexcept -> bool;
 
 template <>
-auto property::is<real>() const noexcept -> bool;
+auto Property::is<Real>() const noexcept -> bool;
 
 template <>
-auto property::is<string>() const noexcept -> bool;
+auto Property::is<String>() const noexcept -> bool;
 
 template <>
-auto property::is<table>() const noexcept -> bool;
+auto Property::is<Table>() const noexcept -> bool;
 
 template <typename T>
-auto property::is() const noexcept -> bool
+auto Property::is() const noexcept -> bool
 {
 	return false;
 }
 
-inline property::property(std::unique_ptr<const error_handler> eh,
+inline Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, const char* val) :
-	property{ move(eh), move(key), string{ val } }
+	Property{ move(eh), move(key), String{ val } }
 {
 }
 
-inline auto property::has_value() const noexcept -> bool
+inline auto Property::has_value() const noexcept -> bool
 {
 	return static_cast<bool>(*this);
 }
 
-class table::const_iterator
+class Table::const_iterator
 {
 public:
-	using value_type = property;
+	using value_type = Property;
 	using reference = const value_type&;
 	using pointer = const value_type*;
 	using difference_type = int;
@@ -191,8 +191,8 @@ public:
 	struct end_tag {};
 
 	const_iterator();
-	const_iterator(const table *tbl, begin_tag);
-	const_iterator(const table *tbl, end_tag);
+	const_iterator(const Table *tbl, begin_tag);
+	const_iterator(const Table *tbl, end_tag);
 	const_iterator(const const_iterator &rhs);
 	const_iterator(const_iterator &&rhs) noexcept;
 	~const_iterator();
@@ -211,7 +211,7 @@ public:
 		const const_iterator& it2) -> bool;
 
 private:
-	struct priv;
-	priv *p;
+	struct Priv;
+	Priv *p;
 };
 }

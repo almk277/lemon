@@ -1,10 +1,10 @@
 #pragma once
 
 template<typename... Ts>
-struct visitor : Ts...
+struct Visitor : Ts...
 {
 	using Ts::operator()...;
 };
 
 template<typename... Ts>
-visitor(Ts...) -> visitor<Ts...>;
+Visitor(Ts...) -> Visitor<Ts...>;

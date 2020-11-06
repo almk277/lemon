@@ -25,24 +25,24 @@ using buffer = boost::asio::mutable_buffer;
 using buffer_list = std::vector<buffer>;
 struct big_array { int data[2048]; };
 
-struct arena_fixture
+struct ArenaFixture
 {
-	arena_imp a{ slg };
+	ArenaImp a{ slg };
 };
 
 void test1(const buffer &b) { std::memset(b.data(), 0, b.size()); }
 void test(const buffer_list &list) { boost::range::for_each(list, test1); }
 }
 
-BOOST_TEST_DONT_PRINT_LOG_VALUE(arena::allocator<char>)
+BOOST_TEST_DONT_PRINT_LOG_VALUE(Arena::Allocator<char>)
 
-BOOST_FIXTURE_TEST_SUITE(arena_tests, arena_fixture)
+BOOST_FIXTURE_TEST_SUITE(arena_tests, ArenaFixture)
 
 BOOST_AUTO_TEST_CASE(test_aligned_alloc)
 {
-	std::vector<std::pair<std::unique_ptr<arena_imp>, buffer_list>> arenas;
+	std::vector<std::pair<std::unique_ptr<ArenaImp>, buffer_list>> arenas;
 	for (size_t i = 0; i < n_arenas; ++i)
-		arenas.emplace_back(std::make_unique<arena_imp>(slg), buffer_list{});
+		arenas.emplace_back(std::make_unique<ArenaImp>(slg), buffer_list{});
 
 	for (auto &[a, buffers] : arenas)
 		for (auto size: sizes)
@@ -96,9 +96,9 @@ BOOST_AUTO_TEST_CASE(test_allocator)
 
 BOOST_AUTO_TEST_CASE(test_allocator_compare)
 {
-	arena_imp a2{ slg };
+	ArenaImp a2{ slg };
 	BOOST_TEST(a.make_allocator<char>() == a.make_allocator<char>());
-	BOOST_TEST(a.make_allocator<char>() == arena::allocator<char>(a));
+	BOOST_TEST(a.make_allocator<char>() == Arena::Allocator<char>(a));
 	BOOST_TEST(a.make_allocator<char>() != a2.make_allocator<char>());
 }
 

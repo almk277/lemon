@@ -4,13 +4,13 @@
 
 namespace config
 {
-auto operator<<(std::ostream& stream, const property& p) -> std::ostream&;
-auto operator<<(std::ostream& stream, const property::empty_type& e) -> std::ostream&;
-auto operator<<(std::ostream& stream, const table& t) -> std::ostream&;
+auto operator<<(std::ostream& stream, const Property& p) -> std::ostream&;
+auto operator<<(std::ostream& stream, const Property::EmptyType& e) -> std::ostream&;
+auto operator<<(std::ostream& stream, const Table& t) -> std::ostream&;
 
 namespace test
 {
-class property_error_handler : public property::error_handler
+class PropertyErrorHandler : public Property::ErrorHandler
 {
 public:
 	auto key_error(const std::string& msg) const -> std::string override
@@ -24,9 +24,9 @@ public:
 	}
 };
 
-class table_error_handler : public table::error_handler
+class TableErrorHandler : public Table::ErrorHandler
 {
-	struct empty_property_error_handler : property::error_handler
+	struct empty_property_error_handler : Property::ErrorHandler
 	{
 		auto key_error(const std::string& msg) const -> std::string override
 		{
@@ -40,7 +40,7 @@ class table_error_handler : public table::error_handler
 	};
 
 public:
-	auto make_error_handler() -> std::unique_ptr<property::error_handler> override
+	auto make_error_handler() -> std::unique_ptr<Property::ErrorHandler> override
 	{
 		return std::make_unique<empty_property_error_handler>();
 	}
@@ -49,22 +49,22 @@ public:
 template <typename T>
 auto prop(std::string key, std::shared_ptr<T> &&value)
 {
-	return property{ std::make_unique<property_error_handler>(), move(key), std::move(*value) };
+	return Property{ std::make_unique<PropertyErrorHandler>(), move(key), std::move(*value) };
 }
 
 template <typename T>
 auto prop(std::string key, T value)
 {
-	return property{ std::make_unique<property_error_handler>(), move(key), std::move(value) };
+	return Property{ std::make_unique<PropertyErrorHandler>(), move(key), std::move(value) };
 }
 
-inline auto operator<<(std::shared_ptr<table> t, property &&p)
+inline auto operator<<(std::shared_ptr<Table> t, Property &&p)
 {
 	t->add(std::move(p));
 	return t;
 }
 
-inline auto operator<<(table t, property &&p)
+inline auto operator<<(Table t, Property &&p)
 {
 	t.add(std::move(p));
 	return t;

@@ -1,9 +1,9 @@
 #pragma once
 
-class options;
+class Options;
 
 namespace logs
 {
 	void preinit();
-	void init(const options &opt);
+	void init(const Options &opt);
 }

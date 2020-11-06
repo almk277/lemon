@@ -10,13 +10,13 @@
 
 namespace
 {
-using cmdline_args = std::vector<std::string>;
+using CmdlineArgs = std::vector<std::string>;
 
-struct cmdline_fixture
+struct CmdlineFixture
 {
-	command_line_parser parser;
+	CommandLineParser parser;
 
-	auto cmdline(const cmdline_args &args) const
+	auto cmdline(const CmdlineArgs &args) const
 	{
 		std::vector<const char*> argv = { "test-program" };
 		copy(args | boost::adaptors::transformed(mem_fn(&std::string::c_str)), back_inserter(argv));
@@ -24,7 +24,7 @@ struct cmdline_fixture
 		auto argc = static_cast<int>(argv.size());
 		return parser.parse(argc, argv.data());
 	}
-	auto to_parameters(const cmdline_args &args) const
+	auto to_parameters(const CmdlineArgs &args) const
 	{
 		return cmdline(args).to_parameters();
 	}
@@ -35,7 +35,7 @@ struct cmdline_fixture
 #define ERROR_BAD_SYNTAX(expr) BOOST_CHECK_THROW((expr), std::logic_error)
 #define ERROR_MULTIPLE(expr) BOOST_CHECK_THROW((expr), std::logic_error)
 
-BOOST_FIXTURE_TEST_SUITE(cmdline_parser_tests, cmdline_fixture)
+BOOST_FIXTURE_TEST_SUITE(cmdline_parser_tests, CmdlineFixture)
 
 BOOST_AUTO_TEST_CASE(help)
 {

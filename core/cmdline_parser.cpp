@@ -25,16 +25,16 @@ auto make_desc()
 }
 }
 
-command_line_parser::command_line_parser():
+CommandLineParser::CommandLineParser():
 	desc{ make_desc() }
 {
 }
 
-auto command_line_parser::parse(int argc, const char *const argv[]) const -> command_line
+auto CommandLineParser::parse(int argc, const char *const argv[]) const -> CommandLine
 {
 	namespace style = boost::program_options::command_line_style;
 
-	command_line result;
+	CommandLine result;
 	auto options = parse_command_line(argc, argv, desc,
 		style::default_style & ~style::allow_guessing);
 	store(options, result.vars);
@@ -43,19 +43,19 @@ auto command_line_parser::parse(int argc, const char *const argv[]) const -> com
 	return result;
 }
 
-auto command_line_parser::print_options(std::ostream &stream) const -> void
+auto CommandLineParser::print_options(std::ostream &stream) const -> void
 {
 	stream << desc;
 }
 
-auto command_line::has(const std::string &parameter) const noexcept -> bool
+auto CommandLine::has(const std::string &parameter) const noexcept -> bool
 {
 	return vars.count(parameter) > 0;
 }
 
-auto command_line::to_parameters() const -> parameters
+auto CommandLine::to_parameters() const -> Parameters
 {
-	parameters p;
+	Parameters p;
 	p.config_path = vars["config"].as<std::string>();
 
 	return p;

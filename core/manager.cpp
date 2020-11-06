@@ -19,7 +19,7 @@
 
 namespace
 {
-struct finish_worker: std::exception
+struct FinishWorker: std::exception
 {
 	const char *what() const noexcept override { return "finish_worker"; }
 };
@@ -31,7 +31,7 @@ unsigned n_workers_default()
 }
 }
 
-manager::manager(const parameters &params):
+Manager::Manager(const Parameters &params):
 	master_ctx{ 1 },
 	master_work{ make_work_guard(master_ctx) },
 	worker_work{ make_work_guard(worker_ctx) },
@@ -52,12 +52,12 @@ manager::manager(const parameters &params):
 	lg.debug("config_path ", config_path);
 }
 
-manager::~manager()
+Manager::~Manager()
 {
 	lg.trace("manager destroyed");
 }
 
-void manager::run()
+void Manager::run()
 {
 	lg.trace("manager started");
 
@@ -66,26 +66,26 @@ void manager::run()
 	lg.trace("manager finished");
 }
 
-void manager::reinit()
+void Manager::reinit()
 {
 	lg.trace("manager reinit");
 
 	post(master_ctx, [this] { init(); });
 }
 
-void manager::init()
+void Manager::init()
 {
 	lg.debug("initializing manager");
 
-	std::shared_ptr<options> opts;
+	std::shared_ptr<Options> opts;
 
 	try {
 #ifdef LEMON_NO_CONFIG
 		opts = std::make_shared<options>();
 #else
-		auto config_file = std::make_shared<config::file>(config_path);
+		auto config_file = std::make_shared<config::File>(config_path);
 		auto config = parse(config_file);
-		opts = std::make_shared<options>(config);
+		opts = std::make_shared<Options>(config);
 #endif
 		if (opts->servers.empty())
 			throw std::runtime_error{ "no servers configured" };
@@ -103,15 +103,15 @@ void manager::init()
 	}
 }
 
-void manager::init_servers(const std::shared_ptr<const options> &opts)
+void Manager::init_servers(const std::shared_ptr<const Options> &opts)
 {
 	lg.trace("init_servers");
 
-	rh_manager rhman;
-	rhman.add(std::make_shared<rh_testing>());
-	rhman.add(std::make_shared<rh_static_file>());
+	RhManager rhman;
+	rhman.add(std::make_shared<RhTesting>());
+	rhman.add(std::make_shared<RhStaticFile>());
 
-	std::set<decltype(options::server::listen_port)> running_servers;
+	std::set<decltype(Options::Server::listen_port)> running_servers;
 	for (auto it = srv.begin(); it != srv.end();)
 	{
 		auto &server = *it;
@@ -130,10 +130,10 @@ void manager::init_servers(const std::shared_ptr<const options> &opts)
 		return !contains(running_servers, opt.listen_port);
 	};
 	for (auto &s : opts->servers | boost::adaptors::filtered(not_running))
-		srv.push_back(std::make_unique<server>(worker_ctx, opts, s, rhman));
+		srv.push_back(std::make_unique<Server>(worker_ctx, opts, s, rhman));
 }
 
-void manager::init_workers(const std::shared_ptr<const options> &opts)
+void Manager::init_workers(const std::shared_ptr<const Options> &opts)
 {
 	lg.trace("init_workers");
 
@@ -151,7 +151,7 @@ void manager::init_workers(const std::shared_ptr<const options> &opts)
 	n_workers = required_n_workers;
 }
 
-void manager::add_worker()
+void Manager::add_worker()
 {
 	lg.trace("add worker");
 
@@ -161,17 +161,17 @@ void manager::add_worker()
 	workers[id] = move(worker);
 }
 
-void manager::remove_worker()
+void Manager::remove_worker()
 {
 	lg.trace("remove worker");
 
 	BOOST_ASSERT(!workers.empty());
-	post(worker_ctx, [] { throw finish_worker{}; });
+	post(worker_ctx, [] { throw FinishWorker{}; });
 }
 
-void manager::run_worker() noexcept
+void Manager::run_worker() noexcept
 {
-	common_logger lg;
+	CommonLogger lg;
 	auto n = std::this_thread::get_id();
 
 	lg.debug("started worker thread #", n);
@@ -179,7 +179,7 @@ void manager::run_worker() noexcept
 	while (!worker_ctx.stopped()) {
 		try {
 			worker_ctx.run();
-		} catch (finish_worker&) {
+		} catch (FinishWorker&) {
 			break;
 		} catch (std::exception &e) {
 			lg.error(e.what());
@@ -193,7 +193,7 @@ void manager::run_worker() noexcept
 	post(master_ctx, [this, n] { finalize_worker(n); });
 }
 
-void manager::finalize_worker(std::thread::id id)
+void Manager::finalize_worker(std::thread::id id)
 {
 	lg.debug("finalize worker #", id);
 

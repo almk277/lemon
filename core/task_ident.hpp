@@ -2,4 +2,4 @@
 
 #include <cstdint>
 
-using task_ident = std::uint32_t;
+using TaskIdent = std::uint32_t;

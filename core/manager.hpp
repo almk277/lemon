@@ -11,15 +11,15 @@
 #include <map>
 #include <thread>
 
-class options;
-struct parameters;
-class server;
+class Options;
+struct Parameters;
+class Server;
 
-class manager: boost::noncopyable
+class Manager: boost::noncopyable
 {
 public:
-	explicit manager(const parameters &params);
-	~manager();
+	explicit Manager(const Parameters &params);
+	~Manager();
 
 	void run();
 	//TODO find a way to call it
@@ -27,8 +27,8 @@ public:
 
 private:
 	void init();
-	void init_servers(const std::shared_ptr<const options> &opts);
-	void init_workers(const std::shared_ptr<const options> &opts);
+	void init_servers(const std::shared_ptr<const Options> &opts);
+	void init_workers(const std::shared_ptr<const Options> &opts);
 	void add_worker();
 	void remove_worker();
 	void run_worker() noexcept;
@@ -41,7 +41,7 @@ private:
 	boost::asio::signal_set quit_signals;
 	std::map<std::thread::id, std::thread> workers;
 	unsigned n_workers = 0;
-	common_logger lg;
-	std::vector<std::unique_ptr<server>> srv;
+	CommonLogger lg;
+	std::vector<std::unique_ptr<Server>> srv;
 	const boost::filesystem::path config_path;
 };

@@ -4,25 +4,25 @@
 #include <string>
 #include <ostream>
 
-struct parameters;
+struct Parameters;
 
-class command_line
+class CommandLine
 {
 public:
 	auto has(const std::string &parameter) const noexcept -> bool;
-	auto to_parameters() const -> parameters;
+	auto to_parameters() const -> Parameters;
 
 private:
 	boost::program_options::variables_map vars;
-	friend class command_line_parser;
+	friend class CommandLineParser;
 };
 
-class command_line_parser
+class CommandLineParser
 {
 public:
-	command_line_parser();
+	CommandLineParser();
 	// throws std::logic_error
-	auto parse(int argc, const char *const argv[]) const -> command_line;
+	auto parse(int argc, const char *const argv[]) const -> CommandLine;
 	auto print_options(std::ostream &stream) const -> void;
 
 private:

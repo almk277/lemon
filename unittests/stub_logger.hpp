@@ -1,8 +1,8 @@
 #pragma once
 #include "logger.hpp"
 
-struct stub_logger: logger
+struct StubLogger: Logger
 {
 };
 
-extern stub_logger slg;
+extern StubLogger slg;

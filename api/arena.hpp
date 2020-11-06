@@ -2,15 +2,15 @@
 
 #include <cstddef>
 
-class arena
+class Arena
 {
 public:
 	using size_t = std::size_t;
 
-	arena(const arena&) = delete;
-	arena(arena&&) = delete;
-	arena &operator=(const arena&) = delete;
-	arena &operator=(arena&&) = delete;
+	Arena(const Arena&) = delete;
+	Arena(Arena&&) = delete;
+	Arena &operator=(const Arena&) = delete;
+	Arena &operator=(Arena&&) = delete;
 
 	template <typename T>
 	[[nodiscard]] void *alloc(const char *msg = "");
@@ -23,15 +23,15 @@ public:
 	size_t n_blocks_allocated() const noexcept;
 	size_t n_bytes_allocated() const noexcept;
 	
-	template <typename T> class allocator;
+	template <typename T> class Allocator;
 
 	template <typename T>
-	constexpr allocator<T> make_allocator(const char *name = "") noexcept
-	{ return allocator<T>{*this, name}; }
+	constexpr Allocator<T> make_allocator(const char *name = "") noexcept
+	{ return Allocator<T>{*this, name}; }
 
 protected:
-	arena() = default;
-	~arena() = default;
+	Arena() = default;
+	~Arena() = default;
 
 private:
 	void *aligned_alloc_imp(size_t alignment, size_t size);
@@ -41,22 +41,22 @@ private:
 };
 
 template <typename T>
-void *arena::alloc(const char *msg)
+void *Arena::alloc(const char *msg)
 {
 	return aligned_alloc(alignof(T), sizeof(T), msg);
 }
 
-inline void *arena::alloc(size_t size, const char *msg)
+inline void *Arena::alloc(size_t size, const char *msg)
 {
 	return aligned_alloc(alignof(std::max_align_t), size, msg);
 }
 
-inline void arena::free(void*, size_t s, const char *msg) noexcept
+inline void Arena::free(void*, size_t s, const char *msg) noexcept
 {
 	log_free(s, msg);
 }
 
-inline void *arena::aligned_alloc(size_t alignment, size_t size, const char *msg)
+inline void *Arena::aligned_alloc(size_t alignment, size_t size, const char *msg)
 {
 	log_alloc(size, msg);
 	return aligned_alloc_imp(alignment, size);
@@ -65,20 +65,20 @@ inline void *arena::aligned_alloc(size_t alignment, size_t size, const char *msg
 
 // Implements std::Allocator
 template <typename T>
-class arena::allocator
+class Arena::Allocator
 {
 public:
 	using value_type = T;
 
-	explicit constexpr allocator(arena &a, const char *name = "") noexcept:
-	a{ a }, name{ name } {}
+	explicit constexpr Allocator(Arena &a, const char *name = "") noexcept:
+		a{ a }, name{ name } {}
 	template <typename U>
-	explicit allocator(const allocator<U> &rhs) noexcept :
+	explicit Allocator(const Allocator<U> &rhs) noexcept :
 		a{ rhs.a }, name{ rhs.name } {}
 	template <typename U>
-	explicit allocator(allocator<U> &&rhs) noexcept :
+	explicit Allocator(Allocator<U> &&rhs) noexcept :
 		a{ rhs.a }, name{ rhs.name } {}
-	~allocator() = default;
+	~Allocator() = default;
 
 	T *allocate(std::size_t n)
 	{
@@ -92,20 +92,20 @@ public:
 	template <typename U>
 	struct rebind
 	{
-		using other = allocator<U>;
+		using other = Allocator<U>;
 	};
 
-	friend bool operator==(const allocator<T> &a1, const allocator<T> &a2) noexcept
+	friend bool operator==(const Allocator<T> &a1, const Allocator<T> &a2) noexcept
 	{
 		return &a1.a == &a2.a;
 	}
-	friend bool operator!=(const allocator<T> &a1, const allocator<T> &a2) noexcept
+	friend bool operator!=(const Allocator<T> &a1, const Allocator<T> &a2) noexcept
 	{
 		return &a1.a != &a2.a;
 	}
 
 private:
-	arena &a;
+	Arena &a;
 	const char *const name;
-	template <typename> friend class allocator;
+	template <typename> friend class Allocator;
 };

@@ -4,16 +4,16 @@
 #include <boost/core/noncopyable.hpp>
 #include <memory>
 #include <map>
-struct request_handler;
+struct RequestHandler;
 
-class rh_manager: boost::noncopyable
+class RhManager: boost::noncopyable
 {
 public:
-	rh_manager() = default;
+	RhManager() = default;
 
-	void add(std::shared_ptr<request_handler> h);
-	std::shared_ptr<request_handler> operator[](string_view name) const;
+	void add(std::shared_ptr<RequestHandler> h);
+	std::shared_ptr<RequestHandler> operator[](string_view name) const;
 
 private:
-	std::map<string_view, std::shared_ptr<request_handler>> handlers;
+	std::map<string_view, std::shared_ptr<RequestHandler>> handlers;
 };

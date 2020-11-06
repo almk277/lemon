@@ -6,28 +6,28 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
 
-class router;
-class rh_manager;
+class Router;
+class RhManager;
 
-class server: boost::noncopyable
+class Server: boost::noncopyable
 {
 public:
-	server(boost::asio::io_context &context, std::shared_ptr<const options> global_opt,
-		const options::server &server_opt, const rh_manager &rhman);
-	~server();
+	Server(boost::asio::io_context &context, std::shared_ptr<const Options> global_opt,
+		const Options::Server &server_opt, const RhManager &rhman);
+	~Server();
 
-	const options::server &get_options() const { return server_opt; }
+	const Options::Server &get_options() const { return server_opt; }
 
-	server_logger lg;
+	ServerLogger lg;
 
 private:
-	using tcp = boost::asio::ip::tcp;
+	using Tcp = boost::asio::ip::tcp;
 
 	void start_accept();
 
 	boost::asio::io_context &context;
-	tcp::acceptor acceptor;
-	const std::shared_ptr<const options> global_opt;
-	const options::server &server_opt;
-	const std::shared_ptr<const router> rout;
+	Tcp::acceptor acceptor;
+	const std::shared_ptr<const Options> global_opt;
+	const Options::Server &server_opt;
+	const std::shared_ptr<const Router> rout;
 };
