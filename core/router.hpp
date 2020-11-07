@@ -2,9 +2,9 @@
 #include "string_view.hpp"
 #include "options.hpp"
 #include <boost/core/noncopyable.hpp>
-#include <vector>
 #include <memory>
 #include <utility>
+#include <vector>
 
 struct RequestHandler;
 class RhManager;
@@ -12,7 +12,7 @@ class RhManager;
 class Router: boost::noncopyable
 {
 public:
-	explicit Router(const RhManager& rhman, const Options::RouteList& routes);
+	Router(const RhManager& rhman, const Options::RouteList& routes);
 
 	RequestHandler* resolve(string_view path) const;
 	

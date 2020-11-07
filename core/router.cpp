@@ -1,17 +1,15 @@
 #include "router.hpp"
-#include "options.hpp"
 #include "rh_manager.hpp"
 #include <algorithm>
 #include <string>
 #include <regex>
-#include <utility>
 
 namespace
 {
 class ExactMatcher: public Router::Matcher
 {
 public:
-	explicit ExactMatcher(std::string patt): patt{move(patt)} {}
+	explicit ExactMatcher(std::string patt) : patt{ move(patt) } {}
 	bool match(string_view s) const noexcept override
 	{
 		return s == patt;
@@ -23,7 +21,7 @@ private:
 class PrefixMatcher: public Router::Matcher
 {
 public:
-	explicit PrefixMatcher(std::string prefix): prefix{move(prefix)} {}
+	explicit PrefixMatcher(std::string prefix) : prefix{ move(prefix) } {}
 	bool match(string_view s) const noexcept override
 	{
 		return prefix.length() <= s.length()
@@ -36,7 +34,7 @@ private:
 class RegexMatcher: public Router::Matcher
 {
 public:
-	explicit RegexMatcher(const std::string& s): re{s} {}
+	explicit RegexMatcher(const std::string& s) : re{ s, std::regex_constants::optimize } {}
 	bool match(string_view s) const override
 	{
 		return regex_match(s.begin(), s.end(), re);
@@ -79,9 +77,9 @@ Router::Router(const RhManager& rhman, const Options::RouteList& routes)
 
 RequestHandler* Router::resolve(string_view path) const
 {
-	for (auto& [matcher, handler]: matchers) {
+	for (auto& [matcher, handler]: matchers)
 		if (matcher->match(path))
 			return handler.get();
-	}
+
 	return nullptr;
 }
