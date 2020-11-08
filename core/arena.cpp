@@ -28,18 +28,19 @@ namespace
 {
 using std::size_t;
 
-constexpr size_t block_size = 4 * 1024; //TODO adjust to fit block here
+constexpr size_t page_size = 4 * 1024;
+constexpr size_t stateful_block_size = page_size - ArenaImp::StatefulBlock_size();
 constexpr size_t block_align_wanted = 16;
 constexpr size_t block_align = std::max(block_align_wanted, alignof(std::max_align_t));
 constexpr size_t min_block_useful_size = 32;
-constexpr size_t max_alloc_compact_size = block_size - min_block_useful_size;
+constexpr size_t max_alloc_compact_size = stateful_block_size - min_block_useful_size;
 
 constexpr bool is_power_of_two(size_t n) { return (n & (n - 1)) == 0; }
 
-static_assert(is_power_of_two(block_size));
+static_assert(is_power_of_two(page_size));
 static_assert(is_power_of_two(block_align_wanted));
 static_assert(is_power_of_two(block_align));
-static_assert(max_alloc_compact_size < block_size);
+static_assert(max_alloc_compact_size < stateful_block_size);
 
 void* sys_alloc(size_t size)
 {
@@ -55,9 +56,8 @@ void sys_free(void* p) noexcept
 }
 }
 
-struct AllocTag {};
-constexpr AllocTag alloc_tag{};
-
+struct ArenaImp::AllocTag {};
+constexpr ArenaImp::AllocTag alloc_tag{};
 
 void* ArenaImp::Block::operator new(size_t size, AllocTag, size_t space)
 {
@@ -140,7 +140,7 @@ void* ArenaImp::alloc_from_block(StatefulBlock& b, size_t size)
 void* ArenaImp::alloc_in_new_block(size_t size)
 {
 	lg.debug("arena: allocating block of ", size, " bytes");
-	auto b = make<StatefulBlock>(block_size, avail_blocks, n_bytes);
+	auto b = make<StatefulBlock>(stateful_block_size, avail_blocks, n_bytes);
 	return alloc_from_block(*b, size);
 }
 
@@ -153,21 +153,20 @@ void* ArenaImp::alloc_compact(size_t alignment, size_t size)
 	return alloc_in_new_block(size);
 }
 
-void* ArenaImp::aligned_alloc(size_t alignment, size_t size)
+void* ArenaImp::aligned_alloc(size_t alignment, size_t size, const char* msg)
 {
 	BOOST_ASSERT(is_power_of_two(alignment));
+	
+	lg.trace(msg, " allocate ", size);
+	
 	if (size <= max_alloc_compact_size)
 		return alloc_compact(alignment, size);
 	return alloc_as_separate_block(size);
 }
 
-void ArenaImp::log_alloc(size_t size, const char* msg) const
+void ArenaImp::free(size_t size, const char* msg) const noexcept
 {
-	lg.trace(msg, " allocate ", size);
-}
-
-void ArenaImp::log_free(size_t size, const char* msg) const
-{
+	// this may throw in trace build, we don't care
 	lg.trace(msg, " free ", size);
 }
 
@@ -193,19 +192,14 @@ inline const ArenaImp* impl(const Arena* a)
 	return static_cast<const ArenaImp*>(a);
 }
 
-void* Arena::aligned_alloc_imp(size_t alignment, size_t size)
+void* Arena::aligned_alloc(size_t alignment, size_t size, const char* msg)
 {
-	return impl(this)->aligned_alloc(alignment, size);
+	return impl(this)->aligned_alloc(alignment, size, msg);
 }
 
-void Arena::log_alloc(size_t size, const char* msg) const
+void Arena::free(void*, size_t size, const char* msg) noexcept
 {
-	impl(this)->log_alloc(size, msg);
-}
-
-void Arena::log_free(size_t size, const char* msg) const
-{
-	impl(this)->log_free(size, msg);
+	impl(this)->free(size, msg);
 }
 
 auto Arena::n_blocks_allocated() const noexcept -> size_t

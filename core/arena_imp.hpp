@@ -3,7 +3,6 @@
 #include <boost/intrusive/list.hpp>
 
 class Logger;
-struct AllocTag;
 
 class ArenaImp : public Arena
 {
@@ -11,16 +10,19 @@ public:
 	explicit ArenaImp(Logger& lg) noexcept;
 	~ArenaImp();
 
-	void* aligned_alloc(size_t alignment, size_t size);
+	void* aligned_alloc(size_t alignment, size_t size, const char* msg = "");
 
-	void log_alloc(size_t size, const char* msg) const;
-	void log_free(size_t size, const char* msg) const;
+	void free(size_t size, const char* msg) const noexcept;
 
 	size_t n_blocks_allocated() const noexcept;
 	size_t n_bytes_allocated() const noexcept;
 
+	static constexpr size_t StatefulBlock_size() { return sizeof(StatefulBlock); }
+	struct AllocTag;
+
 private:
-	struct alignas(std::max_align_t) Block : boost::intrusive::list_base_hook<>
+	
+	struct Block : boost::intrusive::list_base_hook<>
 	{
 		explicit Block(size_t) {}
 		Block(const Block&) = delete;

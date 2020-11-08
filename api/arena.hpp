@@ -13,11 +13,10 @@ public:
 
 	template <typename T>
 	[[nodiscard]] void* alloc(const char* msg = "");
-
 	[[nodiscard]] void* alloc(size_t size, const char* msg = "");
-	void free(void* ptr, size_t size, const char* msg = "") noexcept;
-
 	[[nodiscard]] void* aligned_alloc(size_t alignment, size_t size, const char* msg = "");
+
+	void free(void* ptr, size_t size, const char* msg = "") noexcept;
 
 	size_t n_blocks_allocated() const noexcept;
 	size_t n_bytes_allocated() const noexcept;
@@ -26,17 +25,11 @@ public:
 
 	template <typename T>
 	constexpr Allocator<T> make_allocator(const char* name = "") noexcept
-	{ return Allocator<T>{*this, name}; }
+	{ return Allocator<T>{ *this, name }; }
 
 protected:
 	Arena() = default;
 	~Arena() = default;
-
-private:
-	void* aligned_alloc_imp(size_t alignment, size_t size);
-
-	void log_alloc(size_t size, const char* msg) const;
-	void log_free(size_t size, const char* msg) const;
 };
 
 template <typename T>
@@ -48,17 +41,6 @@ void* Arena::alloc(const char* msg)
 inline void* Arena::alloc(size_t size, const char* msg)
 {
 	return aligned_alloc(alignof(std::max_align_t), size, msg);
-}
-
-inline void Arena::free(void*, size_t s, const char* msg) noexcept
-{
-	log_free(s, msg);
-}
-
-inline void* Arena::aligned_alloc(size_t alignment, size_t size, const char* msg)
-{
-	log_alloc(size, msg);
-	return aligned_alloc_imp(alignment, size);
 }
 
 
