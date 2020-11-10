@@ -182,6 +182,7 @@ if(BUILD_TESTING)
 		unittests/test_parser.cpp
 		unittests/test_resp_it.cpp
 		unittests/test_router.cpp
+		unittests/test_string_builder.cpp
 		core/arena.cpp
 		core/cmdline_parser.cpp
 		core/config.cpp
@@ -191,6 +192,7 @@ if(BUILD_TESTING)
 		core/http_rh_manager.cpp
 		core/http_router.cpp
 		core/options.cpp
+		core/string_builder.cpp
 	)
 	if(NOT LEMON_NO_CONFIG)
 		set(TEST_SRC ${TEST_SRC}

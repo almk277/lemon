@@ -5,7 +5,6 @@
 #include <limits>
 #include <string>
 
-//TODO test this
 string_view StringBuilder::convert(std::size_t n)
 {
 	constexpr int s_len = std::numeric_limits<std::size_t>::digits10
@@ -18,5 +17,5 @@ string_view StringBuilder::convert(std::size_t n)
 	auto len = end - temp.data();
 	auto mem = allocator.allocate(len);
 	std::memcpy(mem, temp.data(), len);
-	return { mem, static_cast<std::size_t>(len) };
+	return { mem, static_cast<string_view::size_type>(len) };
 }
