@@ -1,7 +1,8 @@
 #include "cmdline_parser.hpp"
 #include "parameters.hpp"
-#include <boost/program_options/parsers.hpp>
 #include <boost/program_options/cmdline.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <ostream>
 
 #ifndef LEMON_CONFIG_PATH
 # define LEMON_CONFIG_PATH ./lemon.ini

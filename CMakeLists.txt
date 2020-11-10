@@ -90,9 +90,9 @@ set(API_SRC
 	api/arena.hpp
 	api/config.hpp
 	api/http_error.hpp
+	api/http_message.hpp
+	api/http_request_handler.hpp
 	api/logger.hpp
-	api/message.hpp
-	api/request_handler.hpp
 	api/string.hpp
 	api/string_builder.hpp
 	api/string_view.hpp
@@ -101,11 +101,21 @@ set(CORE_SRC
 	core/algorithm.hpp
 	core/arena.cpp
 	core/arena_imp.hpp
-	core/client.cpp
-	core/client.hpp
 	core/cmdline_parser.cpp
 	core/cmdline_parser.hpp
 	core/config.cpp
+	core/http_message.cpp
+	core/http_parser_.cpp
+	core/http_parser_.hpp
+	core/http_request_handler.cpp
+	core/http_rh_manager.cpp
+	core/http_rh_manager.hpp
+	core/http_router.cpp
+	core/http_router.hpp
+	core/http_task.cpp
+	core/http_task.hpp
+	core/http_task_builder.cpp
+	core/http_task_builder.hpp
 	core/leak_checked.hpp
 	core/logger.cpp
 	core/logger_imp.cpp
@@ -115,25 +125,15 @@ set(CORE_SRC
 	core/main.cpp
 	core/manager.cpp
 	core/manager.hpp
-	core/message.cpp
 	core/options.cpp
 	core/options.hpp
 	core/parameters.hpp
-	core/parser.cpp
-	core/parser.hpp
-	core/request_handler.cpp
-	core/rh_manager.cpp
-	core/rh_manager.hpp
-	core/router.cpp
-	core/router.hpp
-	core/server.cpp
-	core/server.hpp
 	core/string_builder.cpp
-	core/task.cpp
-	core/task.hpp
 	core/task_ident.hpp
-	core/task_builder.cpp
-	core/task_builder.hpp
+	core/tcp_client.cpp
+	core/tcp_client.hpp
+	core/tcp_server.cpp
+	core/tcp_server.hpp
 	core/visitor.hpp
 )
 if(NOT LEMON_NO_CONFIG)
@@ -185,12 +185,12 @@ if(BUILD_TESTING)
 		core/arena.cpp
 		core/cmdline_parser.cpp
 		core/config.cpp
-		core/message.cpp
+		core/http_message.cpp
+		core/http_parser_.cpp
+		core/http_request_handler.cpp
+		core/http_rh_manager.cpp
+		core/http_router.cpp
 		core/options.cpp
-		core/parser.cpp
-		core/request_handler.cpp
-		core/rh_manager.cpp
-		core/router.cpp
 	)
 	if(NOT LEMON_NO_CONFIG)
 		set(TEST_SRC ${TEST_SRC}

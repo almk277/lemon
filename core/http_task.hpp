@@ -1,19 +1,25 @@
 #pragma once
-#include "task_ident.hpp"
-#include "logger_imp.hpp"
 #include "arena_imp.hpp"
-#include "message.hpp"
+#include "http_message.hpp"
 #include "leak_checked.hpp"
+#include "logger_imp.hpp"
+#include "task_ident.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <memory>
 #include <utility>
 
-struct RequestHandler;
+namespace tcp
+{
 class Client;
-class Router;
+}
 
+namespace http
+{
+struct RequestHandler;
+class Router;
+	
 class Task:
 	boost::noncopyable,
 	LeakChecked<Task>
@@ -35,25 +41,25 @@ public:
 
 	static constexpr Ident start_id = 1;
 
-	Task(Ident id, std::shared_ptr<Client> cl) noexcept;
+	Task(Ident id, std::shared_ptr<tcp::Client> cl) noexcept;
 	~Task();
 
 	auto is_last() const { return !req.keep_alive; }
 
 private:
-	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<Client> cl);
+	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<tcp::Client> cl);
 
 	void run();
 	void handle_request(RequestHandler& h);
 	void make_error(Response::Status code) noexcept;
 
 	const Ident id;
-	const std::shared_ptr<const Client> cl; // keep client alive
+	const std::shared_ptr<const tcp::Client> cl; // keep client alive
 	TaskLogger lg;
 	ArenaImp a;
 	Request req;
 	Response resp;
-	const Router& rout;
+	const Router& router;
 
 	friend class TaskBuilder;
 	friend class ReadyTask;
@@ -127,3 +133,4 @@ public:
 	IncompleteTask& operator=(IncompleteTask&&) = default;
 	~IncompleteTask() = default;
 };
+}

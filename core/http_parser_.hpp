@@ -1,12 +1,15 @@
 #pragma once
 #include "string_view.hpp"
-#include "http_parser.h"
 #include "http_error.hpp"
+#include "http_parser.h"
 #include <boost/core/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include <variant>
-struct Request;
 
+namespace http
+{
+struct Request;
+	
 class Parser: boost::noncopyable
 {
 public:
@@ -15,7 +18,7 @@ public:
 	{
 		string_view rest;
 	};
-	using Result = std::variant<HttpError, IncompleteRequest, CompleteRequest>;
+	using Result = std::variant<Error, IncompleteRequest, CompleteRequest>;
 
 	Parser() = default;
 
@@ -31,7 +34,7 @@ protected:
 
 		Request* r;
 		HeaderState hdr_state;
-		boost::optional<HttpError> error;
+		boost::optional<Error> error;
 		bool complete;
 	};
 
@@ -39,3 +42,4 @@ protected:
 	http_parser p;
 	Context ctx;
 };
+}

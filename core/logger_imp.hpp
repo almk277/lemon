@@ -1,11 +1,11 @@
 #pragma once
 #include "logger.hpp"
-#include "task_ident.hpp"
 #include "string_view.hpp"
+#include "task_ident.hpp"
+#include <boost/asio/ip/address.hpp>
 #include <boost/core/noncopyable.hpp>
 #include <boost/log/core/record.hpp>
 #include <boost/log/sources/logger.hpp>
-#include <boost/asio/ip/address.hpp>
 
 class LoggerImp: public Logger, boost::noncopyable
 {

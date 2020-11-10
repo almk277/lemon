@@ -1,13 +1,15 @@
-#include "message.hpp"
-#include "stub_logger.hpp"
 #include "arena_imp.hpp"
-#include <boost/test/unit_test.hpp>
+#include "http_message.hpp"
+#include "stub_logger.hpp"
 #include <boost/test/data/test_case.hpp>
-#include <ostream>
+#include <boost/test/unit_test.hpp>
 #include <numeric>
-#include <utility>
+#include <ostream>
 #include <string>
+#include <utility>
 #include <vector>
+
+using namespace http;
 
 namespace
 {

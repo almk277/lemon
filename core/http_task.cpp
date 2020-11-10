@@ -1,12 +1,15 @@
-#include "task.hpp"
-#include "client.hpp"
+#include "http_task.hpp"
 #include "http_error.hpp"
-#include "request_handler.hpp"
-#include "router.hpp"
+#include "http_parser_.hpp"
+#include "http_request_handler.hpp"
+#include "http_router.hpp"
 #include "string_builder.hpp"
+#include "tcp_client.hpp"
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/concept_check.hpp>
 
+namespace http
+{
 namespace
 {
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Task::Result::const_iterator>));
@@ -14,14 +17,14 @@ BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Task::Result::const_iterator>
 boost::fast_pool_allocator<Task, boost::default_user_allocator_malloc_free> task_allocator;
 }
 
-Task::Task(Ident id, std::shared_ptr<Client> cl) noexcept:
+Task::Task(Ident id, std::shared_ptr<tcp::Client> cl) noexcept:
 	id{id},
 	cl{cl},
 	lg{cl->get_logger(), id},
 	a{lg},
 	req{a},
 	resp{a},
-	rout{cl->get_router()}
+	router{cl->get_router()}
 {
 	lg.debug("task created");
 }
@@ -31,7 +34,7 @@ Task::~Task()
 	lg.debug("task removed");
 }
 
-std::shared_ptr<Task> Task::make(Ident id, std::shared_ptr<Client> cl)
+std::shared_ptr<Task> Task::make(Ident id, std::shared_ptr<tcp::Client> cl)
 {
 	return std::allocate_shared<Task>(task_allocator, id, cl);
 }
@@ -42,7 +45,7 @@ void Task::run()
 
 	const auto path = req.url.path;
 	lg.debug("resolving: ", path);
-	auto h = rout.resolve(path);
+	auto h = router.resolve(path);
 	try {
 		if (BOOST_LIKELY(h != nullptr)) {
 			lg.debug("handler found: ", h->get_name());
@@ -52,7 +55,7 @@ void Task::run()
 			lg.debug("HTTP error 404");
 			make_error(Response::Status::not_found);
 		}
-	} catch (HttpException &he) {
+	} catch (Exception &he) {
 		lg.debug("HTTP error ", he.status_code(), " ", he.detail_string());
 		make_error(he.status_code());
 	} catch (std::exception &e) {
@@ -95,4 +98,5 @@ void Task::make_error(Response::Status code) noexcept
 
 	auto clen_str = StringBuilder{ a }.convert(resp.body.front().length());
 	resp.headers.emplace_back("Content-Length"sv, clen_str);
+}
 }

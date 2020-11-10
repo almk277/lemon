@@ -1,9 +1,9 @@
 #include "test_config.hpp"
-#include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
 #include <boost/mpl/set.hpp>
 #include <boost/range/adaptor/indirected.hpp>
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/test/data/test_case.hpp>
+#include <boost/test/unit_test.hpp>
 #include <boost/scope_exit.hpp>
 #include <type_traits>
 

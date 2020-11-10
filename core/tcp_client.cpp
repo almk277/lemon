@@ -1,4 +1,4 @@
-#include "client.hpp"
+#include "tcp_client.hpp"
 #include "algorithm.hpp"
 #include "visitor.hpp"
 #include <boost/asio/dispatch.hpp>
@@ -10,6 +10,8 @@
 #include <exception>
 #include <utility>
 
+namespace tcp
+{
 namespace
 {
 using boost::system::error_code;
@@ -45,10 +47,10 @@ private:
 }
 
 Client::Client(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
-	std::shared_ptr<const Router> router, ServerLogger& lg) noexcept:
+	std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept:
 	sock{std::move(sock)},
 	opt(std::move(opt)),
-	rout(std::move(router)),
+	router(std::move(router)),
 	lg{lg, this->sock.remote_endpoint().address()},
 	builder{start_task_id, *this->opt},
 	next_send_id{start_task_id},
@@ -69,7 +71,7 @@ Client::~Client()
 }
 
 void Client::make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
-	std::shared_ptr<const Router> rout, ServerLogger& lg)
+	std::shared_ptr<const http::Router> rout, ServerLogger& lg)
 {
 	auto c = std::allocate_shared<Client>(client_allocator, context, std::move(sock),
 		move(opt), move(rout), lg);
@@ -77,19 +79,19 @@ void Client::make(boost::asio::io_context& context, Socket&& sock, std::shared_p
 	c->start_recv(it);
 }
 
-void Client::start_recv(const IncompleteTask& it)
+void Client::start_recv(const http::IncompleteTask& it)
 {
 	const auto b = builder.get_memory(it);
-	sock.async_read_some(buffer(b), ArenaHandler{ it,
-		[this, it](const error_code& ec, size_t bytes_transferred)
-		{
-			on_recv(ec, bytes_transferred, it);
-		} });
+	sock.async_read_some(boost::asio::buffer(b), ArenaHandler{ it,
+		                     [this, it](const error_code& ec, size_t bytes_transferred)
+		                     {
+			                     on_recv(ec, bytes_transferred, it);
+		                     } });
 }
 
 void Client::on_recv(const error_code& ec,
                      size_t bytes_transferred,
-	                 const IncompleteTask& it) noexcept
+	                 const http::IncompleteTask& it) noexcept
 {
 	const auto eof = ec == boost::asio::error::eof;
 	it.lg().debug("received bytes: "sv, bytes_transferred, eof ? ", and EOF"sv : ""sv);
@@ -100,20 +102,20 @@ void Client::on_recv(const error_code& ec,
 
 	try {
 		for (auto&& t : builder.make_tasks(shared_from_this(), it, bytes_transferred, eof))
-			visit(Visitor{
-				[this](const IncompleteTask& t) { start_recv(t); },
-			    [this](const ReadyTask& t)      { run(t); },
-			    [this](const Task::Result& t)    { start_send(t); },
-			}, t);
+			std::visit(Visitor{
+				           [this](const http::IncompleteTask& t) { start_recv(t); },
+				           [this](const http::ReadyTask& t)      { run(t); },
+				           [this](const http::Task::Result& t)    { start_send(t); },
+			           }, t);
 	} catch (std::exception& re) {
 		//TODO check if 'it' is actual task
 		it.lg().error(re.what());
-		start_send(TaskBuilder::make_error_task(it,
-			HttpError{Response::Status::internal_server_error, re.what()}));
+		start_send(http::TaskBuilder::make_error_task(it,
+		                                              http::Error{ http::Response::Status::internal_server_error, re.what()}));
 	}
 }
 
-void Client::run(const ReadyTask& rt) noexcept
+void Client::run(const http::ReadyTask& rt) noexcept
 {
 	post(sock.get_executor(), ArenaHandler{ rt, [this, rt]
 		{
@@ -129,7 +131,7 @@ void Client::run(const ReadyTask& rt) noexcept
 	});
 }
 
-void Client::start_send(const Task::Result& tr)
+void Client::start_send(const http::Task::Result& tr)
 {
 	dispatch(send_barrier, ArenaHandler{ tr, [this, tr]
 		{
@@ -147,7 +149,7 @@ void Client::start_send(const Task::Result& tr)
 		} });
 }
 
-void Client::on_sent(const error_code& ec, const Task::Result& tr) noexcept
+void Client::on_sent(const error_code& ec, const http::Task::Result& tr) noexcept
 {
 	try {
 		if (ec) {
@@ -167,4 +169,5 @@ void Client::on_sent(const error_code& ec, const Task::Result& tr) noexcept
 	} catch (std::exception& e) {
 		tr.lg().error("response queue error: "sv, e.what());
 	}
+}
 }

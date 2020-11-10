@@ -1,13 +1,13 @@
 #pragma once
 #include <boost/core/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
-#include <cstdint>
 #include <cstddef>
-#include <string>
-#include <vector>
+#include <cstdint>
 #include <list>
 #include <stdexcept>
+#include <string>
 #include <variant>
+#include <vector>
 
 namespace config
 {

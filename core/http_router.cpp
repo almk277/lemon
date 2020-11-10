@@ -1,9 +1,11 @@
-#include "router.hpp"
-#include "rh_manager.hpp"
+#include "http_router.hpp"
+#include "http_rh_manager.hpp"
 #include <algorithm>
-#include <string>
 #include <regex>
+#include <string>
 
+namespace http
+{
 namespace
 {
 class ExactMatcher: public Router::Matcher
@@ -82,4 +84,5 @@ RequestHandler* Router::resolve(string_view path) const
 			return handler.get();
 
 	return nullptr;
+}
 }

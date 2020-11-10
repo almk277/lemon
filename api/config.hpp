@@ -1,12 +1,12 @@
 #pragma once
 #include "string_view.hpp"
-#include <string>
-#include <vector>
-#include <iterator>
-#include <stdexcept>
-#include <memory>
-#include <type_traits>
 #include <cstdint>
+#include <iterator>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 namespace config
 {

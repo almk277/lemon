@@ -1,10 +1,10 @@
 #include "static_file.hpp"
-#include "message.hpp"
-#include "logger.hpp"
 #include "arena.hpp"
 #include "http_error.hpp"
-#include "string_builder.hpp"
+#include "http_message.hpp"
+#include "logger.hpp"
 #include "string.hpp"
+#include "string_builder.hpp"
 #include "string_view.hpp"
 #include <fstream>
 
@@ -12,6 +12,8 @@
 //TODO caching
 //TODO Linux sendfile?
 
+namespace http
+{
 namespace
 {
 const std::fstream::pos_type max_size = 100 * 1024 * 1024;
@@ -29,14 +31,14 @@ std::pair<std::ifstream, std::size_t> open_file(
 	//TODO consider other IO APIs
 	std::ifstream f{ fname.c_str(), std::ios::in | std::ios::binary | std::ios::ate };
 	if (!f.is_open())
-		throw HttpException{ Response::Status::not_found };
+		throw Exception{ Response::Status::not_found };
 	f.exceptions(std::ios::badbit | std::ios::failbit);
 
 	//TODO size from metadata
 	auto size = f.tellg();
 	ctx.lg.debug("open file: '"sv, fname, "', size: "sv, size);
 	if (size > max_size)
-		throw HttpException{ Response::Status::payload_too_large };
+		throw Exception{ Response::Status::payload_too_large };
 	auto mem_length = static_cast<std::size_t>(size);
 
 	return make_pair(move(f), mem_length);
@@ -74,4 +76,5 @@ void RhStaticFile::finalize(Request& req, Response& resp, Context& ctx, std::siz
 	//TODO Content-Type
 	resp.headers.emplace_back("Content-Length"sv, StringBuilder{ ctx.a }.convert(length));
 	resp.code = Response::Status::ok;
+}
 }

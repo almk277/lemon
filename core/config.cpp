@@ -4,8 +4,8 @@
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <cstdlib>
-#include <variant>
 #include <utility>
+#include <variant>
 
 namespace config
 {

@@ -3,21 +3,21 @@
 #include "options.hpp"
 #include "string_view.hpp"
 #include "task_ident.hpp"
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/expressions/keyword.hpp>
-#include <boost/log/expressions/message.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/log/attributes/clock.hpp>
+#include <boost/log/expressions/formatters/date_time.hpp>
 #include <boost/log/expressions/formatters/if.hpp>
 #include <boost/log/expressions/formatters/stream.hpp>
-#include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/log/expressions/keyword.hpp>
+#include <boost/log/expressions/message.hpp>
 #include <boost/log/expressions/predicates/has_attr.hpp>
 #include <boost/log/support/date_time.hpp>
-#include <boost/log/attributes/clock.hpp>
-#include <boost/asio/ip/address.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/file.hpp>
 #include <boost/phoenix/operator.hpp>
-#include <stdexcept>
-#include <iostream>
 #include <array>
+#include <iostream>
+#include <stdexcept>
 
 Logger::Severity log_severity_level = Logger::Severity::info;
 bool log_access_enabled = true;

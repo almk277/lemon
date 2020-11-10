@@ -1,6 +1,6 @@
 #pragma once
-#include <utility>
 #include <ostream>
+#include <utility>
 
 #ifndef LEMON_LOG_LEVEL
 #  define LEMON_LOG_LEVEL 3

@@ -1,8 +1,10 @@
-#include "router.hpp"
-#include "rh_manager.hpp"
-#include "request_handler.hpp"
+#include "http_router.hpp"
+#include "http_request_handler.hpp"
+#include "http_rh_manager.hpp"
 #include "options.hpp"
 #include <boost/test/unit_test.hpp>
+
+using namespace http;
 
 namespace
 {

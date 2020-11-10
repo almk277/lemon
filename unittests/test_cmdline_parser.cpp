@@ -1,12 +1,12 @@
 #include "cmdline_parser.hpp"
 #include "parameters.hpp"
-#include <boost/test/unit_test.hpp>
-#include <boost/range/algorithm/copy.hpp>
 #include <boost/range/adaptor/transformed.hpp>
-#include <vector>
-#include <string>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/test/unit_test.hpp>
 #include <iterator>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace
 {

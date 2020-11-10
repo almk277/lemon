@@ -1,17 +1,20 @@
-#include "message.hpp"
+#include "http_message.hpp"
 #include <boost/assert.hpp>
 #include <boost/concept_check.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <array>
-#include <unordered_map>
+#include <cstdlib>
 #include <functional>
 #include <stdexcept>
-#include <cstdlib>
+#include <ostream>
 #include <string>
+#include <unordered_map>
 
 using namespace std::string_literals;
 
+namespace http
+{
 namespace
 {
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Response::const_iterator>));
@@ -416,4 +419,5 @@ auto operator!=(const Response::const_iterator& it1,
 	const Response::const_iterator& it2) -> bool
 {
 	return !(it1 == it2);
+}
 }

@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+namespace http
+{
 struct RequestHandler;
 class RhManager;
 
@@ -27,3 +29,4 @@ private:
 	std::vector<std::pair<std::unique_ptr<const Matcher>,
 		std::shared_ptr<RequestHandler>>> matchers;
 };
+}

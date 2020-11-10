@@ -1,12 +1,14 @@
 #include "testing.hpp"
-#include "message.hpp"
 #include "http_error.hpp"
-#include "string_builder.hpp"
+#include "http_message.hpp"
 #include "logger.hpp"
-#include <boost/range/algorithm/find_if.hpp>
+#include "string_builder.hpp"
 #include <boost/assign/std/list.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 #include <functional>
 
+namespace http
+{
 string_view RhTesting::get_name() const noexcept
 {
 	return "Testing"sv;
@@ -31,11 +33,11 @@ void RhTesting::get(Request& req, Response& resp, Context& ctx)
 		if (it != req.headers.end())
 			resp.body = { it->value };
 	} else if (path == "/notimp") {
-		throw HttpException{ Response::Status::not_implemented };
+		throw Exception{ Response::Status::not_implemented };
 	} else if (path == "/oom") {
 		throw std::bad_alloc{};
 	} else {
-		throw HttpException{ Response::Status::not_found };
+		throw Exception{ Response::Status::not_found };
 	}
 
 	finalize(req, resp, ctx);
@@ -46,7 +48,7 @@ void RhTesting::post(Request& req, Response& resp, Context& ctx)
 	if (req.url.path == "/echo") {
 		resp.body = move(req.body);
 	} else {
-		throw HttpException{ Response::Status::not_found };
+		throw Exception{ Response::Status::not_found };
 	}
 
 	finalize(req, resp, ctx);
@@ -58,10 +60,10 @@ void RhTesting::method(string_view method_name, Request& req, Response& resp, Co
 		if (req.url.path == "/index") {
 			resp.body = { "del"sv };
 		} else {
-			throw HttpException{ Response::Status::not_found };
+			throw Exception{ Response::Status::not_found };
 		}
 	} else {
-		throw HttpException{ Response::Status::method_not_allowed };
+		throw Exception{ Response::Status::method_not_allowed };
 	}
 
 	finalize(req, resp, ctx);
@@ -79,4 +81,5 @@ void RhTesting::finalize(Request& req, Response& resp, Context& ctx)
 	});
 
 	resp.code = Response::Status::ok;
+}
 }

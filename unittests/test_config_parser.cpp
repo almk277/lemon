@@ -1,11 +1,11 @@
 #include "config_parser.hpp"
-#include "test_config.hpp"
 #include "algorithm.hpp"
-#include <boost/test/unit_test.hpp>
+#include "test_config.hpp"
 #include <boost/test/data/test_case.hpp>
+#include <boost/test/unit_test.hpp>
+#include <array>
 #include <initializer_list>
 #include <utility>
-#include <array>
 
 using namespace config::test;
 using config::Table;

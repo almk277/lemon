@@ -15,10 +15,10 @@
 #include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
+#include <fstream>
+#include <sstream>
 #include <utility>
 #include <vector>
-#include <sstream>
-#include <fstream>
 
 /*
 	value ::= bool | int | real | string | { table }

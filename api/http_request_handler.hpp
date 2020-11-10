@@ -1,10 +1,13 @@
 #pragma once
 #include "string_view.hpp"
 
-struct Request;
-struct Response;
 class Arena;
 class Logger;
+
+namespace http
+{
+struct Request;
+struct Response;
 
 struct RequestHandler
 {
@@ -29,3 +32,4 @@ struct RequestHandler
 	virtual void method(string_view method_name, Request& req,
 		Response& resp, Context& ctx);
 };
+}

@@ -1,7 +1,7 @@
 #include "logger_imp.hpp"
 #include <boost/log/attributes/attribute_value_impl.hpp>
-#include <boost/log/attributes/constant.hpp>
 #include <boost/log/attributes/clock.hpp>
+#include <boost/log/attributes/constant.hpp>
 
 using boost::log::attributes::make_attribute_value;
 

@@ -1,6 +1,8 @@
 #pragma once
-#include "request_handler.hpp"
+#include "http_request_handler.hpp"
 
+namespace http
+{
 struct RhTesting : RequestHandler
 {
 	RhTesting() = default;
@@ -14,3 +16,4 @@ struct RhTesting : RequestHandler
 private:
 	static void finalize(Request& req, Response& resp, Context& ctx);
 };
+}

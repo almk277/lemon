@@ -2,16 +2,16 @@
 
 #include "arena_imp.hpp"
 #include "stub_logger.hpp"
+#include <boost/align/is_aligned.hpp> 
 #include <boost/asio/buffer.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 #include <boost/test/unit_test.hpp>
-#include <boost/align/is_aligned.hpp> 
-#include <memory>
-#include <cstring>
 #include <cstddef>
-#include <vector>
+#include <cstring>
+#include <memory>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 using std::size_t;
 

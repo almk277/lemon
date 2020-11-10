@@ -1,6 +1,6 @@
 #pragma once
-#include <atomic>
 #include <boost/assert.hpp>
+#include <atomic>
 
 #ifdef BOOST_ASSERT_IS_VOID
 

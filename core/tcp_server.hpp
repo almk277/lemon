@@ -1,19 +1,24 @@
 #pragma once
 #include "logger_imp.hpp"
 #include "options.hpp"
-#include <boost/core/noncopyable.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/core/noncopyable.hpp>
 #include <memory>
 
-class Router;
+namespace http
+{
 class RhManager;
+class Router;
+}
 
+namespace tcp
+{
 class Server: boost::noncopyable
 {
 public:
 	Server(boost::asio::io_context& context, std::shared_ptr<const Options> global_opt,
-		const Options::Server& server_opt, const RhManager& rhman);
+		const Options::Server& server_opt, const http::RhManager& rhman);
 	~Server();
 
 	const Options::Server& get_options() const { return server_opt; }
@@ -29,5 +34,6 @@ private:
 	Tcp::acceptor acceptor;
 	const std::shared_ptr<const Options> global_opt;
 	const Options::Server& server_opt;
-	const std::shared_ptr<const Router> rout;
+	const std::shared_ptr<const http::Router> router;
 };
+}

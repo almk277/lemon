@@ -1,21 +1,21 @@
 #include "manager.hpp"
-#include "parameters.hpp"
-#include "options.hpp"
-#include "server.hpp"
-#include "logs.hpp"
-#include "rh_manager.hpp"
 #include "algorithm.hpp"
+#include "logs.hpp"
+#include "options.hpp"
+#include "parameters.hpp"
+#include "http_rh_manager.hpp"
+#include "tcp_server.hpp"
 #ifndef LEMON_NO_CONFIG
-# include "config_parser.hpp"
 # include "config.hpp"
+# include "config_parser.hpp"
 #endif
 #include "modules/testing.hpp"
 #include "modules/static_file.hpp"
-#include <boost/assert.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/assert.hpp>
 #include <boost/range/adaptor/filtered.hpp>
-#include <stdexcept>
 #include <set>
+#include <stdexcept>
 
 namespace
 {
@@ -107,9 +107,9 @@ void Manager::init_servers(const std::shared_ptr<const Options>& opts)
 {
 	lg.trace("init_servers");
 
-	RhManager rhman;
-	rhman.add(std::make_shared<RhTesting>());
-	rhman.add(std::make_shared<RhStaticFile>());
+	http::RhManager rhman;
+	rhman.add(std::make_shared<http::RhTesting>());
+	rhman.add(std::make_shared<http::RhStaticFile>());
 
 	std::set<decltype(Options::Server::listen_port)> running_servers;
 	for (auto it = srv.begin(); it != srv.end();)
@@ -130,7 +130,7 @@ void Manager::init_servers(const std::shared_ptr<const Options>& opts)
 		return !contains(running_servers, opt.listen_port);
 	};
 	for (auto& s : opts->servers | boost::adaptors::filtered(not_running))
-		srv.push_back(std::make_unique<Server>(worker_ctx, opts, s, rhman));
+		srv.push_back(std::make_unique<tcp::Server>(worker_ctx, opts, s, rhman));
 }
 
 void Manager::init_workers(const std::shared_ptr<const Options>& opts)

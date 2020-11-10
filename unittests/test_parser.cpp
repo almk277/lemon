@@ -1,13 +1,15 @@
-#include "parser.hpp"
+#include "http_parser_.hpp"
 #include "arena_imp.hpp"
+#include "http_message.hpp"
 #include "stub_logger.hpp"
-#include "message.hpp"
-#include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
-#include <boost/test/data/monomorphic.hpp>
 #include <boost/mpl/bool.hpp>
+#include <boost/test/data/monomorphic.hpp>
+#include <boost/test/data/test_case.hpp>
+#include <boost/test/unit_test.hpp>
 #include <deque>
 #include <utility>
+
+using namespace http;
 
 namespace
 {
@@ -78,6 +80,8 @@ std::ostream& operator<<(std::ostream& s, const BadTestCase& t)
 }
 }
 
+namespace http
+{
 static std::ostream& operator<<(std::ostream& s, Request::ProtocolVersion v)
 {
 	return s << static_cast<int>(v);
@@ -91,6 +95,7 @@ static std::ostream& operator<<(std::ostream& s, Request::Method::Type t)
 static std::ostream& operator<<(std::ostream& s, const Request::Header& h)
 {
 	return s << h.name << ": " << h.value;
+}
 }
 
 static std::ostream& operator<<(std::ostream& s, const string_view& sw)
@@ -296,7 +301,7 @@ BOOST_DATA_TEST_CASE(test_simple,
 	auto result = p.parse_chunk(sample.request);
 	Parser::finalize(req);
 
-	auto error = std::get_if<HttpError>(&result);
+	auto error = std::get_if<Error>(&result);
 	if (error)
 		BOOST_TEST_MESSAGE(std::to_string(static_cast<int>(error->code))
 			+ " " + std::string{ error->details });
@@ -324,7 +329,7 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 		chunks.pop_front();
 		auto result = p.parse_chunk(chunk);
 
-		auto result_error = std::get_if<HttpError>(&result);
+		auto result_error = std::get_if<Error>(&result);
 		BOOST_TEST(!result_error);
 
 		if (auto result_complete = std::get_if<Parser::CompleteRequest>(&result))
@@ -357,7 +362,7 @@ BOOST_DATA_TEST_CASE(test_errors, boost::unit_test::data::make(bad_request_sampl
 	auto result = p.parse_chunk(sample.request);
 	Parser::finalize(req);
 
-	auto r = std::get_if<HttpError>(&result);
+	auto r = std::get_if<Error>(&result);
 	BOOST_TEST_REQUIRE(r);
 	BOOST_TEST(r->code == sample.code.value_or(Response::Status::bad_request));
 }

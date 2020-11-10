@@ -1,6 +1,6 @@
 #pragma once
-#include "string_view.hpp"
 #include "arena.hpp"
+#include "string_view.hpp"
 
 class StringBuilder
 {

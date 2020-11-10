@@ -1,9 +1,9 @@
 #include "string_builder.hpp"
-#include <limits>
 #include <array>
 #include <charconv>
-#include <string>
 #include <cstring>
+#include <limits>
+#include <string>
 
 //TODO test this
 string_view StringBuilder::convert(std::size_t n)

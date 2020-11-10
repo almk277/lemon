@@ -1,7 +1,7 @@
 #pragma once
 #include "string_view.hpp"
 #include "arena.hpp"
-#include <ostream>
+#include <iosfwd>
 #include <iterator>
 #include <list>
 
@@ -12,6 +12,8 @@ struct Url
 	string_view query;
 };
 
+namespace http
+{
 struct Message
 {
 	struct Header
@@ -229,3 +231,4 @@ string_view to_string(Response::Status status);
 std::ostream& operator<<(std::ostream& stream, Response::Status status);
 
 auto calc_content_length(const Message& msg) noexcept -> std::size_t;
+}

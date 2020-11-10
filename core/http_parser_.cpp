@@ -1,7 +1,9 @@
-#include "parser.hpp"
-#include "message.hpp"
+#include "http_parser_.hpp"
+#include "http_message.hpp"
 #include <boost/algorithm/string/case_conv.hpp>
 
+namespace http
+{
 namespace
 {
 enum CallbackResult
@@ -206,7 +208,7 @@ auto Parser::parse_chunk(string_view chunk) noexcept -> Result
 		break;
 	default:
 		return ctx.error.value_or_eval([err] {
-			return HttpError{ Response::Status::bad_request, http_errno_description(err) };
+			return Error{ Response::Status::bad_request, http_errno_description(err) };
 		});
 	}
 
@@ -230,4 +232,5 @@ void Parser::finalize(Request& req)
 		boost::to_lower_copy(lc_begin, hdr.name, header_locale);
 		hdr.lowercase_name = {lc_begin, lc_length};
 	}
+}
 }

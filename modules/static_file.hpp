@@ -1,6 +1,8 @@
 #pragma once
-#include "request_handler.hpp"
+#include "http_request_handler.hpp"
 
+namespace http
+{
 struct RhStaticFile : RequestHandler
 {
 	RhStaticFile() = default;
@@ -13,3 +15,4 @@ struct RhStaticFile : RequestHandler
 private:
 	static void finalize(Request& req, Response& resp, Context& ctx, std::size_t length);
 };
+}

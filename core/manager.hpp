@@ -1,18 +1,22 @@
 #pragma once
 #include "logger_imp.hpp"
-#include <boost/core/noncopyable.hpp>
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/core/noncopyable.hpp>
 #include <boost/filesystem/path.hpp>
-#include <memory>
-#include <vector>
 #include <map>
+#include <memory>
 #include <thread>
+#include <vector>
 
 struct Parameters;
 class Options;
+
+namespace tcp
+{
 class Server;
+}
 
 class Manager: boost::noncopyable
 {
@@ -41,6 +45,6 @@ private:
 	std::map<std::thread::id, std::thread> workers;
 	unsigned n_workers = 0;
 	CommonLogger lg;
-	std::vector<std::unique_ptr<Server>> srv;
+	std::vector<std::unique_ptr<tcp::Server>> srv;
 	const boost::filesystem::path config_path;
 };
