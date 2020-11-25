@@ -3,15 +3,7 @@
 #include "config.hpp"
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-#ifdef _MSC_VER
-#pragma warning(push)
-// seems to be fixed in boost 1.70
-#pragma warning(disable: 4521)
-#endif
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 #include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
@@ -110,18 +102,17 @@ BOOST_SPIRIT_DEFINE(key, value, stmt, table);
 
 using Iterator = string_view::const_iterator;
 
-auto read(const boost::filesystem::path& path)
+auto read(const std::filesystem::path& path)
 {
-	auto name = path.string();
-	std::ifstream f{ name,  std::ios::in | std::ios::binary | std::ios::ate };
+	std::ifstream f{ path,  std::ios::in | std::ios::binary | std::ios::ate };
 	if (!f.is_open())
-		throw std::runtime_error{ "can't load config: " + name };
+		throw std::runtime_error{ "can't load config: " + path.string() };
 
 	auto size = f.tellg();
 	f.seekg(0, std::ios::beg);
 	std::string data(size, 0);
 	if (!f.read(data.data(), size))
-		throw std::runtime_error{ "can't read config: " + name };
+		throw std::runtime_error{ "can't read config: " + path.string() };
 
 	return data;
 }
@@ -177,7 +168,7 @@ Text::Text(std::string data, const std::string& filename):
 {
 }
 
-File::File(const boost::filesystem::path& path):
+File::File(const std::filesystem::path& path):
 	Text{ read(path), path.string() }
 {
 }

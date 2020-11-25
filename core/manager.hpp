@@ -4,7 +4,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/core/noncopyable.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <thread>
@@ -46,5 +46,5 @@ private:
 	unsigned n_workers = 0;
 	CommonLogger lg;
 	std::vector<std::unique_ptr<tcp::Server>> srv;
-	const boost::filesystem::path config_path;
+	const std::filesystem::path config_path;
 };

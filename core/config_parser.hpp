@@ -1,6 +1,6 @@
 #pragma once
 #include "config.hpp"
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -42,7 +42,7 @@ private:
 class File : public Text
 {
 public:
-	explicit File(const boost::filesystem::path& path);
+	explicit File(const std::filesystem::path& path);
 };
 
 auto parse(std::shared_ptr<TextView> text) -> Table;

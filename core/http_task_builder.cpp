@@ -54,7 +54,7 @@ auto TaskBuilder::Results::next() -> std::optional<value>
 			stop = true;
 			return make_error_task(it, error);
 		},
-		[this](Parser::IncompleteRequest req) -> value {
+		[this](Parser::IncompleteRequest) -> value {
 			data = {};
 			stop = true;
 			return it;

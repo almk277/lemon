@@ -74,6 +74,18 @@ struct Property::Priv
 		return std::holds_alternative<T>(val);
 	}
 
+	auto type_string() const
+	{
+		return visit(Visitor{
+			[](EmptyValue) { return "empty"; },
+			[](Boolean) { return "boolean"; },
+			[](Integer) { return "integer"; },
+			[](RoughReal) { return "real"; },
+			[](const String&) { return "string"; },
+			[](const Table&) { return "table"; },
+			}, val);
+	}
+
 	template <typename T>
 	auto get(string_view expected_type) const -> const T&
 	{
@@ -88,18 +100,6 @@ struct Property::Priv
 		}
 
 		return *v;
-	}
-
-	auto type_string() const
-	{
-		return visit(Visitor{
-			[](EmptyValue)    { return "empty"; },
-			[](Boolean)       { return "boolean"; },
-			[](Integer)       { return "integer"; },
-			[](RoughReal)     { return "real"; },
-			[](const String&) { return "string"; },
-			[](const Table&)  { return "table"; },
-		}, val);
 	}
 
 	auto as_tuple() const

@@ -3,6 +3,7 @@
 #include <charconv>
 #include <cstring>
 #include <limits>
+#include <stdexcept>
 #include <string>
 
 string_view StringBuilder::convert(std::size_t n)

@@ -1,8 +1,8 @@
 === Requirements ===
 
-* C++17 compiler (known to work: gcc 8.3, clang 8.0, MSVS 2017)
+* C++17 compiler (known to work: gcc 10.2, clang 10.0, MSVS 2019 v16.8)
 * CMake 3.6+
-* Boost 1.67+
+* Boost 1.71
 * http-parser 2.7+: https://github.com/nodejs/http-parser
 
 
@@ -11,7 +11,7 @@
 1. Boost
 
 Debian/Ubuntu:
-    # apt-get install liboost-system-dev libboost-log-dev libboost-regex-dev libboost-program-options-dev libboost-test-dev
+    # apt-get install libboost-log-dev libboost-program-options-dev libboost-test-dev
 
 FreeBSD:
     # pkg add boost-libs

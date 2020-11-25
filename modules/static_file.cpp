@@ -24,7 +24,6 @@ std::pair<std::ifstream, std::size_t> open_file(
 	const Request& req, const RhStaticFile::Context& ctx)
 {
 	const auto path = req.url.path;
-	//TODO filesystem::path
 	lemon::String fname{ www_dir.begin(), www_dir.end(), ctx.a.make_allocator<char>() };
 	fname.append(path.begin(), path.end());
 
