@@ -1,4 +1,4 @@
-#include "tcp_client.hpp"
+#include "tcp_session.hpp"
 #include "algorithm.hpp"
 #include "visitor.hpp"
 #include <boost/asio/dispatch.hpp>
@@ -17,7 +17,7 @@ namespace
 using boost::system::error_code;
 using std::size_t;
 
-boost::fast_pool_allocator<Client,
+boost::fast_pool_allocator<Session,
 	boost::default_user_allocator_malloc_free,
 	boost::details::pool::null_mutex> client_allocator;
 
@@ -46,7 +46,7 @@ private:
 };
 }
 
-Client::Client(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+Session::Session(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
 	std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept:
 	sock{std::move(sock)},
 	opt(std::move(opt)),
@@ -59,7 +59,7 @@ Client::Client(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<
 	lg.info("connection established"sv);
 }
 
-Client::~Client()
+Session::~Session()
 {
 	if (sock.is_open()) {
 		error_code ec;
@@ -70,26 +70,26 @@ Client::~Client()
 	lg.info("connection closed"sv);
 }
 
-void Client::make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+void Session::make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
 	std::shared_ptr<const http::Router> rout, ServerLogger& lg)
 {
-	auto c = std::allocate_shared<Client>(client_allocator, context, std::move(sock),
+	auto c = std::allocate_shared<Session>(client_allocator, context, std::move(sock),
 		move(opt), move(rout), lg);
 	auto it = c->builder.prepare_task(c);
 	c->start_recv(it);
 }
 
-void Client::start_recv(const http::IncompleteTask& it)
+void Session::start_recv(const http::IncompleteTask& it)
 {
 	const auto b = builder.get_memory(it);
-	sock.async_read_some(boost::asio::buffer(b), ArenaHandler{ it,
+	sock.async_read_some(buffer(b), ArenaHandler{ it,
 		                     [this, it](const error_code& ec, size_t bytes_transferred)
 		                     {
 			                     on_recv(ec, bytes_transferred, it);
 		                     } });
 }
 
-void Client::on_recv(const error_code& ec,
+void Session::on_recv(const error_code& ec,
                      size_t bytes_transferred,
 	                 const http::IncompleteTask& it) noexcept
 {
@@ -105,7 +105,7 @@ void Client::on_recv(const error_code& ec,
 			std::visit(Visitor{
 				           [this](const http::IncompleteTask& t) { start_recv(t); },
 				           [this](const http::ReadyTask& t)      { run(t); },
-				           [this](const http::Task::Result& t)    { start_send(t); },
+				           [this](const http::Task::Result& t)   { start_send(t); },
 			           }, t);
 	} catch (std::exception& re) {
 		//TODO check if 'it' is actual task
@@ -115,7 +115,7 @@ void Client::on_recv(const error_code& ec,
 	}
 }
 
-void Client::run(const http::ReadyTask& rt) noexcept
+void Session::run(const http::ReadyTask& rt) noexcept
 {
 	post(sock.get_executor(), ArenaHandler{ rt, [this, rt]
 		{
@@ -131,7 +131,7 @@ void Client::run(const http::ReadyTask& rt) noexcept
 	});
 }
 
-void Client::start_send(const http::Task::Result& tr)
+void Session::start_send(const http::Task::Result& tr)
 {
 	dispatch(send_barrier, ArenaHandler{ tr, [this, tr]
 		{
@@ -149,7 +149,7 @@ void Client::start_send(const http::Task::Result& tr)
 		} });
 }
 
-void Client::on_sent(const error_code& ec, const http::Task::Result& tr) noexcept
+void Session::on_sent(const error_code& ec, const http::Task::Result& tr) noexcept
 {
 	try {
 		if (ec) {

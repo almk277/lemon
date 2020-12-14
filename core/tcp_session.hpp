@@ -21,17 +21,17 @@ class Router;
 
 namespace tcp
 {
-class Client:
-	public std::enable_shared_from_this<Client>,
+class Session:
+	public std::enable_shared_from_this<Session>,
 	boost::noncopyable,
-	LeakChecked<Client>
+	LeakChecked<Session>
 {
 public:
 	using Socket = boost::asio::ip::tcp::socket;
 
-	Client(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
+	Session(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
 		std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept;
-	~Client();
+	~Session();
 
 	static void make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
 		std::shared_ptr<const http::Router> rout, ServerLogger& lg);

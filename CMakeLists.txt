@@ -130,10 +130,10 @@ set(CORE_SRC
 	core/parameters.hpp
 	core/string_builder.cpp
 	core/task_ident.hpp
-	core/tcp_client.cpp
-	core/tcp_client.hpp
 	core/tcp_server.cpp
 	core/tcp_server.hpp
+	core/tcp_session.cpp
+	core/tcp_session.hpp
 	core/visitor.hpp
 )
 if(NOT LEMON_NO_CONFIG)

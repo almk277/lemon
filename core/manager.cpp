@@ -4,6 +4,7 @@
 #include "options.hpp"
 #include "parameters.hpp"
 #include "http_rh_manager.hpp"
+#include "http_router.hpp"
 #include "tcp_server.hpp"
 #ifndef LEMON_NO_CONFIG
 # include "config.hpp"
@@ -130,7 +131,8 @@ void Manager::init_servers(const std::shared_ptr<const Options>& opts)
 		return !contains(running_servers, opt.listen_port);
 	};
 	for (auto& s : opts->servers | boost::adaptors::filtered(not_running))
-		srv.push_back(std::make_unique<tcp::Server>(worker_ctx, opts, s, rhman));
+		srv.push_back(std::make_unique<tcp::Server>(worker_ctx, opts, s,
+			std::make_shared<http::Router>(rhman, s.routes)));
 }
 
 void Manager::init_workers(const std::shared_ptr<const Options>& opts)

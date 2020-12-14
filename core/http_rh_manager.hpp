@@ -13,10 +13,10 @@ class RhManager: boost::noncopyable
 public:
 	RhManager() = default;
 
-	void add(std::shared_ptr<http::RequestHandler> h);
-	std::shared_ptr<http::RequestHandler> operator[](string_view name) const;
+	void add(std::shared_ptr<RequestHandler> h);
+	std::shared_ptr<RequestHandler> operator[](string_view name) const;
 
 private:
-	std::map<string_view, std::shared_ptr<http::RequestHandler>> handlers;
+	std::map<string_view, std::shared_ptr<RequestHandler>> handlers;
 };
 }

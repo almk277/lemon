@@ -4,7 +4,7 @@
 #include "http_request_handler.hpp"
 #include "http_router.hpp"
 #include "string_builder.hpp"
-#include "tcp_client.hpp"
+#include "tcp_session.hpp"
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/concept_check.hpp>
 
@@ -17,14 +17,14 @@ BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Task::Result::const_iterator>
 boost::fast_pool_allocator<Task, boost::default_user_allocator_malloc_free> task_allocator;
 }
 
-Task::Task(Ident id, std::shared_ptr<tcp::Client> cl) noexcept:
+Task::Task(Ident id, std::shared_ptr<tcp::Session> session) noexcept:
 	id{id},
-	cl{cl},
-	lg{cl->get_logger(), id},
+	session{session},
+	lg{session->get_logger(), id},
 	a{lg},
 	req{a},
 	resp{a},
-	router{cl->get_router()}
+	router{session->get_router()}
 {
 	lg.debug("task created");
 }
@@ -34,9 +34,9 @@ Task::~Task()
 	lg.debug("task removed");
 }
 
-std::shared_ptr<Task> Task::make(Ident id, std::shared_ptr<tcp::Client> cl)
+std::shared_ptr<Task> Task::make(Ident id, std::shared_ptr<tcp::Session> session)
 {
-	return std::allocate_shared<Task>(task_allocator, id, cl);
+	return std::allocate_shared<Task>(task_allocator, id, session);
 }
 
 void Task::run()

@@ -12,7 +12,7 @@
 
 namespace tcp
 {
-class Client;
+class Session;
 }
 
 namespace http
@@ -41,20 +41,20 @@ public:
 
 	static constexpr Ident start_id = 1;
 
-	Task(Ident id, std::shared_ptr<tcp::Client> cl) noexcept;
+	Task(Ident id, std::shared_ptr<tcp::Session> session) noexcept;
 	~Task();
 
 	auto is_last() const { return !req.keep_alive; }
 
 private:
-	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<tcp::Client> cl);
+	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<tcp::Session> session);
 
 	void run();
 	void handle_request(RequestHandler& h);
 	void make_error(Response::Status code) noexcept;
 
 	const Ident id;
-	const std::shared_ptr<const tcp::Client> cl; // keep client alive
+	const std::shared_ptr<const tcp::Session> session; // keep session alive
 	TaskLogger lg;
 	ArenaImp a;
 	Request req;

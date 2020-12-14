@@ -8,7 +8,6 @@
 
 namespace http
 {
-class RhManager;
 class Router;
 }
 
@@ -18,7 +17,7 @@ class Server: boost::noncopyable
 {
 public:
 	Server(boost::asio::io_context& context, std::shared_ptr<const Options> global_opt,
-		const Options::Server& server_opt, const http::RhManager& rhman);
+		const Options::Server& server_opt, std::shared_ptr<const http::Router> router);
 	~Server();
 
 	const Options::Server& get_options() const { return server_opt; }
