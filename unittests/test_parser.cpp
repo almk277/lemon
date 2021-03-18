@@ -150,6 +150,28 @@ const std::vector<GoodTestCase> good_request_samples = {
 		{},
 		{}
 	},
+	{
+		4,
+		"POST / HTTP/1.1\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"4\r\n"
+		"chun\r\n"
+		"6\r\n"
+		"ked da\r\n"
+		"2\r\n"
+		"ta\r\n"
+		"0\r\n"
+		"\r\n",
+		Request::Method::Type::post,
+		"POST",
+		"/",
+		Message::ProtocolVersion::http_1_1,
+		{
+			{ "transfer-encoding", "chunked" },
+		},
+		"chunked data"
+	},
 };
 
 const std::vector<GoodTestCase> good_last_request_samples = {
@@ -272,7 +294,8 @@ struct fragmented_pipeline_dataset
 private:
 	std::deque<GoodTestCase> cases = {
 		good_request_samples.at(0),
-		good_request_samples.at(1)
+		good_request_samples.at(1),
+		good_request_samples.at(3),
 	};
 };
 
