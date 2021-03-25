@@ -26,13 +26,14 @@ struct ParserFixture
 	ArenaImp a{ slg };
 	Request req{a};
 	Parser p;
+	bool drop_mode = false;
 
 	void reset()
 	{
 		req.url = {};
 		req.headers.clear();
 		req.body.clear();
-		p.reset(req);
+		p.reset(req, drop_mode);
 	}
 	ParserFixture()
 	{
@@ -321,18 +322,19 @@ BOOST_DATA_TEST_CASE(test_simple,
 	boost::unit_test::data::make(good_request_samples)
 	+ boost::unit_test::data::make(good_last_request_samples))
 {
-	auto result = p.parse_chunk(sample.request);
-	Parser::finalize(req);
+	auto [result, rest] = p.parse_chunk(sample.request);
 
 	auto error = std::get_if<Error>(&result);
 	if (error)
 		BOOST_TEST_MESSAGE(std::to_string(static_cast<int>(error->code))
 			+ " " + std::string{ error->details });
-	BOOST_TEST_REQUIRE(!error);
-
+	BOOST_TEST_REQUIRE(std::holds_alternative<Parser::RequestLine>(result));
+	
+	std::tie(result, rest) = p.parse_chunk(rest);
+	p.finalize(req);
 	auto r = std::get_if<Parser::CompleteRequest>(&result);
+	BOOST_TEST(rest.empty());
 	BOOST_TEST_REQUIRE(r);
-	BOOST_TEST(r->rest.empty());
 	BOOST_TEST(req.method.type == sample.method_type);
 	BOOST_TEST(req.method.name == sample.method_name);
 	BOOST_TEST(req.url.path == sample.url);
@@ -350,25 +352,25 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 	{
 		auto chunk = chunks.front();
 		chunks.pop_front();
-		auto result = p.parse_chunk(chunk);
+		auto [result, rest] = p.parse_chunk(chunk);
 
-		auto result_error = std::get_if<Error>(&result);
-		BOOST_TEST(!result_error);
+		BOOST_TEST(!std::holds_alternative<Error>(result));
 
-		if (auto result_complete = std::get_if<Parser::CompleteRequest>(&result))
-		{
-			Parser::finalize(req);
+		if (!rest.empty())
+			chunks.emplace_front(rest);
 
-			if (!result_complete->rest.empty())
-				chunks.emplace_front(result_complete->rest);
-
-			BOOST_TEST(!cases.empty());
-			auto expected = cases.front();
-			cases.pop_front();
-
+		BOOST_TEST(!cases.empty());
+		auto expected = cases.front();
+		
+		if (auto result_reqline = std::get_if<Parser::RequestLine>(&result); result_reqline) {
 			BOOST_TEST(req.method.type == expected.method_type);
 			BOOST_TEST(req.method.name == expected.method_name);
 			BOOST_TEST(req.url.path == expected.url);
+		} else if (auto result_complete = std::get_if<Parser::CompleteRequest>(&result); result_complete) {
+			p.finalize(req);
+
+			cases.pop_front();
+
 			BOOST_TEST(req.http_version == expected.version);
 			BOOST_TEST(req.headers == expected.lowercased_headers(), boost::test_tools::per_element());
 			BOOST_TEST(body(req) == expected.body);
@@ -382,8 +384,13 @@ BOOST_DATA_TEST_CASE(test_pipeline, fragmented_pipeline_dataset{})
 
 BOOST_DATA_TEST_CASE(test_errors, boost::unit_test::data::make(bad_request_samples))
 {
-	auto result = p.parse_chunk(sample.request);
-	Parser::finalize(req);
+	Parser::Result::first_type result = Parser::CompleteRequest{};
+	auto data = sample.request;
+	
+	while (!(data.empty() || std::holds_alternative<Error>(result))) {
+		std::tie(result, data) = p.parse_chunk(data);
+	}
+	p.finalize(req);
 
 	auto r = std::get_if<Error>(&result);
 	BOOST_TEST_REQUIRE(r);

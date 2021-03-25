@@ -31,8 +31,8 @@ public:
 	{
 		explicit Ptr(std::shared_ptr<Task> t) noexcept: t{move(t)} {}
 
-		TaskLogger& lg() const noexcept { return t->lg; }
-		Arena& get_arena() const noexcept { return t->a; }
+		auto lg() const noexcept -> TaskLogger& { return t->lg; }
+		auto get_arena() const noexcept -> Arena& { return t->a; }
 
 		std::shared_ptr<Task> t;
 	};
@@ -45,13 +45,14 @@ public:
 	~Task();
 
 	auto is_last() const { return !req.keep_alive; }
+	auto resolve() noexcept -> bool;
 
 private:
-	static std::shared_ptr<Task> make(Ident id, std::shared_ptr<tcp::Session> session);
+	static auto make(Ident id, std::shared_ptr<tcp::Session> session) -> std::shared_ptr<Task>;
 
-	void run();
-	void handle_request(RequestHandler& h);
-	void make_error(Response::Status code) noexcept;
+	auto run() -> void;
+	auto handle_request() -> void;
+	auto make_error(Response::Status code) noexcept -> void;
 
 	const Ident id;
 	const std::shared_ptr<const tcp::Session> session; // keep session alive
@@ -60,6 +61,8 @@ private:
 	Request req;
 	Response resp;
 	const Router& router;
+	RequestHandler* handler = nullptr;
+	bool drop_mode = false;
 
 	friend class TaskBuilder;
 	friend class ReadyTask;
@@ -125,7 +128,10 @@ public:
 class IncompleteTask : public Task::Ptr
 {
 	IncompleteTask(std::shared_ptr<Task> t) noexcept: Ptr{ move(t) } {}
+	auto resolve() { return t->resolve(); }
+
 	friend class TaskBuilder;
+
 public:
 	IncompleteTask(const IncompleteTask&) = default;
 	IncompleteTask(IncompleteTask&&) = default;

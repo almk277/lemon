@@ -1,12 +1,12 @@
 #include "http_task.hpp"
 #include "http_error.hpp"
-#include "http_parser_.hpp"
 #include "http_request_handler.hpp"
 #include "http_router.hpp"
 #include "string_builder.hpp"
 #include "tcp_session.hpp"
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/concept_check.hpp>
+#include <ostream>
 
 namespace http
 {
@@ -15,6 +15,11 @@ namespace
 BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<Task::Result::const_iterator>));
 
 boost::fast_pool_allocator<Task, boost::default_user_allocator_malloc_free> task_allocator;
+}
+
+static auto operator<<(std::ostream& stream, const RequestHandler& handler) -> std::ostream&
+{
+	return stream << handler.get_name();
 }
 
 Task::Task(Ident id, std::shared_ptr<tcp::Session> session) noexcept:
@@ -34,23 +39,37 @@ Task::~Task()
 	lg.debug("task removed");
 }
 
-std::shared_ptr<Task> Task::make(Ident id, std::shared_ptr<tcp::Session> session)
+auto Task::resolve() noexcept -> bool
 {
-	return std::allocate_shared<Task>(task_allocator, id, session);
+	const auto path = req.url.path;
+	BOOST_ASSERT(!path.empty());
+	
+	lg.debug("resolving: ", path);
+	handler = router.resolve(path);
+	if (handler) {
+		lg.debug("handler found: ", *handler);
+	} else {
+		lg.debug("handler not found; switch to drop mode");
+		drop_mode = true;
+	}
+	
+	return handler != nullptr;
 }
 
-void Task::run()
+auto Task::make(Ident id, std::shared_ptr<tcp::Session> session) -> std::shared_ptr<Task>
+{
+	return std::allocate_shared<Task>(task_allocator, id, move(session));
+}
+
+auto Task::run() -> void
 {
 	lg.access(req.method.name, " ", req.url.all);
 
-	const auto path = req.url.path;
-	lg.debug("resolving: ", path);
-	auto h = router.resolve(path);
 	try {
-		if (BOOST_LIKELY(h != nullptr)) {
-			lg.debug("handler found: ", h->get_name());
-			handle_request(*h);
-			lg.debug("handler finished: ", h->get_name());
+		if (BOOST_LIKELY(handler != nullptr)) {
+			lg.debug("start handler");
+			handle_request();
+			lg.debug("handler finished: ", *handler);
 		} else {
 			lg.debug("HTTP error 404");
 			make_error(Response::Status::not_found);
@@ -59,33 +78,34 @@ void Task::run()
 		lg.debug("HTTP error ", he.status_code(), " ", he.detail_string());
 		make_error(he.status_code());
 	} catch (std::exception &e) {
-		lg.error("internal error in module: ", h->get_name(), ": ", e.what());
+		lg.error("internal error in module: ", *handler, ": ", e.what());
 		make_error(Response::Status::internal_server_error);
 	} catch (...) {
-		lg.error("unknown exception in module: ", h->get_name());
+		lg.error("unknown exception in module: ", *handler);
 		make_error(Response::Status::internal_server_error);
 	}
 }
 
-void Task::handle_request(RequestHandler& h)
+auto Task::handle_request() -> void
 {
-	ModuleLoggerGuard mlg{ lg, h.get_name() };
-	Parser::finalize(req);
+	BOOST_ASSERT(handler);
+	
+	ModuleLoggerGuard mlg{ lg, handler->get_name() };
 	RequestHandler::Context ctx{ a, lg };
 	
 	switch (req.method.type) {
 	using method = Request::Method::Type;
-	case method::get: h.get(req, resp, ctx); break;
-	case method::head: h.head(req, resp, ctx); break;
-	case method::post: h.post(req, resp, ctx); break;
+	case method::get: handler->get(req, resp, ctx); break;
+	case method::head: handler->head(req, resp, ctx); break;
+	case method::post: handler->post(req, resp, ctx); break;
 	case method::other:
-		h.method(req.method.name, req, resp, ctx);
+		handler->method(req.method.name, req, resp, ctx);
 		break;
 	default: BOOST_ASSERT(0);
 	}
 }
 
-void Task::make_error(Response::Status code) noexcept
+auto Task::make_error(Response::Status code) noexcept -> void
 {
 	//TODO cache buffers
 	resp.http_version = req.http_version;

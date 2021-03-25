@@ -78,9 +78,10 @@ public:
 	static auto make_error_task(IncompleteTask it, const Error& error) -> Task::Result;
 
 private:
-	Parser p;
+	Parser parser;
 	const Options& opt;
 	Task::Ident task_id;
 	boost::asio::mutable_buffer recv_buf;
+	boost::asio::mutable_buffer head_buf;
 };
 }

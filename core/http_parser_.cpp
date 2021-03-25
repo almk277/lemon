@@ -14,7 +14,7 @@ enum CallbackResult
 
 const auto& header_locale = std::locale::classic();
 
-Request::Method method_from(http_method m)
+auto method_from(http_method m) -> Request::Method
 {
 	using M = Request::Method::Type;
 	static constexpr Request::Method
@@ -32,14 +32,14 @@ Request::Method method_from(http_method m)
 	BOOST_UNREACHABLE_RETURN({});
 }
 
-void prolong(string_view& original, string_view added)
+auto prolong(string_view& original, string_view added)
 {
 	BOOST_ASSERT(original.data() + original.size() == added.data());
 	original = { original.data(), original.size() + added.size() };
 }
 
-string_view url_field(const http_parser_url& url,
-	http_parser_url_fields f, string_view s)
+auto url_field(const http_parser_url& url,
+               http_parser_url_fields f, string_view s)
 {
 	return url.field_set & (1 << f)
 		? s.substr(url.field_data[f].off, url.field_data[f].len)
@@ -49,7 +49,7 @@ string_view url_field(const http_parser_url& url,
 struct ParserInternal: Parser
 {
 	template<typename cb>
-	static int parser_cb(http_parser* p) noexcept
+	static auto parser_cb(http_parser* p) noexcept -> int
 	{
 		Context& ctx = *static_cast<Context*>(p->data);
 		Request& r = *ctx.r;
@@ -59,34 +59,52 @@ struct ParserInternal: Parser
 	}
 
 	template<typename cb>
-	static int data_cb(http_parser* p, const char* at, size_t len) noexcept
+	static auto data_cb(http_parser* p, const char* at, size_t len) noexcept -> int
 	{
-		const http_parser *cp = p;
-		Context& ctx = *static_cast<Context*>(cp->data);
+		Context& ctx = *static_cast<Context*>(p->data);
 		Request& r = *ctx.r;
 		string_view s{at, len};
-		static_assert(noexcept(cb::f(cp, ctx, r, s)),
+		static_assert(noexcept(cb::f(p, ctx, r, s)),
 			"parser callback should be noexcept");
-		return cb::f(cp, ctx, r, s);
+		return cb::f(p, ctx, r, s);
 	}
 
-	static http_parser_settings make_settings();
+	static auto make_work_settings() -> http_parser_settings;
+	static auto make_drop_settings();
 };
 
-http_parser_settings ParserInternal::make_settings()
+auto ParserInternal::make_work_settings() -> http_parser_settings
 {
 	http_parser_settings s;
 	http_parser_settings_init(&s);
 
 	struct OnUrl
 	{
-		static auto f(const http_parser* p, Context& ctx,
+		static auto f(http_parser* p, Context& ctx,
 		              Request& r, string_view s) noexcept
 		{
 			if (r.url.all.empty())
 				r.url.all = s;
 			else
 				prolong(r.url.all, s);
+			
+			auto method = static_cast<http_method>(p->method);
+			r.method = method_from(method);
+
+			http_parser_url url;
+			http_parser_url_init(&url);
+			auto err = http_parser_parse_url(r.url.all.data(), r.url.all.length(),
+				method == HTTP_CONNECT, &url);
+			if (BOOST_UNLIKELY(err)) {
+				ctx.error.emplace(Response::Status::bad_request, "bad URL"sv);
+				return error;
+			}
+			r.url.path = url_field(url, UF_PATH, r.url.all);
+			r.url.query = url_field(url, UF_QUERY, r.url.all);
+
+			http_parser_pause(p, 1);
+			ctx.state = State::request_line;
+			
 			return ok;
 		}
 	};
@@ -97,9 +115,9 @@ http_parser_settings ParserInternal::make_settings()
 		static auto f(const http_parser*, Context& ctx,
 		              Request& r, string_view s) noexcept
 		{
-			if (BOOST_LIKELY(ctx.hdr_state == Context::HeaderState::VAL)) {
+			if (BOOST_LIKELY(ctx.hdr_state == HeaderState::value)) {
 				r.headers.emplace_back(s, string_view{});
-				ctx.hdr_state = Context::HeaderState::KEY;
+				ctx.hdr_state = HeaderState::key;
 			} else {
 				prolong(r.headers.back().name, s);
 			}
@@ -113,9 +131,9 @@ http_parser_settings ParserInternal::make_settings()
 		static auto f(const http_parser*, Context& ctx,
 		              Request& r, string_view s) noexcept
 		{
-			if (BOOST_LIKELY(ctx.hdr_state == Context::HeaderState::KEY)) {
+			if (BOOST_LIKELY(ctx.hdr_state == HeaderState::key)) {
 				r.headers.back().value = s;
-				ctx.hdr_state = Context::HeaderState::VAL;
+				ctx.hdr_state = HeaderState::value;
 			} else {
 				prolong(r.headers.back().value, s);
 			}
@@ -133,20 +151,6 @@ http_parser_settings ParserInternal::make_settings()
 				return error;
 			}
 			r.http_version = static_cast<Message::ProtocolVersion>(p->http_minor);
-
-			auto method = static_cast<http_method>(p->method);
-			r.method = method_from(method);
-
-			http_parser_url url;
-			http_parser_url_init(&url);
-			auto err = http_parser_parse_url(r.url.all.data(), r.url.all.length(),
-				method == HTTP_CONNECT, &url);
-			if (BOOST_UNLIKELY(err)) {
-				ctx.error.emplace(Response::Status::bad_request, "bad URL"sv);
-				return error;
-			}
-			r.url.path = url_field(url, UF_PATH, r.url.all);
-			r.url.query = url_field(url, UF_QUERY, r.url.all);
 
 			return ok;
 		}
@@ -171,7 +175,7 @@ http_parser_settings ParserInternal::make_settings()
 		{
 			r.keep_alive = http_should_keep_alive(p) != 0;
 			r.content_length = static_cast<size_t>(p->content_length);
-			ctx.complete = true;
+			ctx.state = State::body;
 			http_parser_pause(p, 1);
 			return ok;
 		}
@@ -181,22 +185,45 @@ http_parser_settings ParserInternal::make_settings()
 	return s;
 }
 
-const auto settings = ParserInternal::make_settings();
+auto ParserInternal::make_drop_settings()
+{
+	http_parser_settings s;
+	http_parser_settings_init(&s);
+
+	struct OnMessageComplete
+	{
+		static auto f(http_parser* p, Context& ctx,
+			Request& r) noexcept
+		{
+			ctx.state = State::body;
+			http_parser_pause(p, 1);
+			return ok;
+		}
+	};
+	s.on_message_complete = parser_cb<OnMessageComplete>;
+
+	return s;
 }
 
-void Parser::reset(Request& req) noexcept
+const auto work_settings = ParserInternal::make_work_settings();
+const auto drop_settings = ParserInternal::make_drop_settings();
+}
+
+auto Parser::reset(Request& req, bool& drop_mode) noexcept -> void
 {
-	http_parser_init(&p, HTTP_REQUEST);
+	http_parser_init(&p, HTTP_REQUEST); // TODO check out if we need to do this every time
 	ctx.r = &req;
-	ctx.hdr_state = Context::HeaderState::VAL;
+	ctx.drop_mode = &drop_mode;
+	ctx.state = State::start;
+	ctx.hdr_state = HeaderState::value;
 	ctx.error = boost::none;
-	ctx.complete = false;
 	p.data = &ctx;
 }
 
 auto Parser::parse_chunk(string_view chunk) noexcept -> Result
 {
-	auto nparsed = http_parser_execute(&p, &settings, chunk.data(), chunk.size());
+	auto settings = *ctx.drop_mode ? &drop_settings : &work_settings;
+	auto nparsed = http_parser_execute(&p, settings, chunk.data(), chunk.size());
 
 	auto err = HTTP_PARSER_ERRNO(&p);
 	switch (err)
@@ -207,30 +234,35 @@ auto Parser::parse_chunk(string_view chunk) noexcept -> Result
 		http_parser_pause(&p, 0);
 		break;
 	default:
-		return ctx.error.value_or_eval([err] {
+		return { ctx.error.value_or_eval([err] {
 			return Error{ Response::Status::bad_request, http_errno_description(err) };
-		});
+		}), string_view{} };
 	}
 
 	if (p.upgrade) {
 		//TODO
 	}
 
-	if (ctx.complete)
-		return CompleteRequest{ chunk.substr(nparsed) };
+	if (ctx.state == State::request_line)
+		return { RequestLine{}, chunk.substr(nparsed) };
+	if (ctx.state == State::body)
+		return { CompleteRequest{}, chunk.substr(nparsed) };
 
 	BOOST_ASSERT(nparsed == chunk.size());
-	return IncompleteRequest{};
+	return { IncompleteRequest{}, string_view{} };
 }
 
-void Parser::finalize(Request& req)
+auto Parser::finalize(Request& req) const -> void
 {
+	if (*ctx.drop_mode)
+		return;
+	
 	auto allocator = req.a.make_allocator<char>("lowercase header");
 	for (auto& hdr : req.headers) {
 		auto lc_length = hdr.name.length();
 		auto lc_begin = allocator.allocate(lc_length);
 		boost::to_lower_copy(lc_begin, hdr.name, header_locale);
-		hdr.lowercase_name = {lc_begin, lc_length};
+		hdr.lowercase_name = { lc_begin, lc_length };
 	}
 }
 }

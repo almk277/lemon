@@ -40,30 +40,46 @@ auto TaskBuilder::Results::end() -> iterator
 
 auto TaskBuilder::Results::next() -> std::optional<value>
 {
+	using Result = std::optional<value>;
+
 	if (data.empty()) {
 		if (stop)
 			return std::nullopt;
 		stop = true;
 		return it;
 	}
-	
-	auto result = builder.p.parse_chunk(data);
-	return visit(Visitor{
-		[this](const Error& error) -> value {
-			data = {};
-			stop = true;
-			return make_error_task(it, error);
-		},
-		[this](Parser::IncompleteRequest) -> value {
-			data = {};
-			stop = true;
-			return it;
-		},
-		[this](Parser::CompleteRequest req) -> value {
-			data = req.rest;
-			return make_ready_task(session, it);
-		},
-	}, result);
+
+	bool repeat;
+	Result result;
+	do {
+		repeat = false;
+		auto [parse_result, rest_data] = builder.parser.parse_chunk(data);
+		BOOST_ASSERT(rest_data.size() < data.size());
+		data = rest_data;
+		result = visit(Visitor{
+			               [this](const Error& error) -> Result
+			               {
+				               stop = true;
+				               return make_error_task(it, error);
+			               },
+			               [this, &repeat](Parser::RequestLine) -> Result
+			               {
+				               repeat = true;
+							   it.resolve();
+				               return it;
+			               },
+			               [this](Parser::IncompleteRequest) -> Result
+			               {
+				               stop = true;
+				               return it;
+			               },
+			               [this](Parser::CompleteRequest) -> Result
+			               {
+				               return make_ready_task(session, it);
+			               },
+		               }, parse_result);
+	} while (repeat);
+	return result;
 }
 
 auto TaskBuilder::Results::make_ready_task(const std::shared_ptr<tcp::Session>& session,
@@ -85,6 +101,8 @@ auto TaskBuilder::Results::make_ready_task(const std::shared_ptr<tcp::Session>& 
 			boost::copy(data, static_cast<char*>(builder.recv_buf.data()));
 	}
 
+	builder.parser.finalize(complete_task->req);
+	
 	return { complete_task };
 }
 
@@ -102,14 +120,18 @@ auto TaskBuilder::prepare_task(const std::shared_ptr<tcp::Session>& session) -> 
 	auto t = Task::make(task_id, session);
 	++task_id;
 	auto size = opt.headers_size;
-	recv_buf = { t->a.alloc(size, "request headers buffer"), size };
-	p.reset(t->req);
+	head_buf = { t->a.alloc(size, "request headers buffer"), size };
+	recv_buf = head_buf;
+	parser.reset(t->req, t->drop_mode);
 	return { t };
 }
 
 auto TaskBuilder::get_memory(const IncompleteTask& it) -> boost::asio::mutable_buffer
 {
-	if (recv_buf.size() < min_buf_size)
+	if (it.t->drop_mode)
+		// reuse old buffer
+		recv_buf = head_buf;
+	else if (recv_buf.size() < min_buf_size)
 		//TODO adaptive size
 		recv_buf = { it.t->a.alloc(optimum_buf_size, "request buffer"), optimum_buf_size };
 	return recv_buf;
