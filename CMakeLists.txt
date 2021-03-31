@@ -172,8 +172,6 @@ endif()
 
 if(BUILD_TESTING)
 	set(TEST_SRC
-		unittests/stub_logger.cpp
-		unittests/stub_logger.hpp
 		unittests/test_main.cpp
 		unittests/test_arena.cpp
 		unittests/test_cmdline_parser.cpp
@@ -191,6 +189,7 @@ if(BUILD_TESTING)
 		core/http_request_handler.cpp
 		core/http_rh_manager.cpp
 		core/http_router.cpp
+		core/logger_imp.cpp
 		core/options.cpp
 		core/string_builder.cpp
 	)
@@ -208,7 +207,7 @@ if(BUILD_TESTING)
 		"${PROJECT_SOURCE_DIR}/core"
 	)
 	target_link_libraries(test_lemon PRIVATE
-		http_parser Boost::boost Boost::program_options Boost::unit_test_framework)
+		http_parser Boost::boost Boost::program_options Boost::log Boost::unit_test_framework)
 	target_compile_definitions(test_lemon PRIVATE)
 	enable_sanitizer(test_lemon)
 	add_test(NAME test_lemon COMMAND test_lemon)

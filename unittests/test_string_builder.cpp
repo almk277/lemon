@@ -1,6 +1,6 @@
 #include "string_builder.hpp"
 #include "arena_imp.hpp"
-#include "stub_logger.hpp"
+#include "logger_imp.hpp"
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 #include <ostream>
@@ -34,7 +34,8 @@ BOOST_AUTO_TEST_SUITE(string_builder_tests)
 
 BOOST_DATA_TEST_CASE(test_integer, boost::unit_test::data::make(integer_samples))
 {
-	ArenaImp a{ slg };
+	CommonLogger lg;
+	ArenaImp a{ lg };
 	StringBuilder builder{ a };
 	
 	BOOST_TEST(builder.convert(sample.n) == sample.s);

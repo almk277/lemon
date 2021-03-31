@@ -1,6 +1,6 @@
 #include "arena_imp.hpp"
 #include "http_message.hpp"
-#include "stub_logger.hpp"
+#include "logger_imp.hpp"
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 #include <numeric>
@@ -23,7 +23,8 @@ struct TestCase
 
 struct ResponseFixture
 {
-	ArenaImp a{ slg };
+	CommonLogger lg;
+	ArenaImp a{ lg };
 	Response r{ a };
 
 	void fill(const TestCase& c)

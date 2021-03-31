@@ -1,7 +1,7 @@
 #include "http_parser_.hpp"
 #include "arena_imp.hpp"
 #include "http_message.hpp"
-#include "stub_logger.hpp"
+#include "logger_imp.hpp"
 #include <boost/mpl/bool.hpp>
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/test/data/test_case.hpp>
@@ -23,7 +23,8 @@ std::string body(const Request& r)
 
 struct ParserFixture
 {
-	ArenaImp a{ slg };
+	CommonLogger lg;
+	ArenaImp a{ lg };
 	Request req{a};
 	Parser p;
 	bool drop_mode = false;

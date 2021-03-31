@@ -1,7 +1,7 @@
 // Effective with Address Sanitizer
 
 #include "arena_imp.hpp"
-#include "stub_logger.hpp"
+#include "logger_imp.hpp"
 #include <boost/align/is_aligned.hpp> 
 #include <boost/asio/buffer.hpp>
 #include <boost/range/algorithm/for_each.hpp>
@@ -25,9 +25,11 @@ using buffer = boost::asio::mutable_buffer;
 using buffer_list = std::vector<buffer>;
 struct big_array { int data[2048]; };
 
+CommonLogger lg;
+	
 struct ArenaFixture
 {
-	ArenaImp a{ slg };
+	ArenaImp a{ lg };
 };
 
 void test1(const buffer& b) { std::memset(b.data(), 0, b.size()); }
@@ -42,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_aligned_alloc)
 {
 	std::vector<std::pair<std::unique_ptr<ArenaImp>, buffer_list>> arenas;
 	for (size_t i = 0; i < n_arenas; ++i)
-		arenas.emplace_back(std::make_unique<ArenaImp>(slg), buffer_list{});
+		arenas.emplace_back(std::make_unique<ArenaImp>(lg), buffer_list{});
 
 	for (auto& [a, buffers] : arenas)
 		for (auto size: sizes)
@@ -96,7 +98,7 @@ BOOST_AUTO_TEST_CASE(test_allocator)
 
 BOOST_AUTO_TEST_CASE(test_allocator_compare)
 {
-	ArenaImp a2{ slg };
+	ArenaImp a2{ lg };
 	BOOST_TEST(a.make_allocator<char>() == a.make_allocator<char>());
 	BOOST_TEST(a.make_allocator<char>() == Arena::Allocator<char>(a));
 	BOOST_TEST(a.make_allocator<char>() != a2.make_allocator<char>());
