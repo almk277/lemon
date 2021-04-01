@@ -22,11 +22,6 @@ auto operator""_i(unsigned long long v)
 {
 	return static_cast<Integer>(v);
 }
-
-auto tbl()
-{
-	return Table(std::make_unique<TableErrorHandler>());
-}
 }
 
 auto config::operator<<(std::ostream& stream, const Property& p) -> std::ostream&

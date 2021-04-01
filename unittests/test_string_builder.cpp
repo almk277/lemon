@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_SUITE(string_builder_tests)
 
 BOOST_DATA_TEST_CASE(test_integer, boost::unit_test::data::make(integer_samples))
 {
-	CommonLogger lg;
+	BaseLogger lg;
 	ArenaImp a{ lg };
 	StringBuilder builder{ a };
 	

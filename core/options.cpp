@@ -115,8 +115,7 @@ Options::Options(const config::Table& config)
 		s.listen_port = srv["listen"].as<Integer>();
 		auto& routes = srv["route"].as<Table>();
 		for (auto& route : routes)
-			s.routes.push_back(Options::Route
-				{ parse_matcher(route.key()), route.as<string>() });
+			s.routes.push_back({ parse_matcher(route.key()), route.as<string>() });
 	}
 
 	//TODO check unknown keys

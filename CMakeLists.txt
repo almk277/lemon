@@ -88,11 +88,13 @@ endfunction()
 
 set(API_SRC
 	api/arena.hpp
+	api/base_request_handler.hpp
 	api/config.hpp
 	api/http_error.hpp
 	api/http_message.hpp
 	api/http_request_handler.hpp
 	api/logger.hpp
+	api/module.hpp
 	api/string.hpp
 	api/string_builder.hpp
 	api/string_view.hpp
@@ -108,8 +110,6 @@ set(CORE_SRC
 	core/http_parser_.cpp
 	core/http_parser_.hpp
 	core/http_request_handler.cpp
-	core/http_rh_manager.cpp
-	core/http_rh_manager.hpp
 	core/http_router.cpp
 	core/http_router.hpp
 	core/http_task.cpp
@@ -125,6 +125,10 @@ set(CORE_SRC
 	core/main.cpp
 	core/manager.cpp
 	core/manager.hpp
+	core/module_manager.cpp
+	core/module_manager.hpp
+	core/module_provider.cpp
+	core/module_provider.hpp
 	core/options.cpp
 	core/options.hpp
 	core/parameters.hpp
@@ -177,6 +181,7 @@ if(BUILD_TESTING)
 		unittests/test_cmdline_parser.cpp
 		unittests/test_config.cpp
 		unittests/test_config.hpp
+		unittests/test_module_manager.cpp
 		unittests/test_parser.cpp
 		unittests/test_resp_it.cpp
 		unittests/test_router.cpp
@@ -187,9 +192,9 @@ if(BUILD_TESTING)
 		core/http_message.cpp
 		core/http_parser_.cpp
 		core/http_request_handler.cpp
-		core/http_rh_manager.cpp
 		core/http_router.cpp
 		core/logger_imp.cpp
+		core/module_manager.cpp
 		core/options.cpp
 		core/string_builder.cpp
 	)

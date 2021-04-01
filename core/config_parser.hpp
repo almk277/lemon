@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+//TODO check LEMON_NO_CONFIG here
+
 namespace config
 {
 class SyntaxError : public Error

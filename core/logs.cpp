@@ -71,6 +71,7 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(kw_taskid, LoggerImp::attr_name.task, TaskIdent)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_address, LoggerImp::attr_name.address,
 	boost::asio::ip::address)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_module, LoggerImp::attr_name.module, string_view)
+BOOST_LOG_ATTRIBUTE_KEYWORD(kw_handler, LoggerImp::attr_name.handler, string_view)
 BOOST_LOG_ATTRIBUTE_KEYWORD(kw_time, LoggerImp::attr_name.time,
 	boost::log::attributes::local_clock::value_type)
 
@@ -125,6 +126,10 @@ bool add_messages_sink(const Options::LogTypes::MessagesLog& log)
 			<< if_(has_attr(kw_module))
 			[
 				expressions::stream << "[" << kw_module << "] "
+			]
+			<< if_(has_attr(kw_handler))
+			[
+				expressions::stream << "[" << kw_handler << "] "
 			]
 			<< kw_lazymessage
 		}, log.dest);

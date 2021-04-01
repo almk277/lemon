@@ -6,6 +6,8 @@
 #include <boost/core/noncopyable.hpp>
 #include <memory>
 
+class ModuleManager;
+
 namespace http
 {
 class Router;
@@ -17,7 +19,7 @@ class Server: boost::noncopyable
 {
 public:
 	Server(boost::asio::io_context& context, std::shared_ptr<const Options> global_opt,
-		const Options::Server& server_opt, std::shared_ptr<const http::Router> router);
+		const Options::Server& server_opt, std::shared_ptr<ModuleManager> module_manager);
 	~Server();
 
 	const Options::Server& get_options() const { return server_opt; }
@@ -33,6 +35,7 @@ private:
 	Tcp::acceptor acceptor;
 	const std::shared_ptr<const Options> global_opt;
 	const Options::Server& server_opt;
+	const std::shared_ptr<ModuleManager> module_manager;
 	const std::shared_ptr<const http::Router> router;
 };
 }

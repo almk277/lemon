@@ -69,5 +69,10 @@ inline auto operator<<(Table t, Property&& p)
 	t.add(std::move(p));
 	return t;
 }
+
+inline auto tbl()
+{
+	return Table(std::make_unique<TableErrorHandler>());
+}
 }
 }

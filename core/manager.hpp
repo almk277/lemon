@@ -10,8 +10,14 @@
 #include <thread>
 #include <vector>
 
+class ModuleManager;
 struct Parameters;
 class Options;
+
+namespace config
+{
+class Table;
+}
 
 namespace tcp
 {
@@ -24,18 +30,19 @@ public:
 	explicit Manager(const Parameters& params);
 	~Manager();
 
-	void run();
+	auto run() -> void;
 	//TODO find a way to call it
-	void reinit();
+	auto reinit() -> void;
 
 private:
-	void init();
-	void init_servers(const std::shared_ptr<const Options>& opts);
-	void init_workers(const std::shared_ptr<const Options>& opts);
-	void add_worker();
-	void remove_worker();
-	void run_worker() noexcept;
-	void finalize_worker(std::thread::id id);
+	auto init() -> void;
+	auto init_modules(const config::Table* config) -> void;
+	auto init_servers(const std::shared_ptr<const Options>& opts) -> void;
+	auto init_workers(const Options& opts) -> void;
+	auto add_worker() -> void;
+	auto remove_worker() -> void;
+	auto run_worker() noexcept -> void;
+	auto finalize_worker(std::thread::id id) -> void;
 
 	boost::asio::io_context master_ctx;
 	boost::asio::io_context worker_ctx;
@@ -44,7 +51,8 @@ private:
 	boost::asio::signal_set quit_signals;
 	std::map<std::thread::id, std::thread> workers;
 	unsigned n_workers = 0;
-	CommonLogger lg;
+	GlobalLogger lg;
+	std::shared_ptr<ModuleManager> module_manager;
 	std::vector<std::unique_ptr<tcp::Server>> srv;
 	const std::filesystem::path config_path;
 };

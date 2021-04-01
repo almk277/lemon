@@ -1,17 +1,15 @@
 #include "manager.hpp"
 #include "algorithm.hpp"
 #include "logs.hpp"
+#include "module_manager.hpp"
+#include "module_provider.hpp"
 #include "options.hpp"
 #include "parameters.hpp"
-#include "http_rh_manager.hpp"
-#include "http_router.hpp"
 #include "tcp_server.hpp"
 #ifndef LEMON_NO_CONFIG
 # include "config.hpp"
 # include "config_parser.hpp"
 #endif
-#include "modules/testing.hpp"
-#include "modules/static_file.hpp"
 #include <boost/asio/post.hpp>
 #include <boost/assert.hpp>
 #include <boost/range/adaptor/filtered.hpp>
@@ -22,13 +20,13 @@ namespace
 {
 struct FinishWorker: std::exception
 {
-	const char* what() const noexcept override { return "finish_worker"; }
+	auto what() const noexcept -> const char* override { return "finish_worker"; }
 };
 
-unsigned n_workers_default()
+auto n_workers_default()
 {
 	auto n_cores = std::thread::hardware_concurrency();
-	return n_cores > 0 ? n_cores : 2;
+	return n_cores > 0 ? n_cores : 2u;
 }
 }
 
@@ -58,7 +56,7 @@ Manager::~Manager()
 	lg.trace("manager destroyed");
 }
 
-void Manager::run()
+auto Manager::run() -> void
 {
 	lg.trace("manager started");
 
@@ -67,50 +65,55 @@ void Manager::run()
 	lg.trace("manager finished");
 }
 
-void Manager::reinit()
+auto Manager::reinit() -> void
 {
 	lg.trace("manager reinit");
 
 	post(master_ctx, [this] { init(); });
 }
 
-void Manager::init()
+auto Manager::init() -> void
 {
 	lg.debug("initializing manager");
 
-	std::shared_ptr<Options> opts;
-
 	try {
+		config::Table* p_config = nullptr;
 #ifdef LEMON_NO_CONFIG
 		opts = std::make_shared<options>();
 #else
 		auto config_file = std::make_shared<config::File>(config_path);
 		auto config = parse(config_file);
-		opts = std::make_shared<Options>(config);
+		p_config = &config;
+		auto opts = std::make_shared<Options>(config);
 #endif
+		
 		if (opts->servers.empty())
 			throw std::runtime_error{ "no servers configured" };
+
+		logs::init(*opts);
+		init_modules(p_config);
+		init_servers(opts);
+		init_workers(*opts);
 	} catch (std::exception& e) {
 		lg.error("init: ", e.what());
 		if (srv.empty())
 			throw;
 		lg.warning("init: reconfiguration failed, fallback");
 	}
-
-	if (opts) {
-		logs::init(*opts);
-		init_servers(opts);
-		init_workers(opts);
-	}
 }
 
-void Manager::init_servers(const std::shared_ptr<const Options>& opts)
+auto Manager::init_modules(const config::Table* config) -> void
+{
+	auto builtin = BuiltinModules{};
+	auto providers = std::vector<ModuleProvider*>{ &builtin };
+	module_manager = std::make_shared<ModuleManager>(providers, config, lg);
+	if (module_manager->handler_count() == 0)
+		throw std::runtime_error{ "no request handlers loaded" };
+}
+
+auto Manager::init_servers(const std::shared_ptr<const Options>& opts) -> void
 {
 	lg.trace("init_servers");
-
-	http::RhManager rhman;
-	rhman.add(std::make_shared<http::RhTesting>());
-	rhman.add(std::make_shared<http::RhStaticFile>());
 
 	std::set<decltype(Options::Server::listen_port)> running_servers;
 	for (auto it = srv.begin(); it != srv.end();)
@@ -131,16 +134,15 @@ void Manager::init_servers(const std::shared_ptr<const Options>& opts)
 		return !contains(running_servers, opt.listen_port);
 	};
 	for (auto& s : opts->servers | boost::adaptors::filtered(not_running))
-		srv.push_back(std::make_unique<tcp::Server>(worker_ctx, opts, s,
-			std::make_shared<http::Router>(rhman, s.routes)));
+		srv.push_back(std::make_unique<tcp::Server>(worker_ctx, opts, s, module_manager));
 }
 
-void Manager::init_workers(const std::shared_ptr<const Options>& opts)
+auto Manager::init_workers(const Options& opts) -> void
 {
 	lg.trace("init_workers");
 
 	const auto current_n_workers = n_workers;
-	const auto required_n_workers = opts->n_workers.value_or_eval(n_workers_default);
+	const auto required_n_workers = opts.n_workers.value_or_eval(n_workers_default);
 	lg.trace("current worker number: ", current_n_workers, ", required: ", required_n_workers);
 
 	BOOST_ASSERT(required_n_workers > 0);
@@ -153,7 +155,7 @@ void Manager::init_workers(const std::shared_ptr<const Options>& opts)
 	n_workers = required_n_workers;
 }
 
-void Manager::add_worker()
+auto Manager::add_worker() -> void
 {
 	lg.trace("add worker");
 
@@ -163,7 +165,7 @@ void Manager::add_worker()
 	workers[id] = move(worker);
 }
 
-void Manager::remove_worker()
+auto Manager::remove_worker() -> void
 {
 	lg.trace("remove worker");
 
@@ -171,9 +173,9 @@ void Manager::remove_worker()
 	post(worker_ctx, [] { throw FinishWorker{}; });
 }
 
-void Manager::run_worker() noexcept
+auto Manager::run_worker() noexcept -> void
 {
-	CommonLogger lg;
+	GlobalLogger lg;
 	auto n = std::this_thread::get_id();
 
 	lg.debug("started worker thread #", n);
@@ -195,7 +197,7 @@ void Manager::run_worker() noexcept
 	post(master_ctx, [this, n] { finalize_worker(n); });
 }
 
-void Manager::finalize_worker(std::thread::id id)
+auto Manager::finalize_worker(std::thread::id id) -> void
 {
 	lg.debug("finalize worker #", id);
 

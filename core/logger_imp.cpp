@@ -52,9 +52,15 @@ void LoggerImp::finalize()
 	lg.push_record(std::move(rec));
 }
 
+void GlobalLogger::insert_attributes()
+{
+	if (!module_name.empty())
+		attributes().insert(attr_name.module, make_attribute_value(module_name));
+}
+
 void ServerLogger::insert_attributes()
 {
-	CommonLogger::insert_attributes();
+	BaseLogger::insert_attributes();
 
 	attributes().insert(attr_name.server, make_attribute_value(port));
 }
@@ -71,8 +77,8 @@ void TaskLogger::insert_attributes()
 	ClientLogger::insert_attributes();
 
 	attributes().insert(attr_name.task, make_attribute_value(id));
-	if (!module_name.empty())
-		attributes().insert(attr_name.module, make_attribute_value(module_name));
+	if (!handler.empty())
+		attributes().insert(attr_name.handler, make_attribute_value(handler));
 }
 
 LoggerImp::AttrName::AttrName():
@@ -82,6 +88,7 @@ LoggerImp::AttrName::AttrName():
 	server{"Server"},
 	task{"TaskID"},
 	address{"ClientAddress"},
-	module{"Module"}
+	module{"Module"},
+	handler{"RequestHandler"}
 {
 }

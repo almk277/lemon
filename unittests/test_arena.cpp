@@ -25,7 +25,7 @@ using buffer = boost::asio::mutable_buffer;
 using buffer_list = std::vector<buffer>;
 struct big_array { int data[2048]; };
 
-CommonLogger lg;
+BaseLogger lg;
 	
 struct ArenaFixture
 {

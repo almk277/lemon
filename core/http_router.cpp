@@ -1,5 +1,6 @@
 #include "http_router.hpp"
-#include "http_rh_manager.hpp"
+#include "http_request_handler.hpp"
+#include "module_manager.hpp"
 #include <algorithm>
 #include <regex>
 #include <string>
@@ -64,16 +65,19 @@ struct MatchBuilder
 };
 }
 
-Router::Router(const RhManager& rhman, const Options::RouteList& routes)
+Router::Router(const ModuleManager& manager, const Options::RouteList& routes)
 {
 	matchers.reserve(routes.size());
 	for (auto& r: routes) {
-		auto rh = rhman[r.handler];
+		auto rh = manager.get_handler(r.handler);
 		if (!rh)
-			throw Options::Error(r.handler + ": module not found");
+			throw Options::Error{ r.handler + ": request handler not found" };
+		auto http_rh = std::dynamic_pointer_cast<RequestHandler>(rh);
+		if (!http_rh)
+			throw Options::Error{ r.handler + ": not HTTP request handler" };
 		matchers.emplace_back(
 			visit(MatchBuilder{}, r.matcher),
-			move(rh));
+			move(http_rh));
 	}
 }
 

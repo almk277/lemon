@@ -23,7 +23,7 @@ struct TestCase
 
 struct ResponseFixture
 {
-	CommonLogger lg;
+	BaseLogger lg;
 	ArenaImp a{ lg };
 	Response r{ a };
 

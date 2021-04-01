@@ -1,6 +1,8 @@
 #include "http_router.hpp"
 #include "http_request_handler.hpp"
-#include "http_rh_manager.hpp"
+#include "logger_imp.hpp"
+#include "module_manager.hpp"
+#include "module_provider.hpp"
 #include "options.hpp"
 #include <boost/test/unit_test.hpp>
 
@@ -10,7 +12,7 @@ namespace
 {
 struct Handler1 : RequestHandler
 {
-	string_view get_name() const noexcept override
+	auto get_name() const noexcept -> string_view override
 	{
 		return "h1"sv;
 	}
@@ -18,24 +20,53 @@ struct Handler1 : RequestHandler
 
 struct Handler2 : RequestHandler
 {
-	string_view get_name() const noexcept override
+	auto get_name() const noexcept -> string_view override
 	{
 		return "h2"sv;
 	}
 };
 
+struct TestModule : Module
+{
+	TestModule(HandlerList handlers) : handlers(move(handlers)) {}
+	
+	auto get_name() const noexcept -> string_view override { return "test_module"; }
+	auto init(Logger& lg, const config::Table* config) -> HandlerList override
+	{
+		return handlers;
+	}
+
+	HandlerList handlers;
+};
+
+struct TestModuleProvider : ModuleProvider
+{
+	TestModuleProvider(Module::HandlerList handlers): handlers(move(handlers)) {}
+
+	auto get_name() const noexcept -> string_view override { return "Test"; }
+	
+	auto get() -> List override
+	{
+		List ms;
+		ms.push_back(std::make_unique<TestModule>(handlers));
+		return ms;
+	}
+
+	Module::HandlerList handlers;
+};
+	
 struct RouterFixture
 {
 	RouterFixture()
 	{
-		man.add(h1);
-		man.add(h2);
 		routes.clear();
 	}
 
 	const std::shared_ptr<RequestHandler> h1 = std::make_shared<Handler1>();
 	const std::shared_ptr<RequestHandler> h2 = std::make_shared<Handler2>();
-	RhManager man;
+	TestModuleProvider module_provider{ { h1, h2 } };
+	GlobalLogger glg;
+	ModuleManager man{ { &module_provider }, nullptr, glg };
 	decltype(Options::servers) servers = { {} };
 	Options::RouteList& routes = servers.at(0).routes;
 };

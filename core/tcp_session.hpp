@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <memory>
 
+class ModuleManager;
 class Options;
 
 namespace http
@@ -29,12 +30,12 @@ class Session:
 public:
 	using Socket = boost::asio::ip::tcp::socket;
 
-	Session(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
-		std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept;
+	Session(boost::asio::io_context& context, Socket sock, std::shared_ptr<const Options> opt,
+		std::shared_ptr<ModuleManager> module_manager, std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept;
 	~Session();
 
-	static void make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
-		std::shared_ptr<const http::Router> rout, ServerLogger& lg);
+	static void make(boost::asio::io_context& context, Socket sock, std::shared_ptr<const Options> opt,
+		std::shared_ptr<ModuleManager> module_manager, std::shared_ptr<const http::Router> rout, ServerLogger& lg);
 
 	ClientLogger& get_logger() noexcept { return lg; }
 	const http::Router& get_router() const noexcept { return *router; }
@@ -44,6 +45,7 @@ private:
 
 	Socket sock;
 	const std::shared_ptr<const Options> opt;
+	const std::shared_ptr<ModuleManager> module_manager;
 	const std::shared_ptr<const http::Router> router;
 	ClientLogger lg;
 	http::TaskBuilder builder;

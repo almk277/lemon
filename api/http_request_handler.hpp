@@ -1,4 +1,5 @@
 #pragma once
+#include "base_request_handler.hpp"
 #include "string_view.hpp"
 
 class Arena;
@@ -9,7 +10,7 @@ namespace http
 struct Request;
 struct Response;
 
-struct RequestHandler
+struct RequestHandler : BaseRequestHandler
 {
 	struct Context
 	{
@@ -24,12 +25,10 @@ struct RequestHandler
 	RequestHandler& operator=(RequestHandler&&) = delete;
 	virtual ~RequestHandler() = default;
 
-	virtual string_view get_name() const noexcept = 0;
-
-	virtual void get(Request& req, Response& resp, Context& ctx);
-	virtual void head(Request& req, Response& resp, Context& ctx);
-	virtual void post(Request& req, Response& resp, Context& ctx);
-	virtual void method(string_view method_name, Request& req,
-		Response& resp, Context& ctx);
+	virtual auto get(Request& req, Response& resp, Context& ctx) -> void;
+	virtual auto head(Request& req, Response& resp, Context& ctx) -> void;
+	virtual auto post(Request& req, Response& resp, Context& ctx) -> void;
+	virtual auto method(string_view method_name, Request& req,
+	                    Response& resp, Context& ctx) -> void;
 };
 }

@@ -46,15 +46,16 @@ private:
 };
 }
 
-Session::Session(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
-	std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept:
-	sock{std::move(sock)},
-	opt(std::move(opt)),
-	router(std::move(router)),
-	lg{lg, this->sock.remote_endpoint().address()},
-	builder{start_task_id, *this->opt},
-	next_send_id{start_task_id},
-	send_barrier{context}
+Session::Session(boost::asio::io_context& context, Socket sock, std::shared_ptr<const Options> opt,
+	std::shared_ptr<ModuleManager> module_manager, std::shared_ptr<const http::Router> router, ServerLogger& lg) noexcept:
+	sock{ std::move(sock) },
+	opt{ std::move(opt) },
+	module_manager{ move(module_manager) },
+	router{ std::move(router) },
+	lg{ lg, this->sock.remote_endpoint().address() },
+	builder{ start_task_id, *this->opt },
+	next_send_id{ start_task_id },
+	send_barrier{ context }
 {
 	lg.info("connection established"sv);
 }
@@ -70,11 +71,11 @@ Session::~Session()
 	lg.info("connection closed"sv);
 }
 
-void Session::make(boost::asio::io_context& context, Socket&& sock, std::shared_ptr<const Options> opt,
-	std::shared_ptr<const http::Router> rout, ServerLogger& lg)
+void Session::make(boost::asio::io_context& context, Socket sock, std::shared_ptr<const Options> opt,
+	std::shared_ptr<ModuleManager> module_manager, std::shared_ptr<const http::Router> rout, ServerLogger& lg)
 {
 	auto c = std::allocate_shared<Session>(client_allocator, context, std::move(sock),
-		move(opt), move(rout), lg);
+		move(opt), move(module_manager), move(rout), lg);
 	auto it = c->builder.prepare_task(c);
 	c->start_recv(it);
 }

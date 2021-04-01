@@ -8,6 +8,10 @@
 #include <type_traits>
 #include <vector>
 
+//TODO visit(Property)
+//TODO Property::as() -> std::optional?
+//TODO merge tables
+
 namespace config
 {
 class Error : public std::runtime_error
@@ -37,7 +41,6 @@ using Integer = std::int32_t;
 using Real = double;
 using String = std::string;
 class Table;
-class File;
 
 class Property
 {

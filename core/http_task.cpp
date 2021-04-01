@@ -67,7 +67,7 @@ auto Task::run() -> void
 
 	try {
 		if (BOOST_LIKELY(handler != nullptr)) {
-			lg.debug("start handler");
+			lg.debug("start handler: ", *handler);
 			handle_request();
 			lg.debug("handler finished: ", *handler);
 		} else {
@@ -90,7 +90,7 @@ auto Task::handle_request() -> void
 {
 	BOOST_ASSERT(handler);
 	
-	ModuleLoggerGuard mlg{ lg, handler->get_name() };
+	HandlerLoggerGuard mlg{ lg, handler->get_name() };
 	RequestHandler::Context ctx{ a, lg };
 	
 	switch (req.method.type) {

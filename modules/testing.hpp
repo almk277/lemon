@@ -1,19 +1,8 @@
 #pragma once
-#include "http_request_handler.hpp"
+#include "module.hpp"
 
-namespace http
+struct ModuleTesting : Module
 {
-struct RhTesting : RequestHandler
-{
-	RhTesting() = default;
-
-	string_view get_name() const noexcept override;
-
-	void get(Request& req, Response& resp, Context& ctx) override;
-	void post(Request& req, Response& resp, Context& ctx) override;
-	void method(string_view method_name, Request&, Response&, Context&) override;
-
-private:
-	static void finalize(Request& req, Response& resp, Context& ctx);
+	auto get_name() const noexcept -> string_view override;
+	auto init(Logger& lg, const config::Table* config) -> HandlerList override;
 };
-}

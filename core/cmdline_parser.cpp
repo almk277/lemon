@@ -20,6 +20,7 @@ auto make_desc()
 				->default_value(BOOST_STRINGIZE(LEMON_CONFIG_PATH)),
 			"config file path")
 		("help,h", "print help and exit")
+		("modules,m", "list embedded modules and exit")
 		("version,v", "print version and exit");
 
 	return desc;

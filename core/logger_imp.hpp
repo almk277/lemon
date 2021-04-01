@@ -29,6 +29,7 @@ public:
 		boost::log::attribute_name task;
 		boost::log::attribute_name address;
 		boost::log::attribute_name module;
+		boost::log::attribute_name handler;
 	};
 
 	struct Message
@@ -79,12 +80,36 @@ private:
 	Message msg{};
 };
 
-struct CommonLogger: LoggerImp
+struct BaseLogger: LoggerImp
 {
 	void insert_attributes() override {}
 };
 
-struct ServerLogger: CommonLogger
+struct GlobalLogger : BaseLogger
+{
+	void insert_attributes() override;
+	
+	string_view module_name;
+};
+
+struct GlobalModuleLoggerGuard
+{
+	GlobalModuleLoggerGuard(GlobalLogger& lg, string_view name) noexcept:
+		lg{ lg }
+	{
+		lg.module_name = name;
+	}
+
+	~GlobalModuleLoggerGuard()
+	{
+		lg.module_name = {};
+	}
+
+private:
+	GlobalLogger& lg;
+};
+
+struct ServerLogger: BaseLogger
 {
 	explicit ServerLogger(std::uint16_t port) noexcept:
 		port{port}
@@ -117,20 +142,20 @@ struct TaskLogger: ClientLogger
 	void insert_attributes() override;
 
 	const TaskIdent id;
-	string_view module_name;
+	string_view handler;
 };
 
-struct ModuleLoggerGuard: boost::noncopyable
+struct HandlerLoggerGuard: boost::noncopyable
 {
-	ModuleLoggerGuard(TaskLogger& lg, string_view name) noexcept:
+	HandlerLoggerGuard(TaskLogger& lg, string_view name) noexcept:
 		lg{lg}
 	{
-		lg.module_name = name;
+		lg.handler = name;
 	}
 
-	~ModuleLoggerGuard()
+	~HandlerLoggerGuard()
 	{
-		lg.module_name = {};
+		lg.handler = {};
 	}
 
 private:

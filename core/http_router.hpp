@@ -6,15 +6,16 @@
 #include <utility>
 #include <vector>
 
+class ModuleManager;
+
 namespace http
 {
 struct RequestHandler;
-class RhManager;
 
 class Router: boost::noncopyable
 {
 public:
-	Router(const RhManager& rhman, const Options::RouteList& routes);
+	Router(const ModuleManager& manager, const Options::RouteList& routes);
 
 	RequestHandler* resolve(string_view path) const;
 	

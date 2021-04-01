@@ -23,7 +23,7 @@ std::string body(const Request& r)
 
 struct ParserFixture
 {
-	CommonLogger lg;
+	BaseLogger lg;
 	ArenaImp a{ lg };
 	Request req{a};
 	Parser p;

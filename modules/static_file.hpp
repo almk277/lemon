@@ -1,18 +1,9 @@
 #pragma once
-#include "http_request_handler.hpp"
+#include "module.hpp"
 
-namespace http
+struct ModuleStaticFile : Module
 {
-struct RhStaticFile : RequestHandler
-{
-	RhStaticFile() = default;
-
-	string_view get_name() const noexcept override;
-
-	void get(Request& req, Response& resp, Context& ctx) override;
-	void head(Request& req, Response& resp, Context& ctx) override;
-
-private:
-	static void finalize(Request& req, Response& resp, Context& ctx, std::size_t length);
+	auto get_name() const noexcept -> string_view override;
+	auto init(Logger& lg, const config::Table* config) -> HandlerList override;
+	auto description() const noexcept -> string_view override;
 };
-}
