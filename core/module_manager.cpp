@@ -102,14 +102,13 @@ auto ModuleManager::load_from_config(ModuleList& all_modules, const config::Tabl
 		else if (m_prop->is<config::Table>()) {
 			auto& m = m_prop->as<config::Table>();
 			auto& name = m["name"].as<config::String>();
-			auto& enabled_prop = m["enabled"];
-			auto enabled = enabled_prop ? enabled_prop.as<config::Boolean>() : true;
+			auto enabled = m["enabled"].get_or(true);
 			if (enabled)
 				enable(name, &m);
 			else
 				lg.debug("module ", name, ": disabled");
 		}
-	//TODO else throw error
+		//TODO else throw error
 }
 
 auto ModuleManager::load_all(ModuleList& all_modules) -> void

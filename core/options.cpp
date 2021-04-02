@@ -112,7 +112,7 @@ Options::Options(const config::Table& config)
 	for (auto& srv_val : config.get_all("server")) {
 		auto& srv = srv_val->as<Table>();
 		auto& s = servers.emplace_back();
-		s.listen_port = srv["listen"].as<Integer>();
+		s.listen_port = static_cast<std::uint16_t>(srv["listen"].as<Integer>());
 		auto& routes = srv["route"].as<Table>();
 		for (auto& route : routes)
 			s.routes.push_back({ parse_matcher(route.key()), route.as<string>() });

@@ -1,10 +1,11 @@
 #include "test_config.hpp"
-#include <boost/mpl/set.hpp>
+#include <boost/mp11/tuple.hpp>
 #include <boost/range/adaptor/indirected.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/scope_exit.hpp>
+#include <tuple>
 #include <type_traits>
 
 using namespace config;
@@ -13,7 +14,7 @@ using namespace std::string_literals;
 using boost::unit_test::data::make;
 
 //FIXME string not accounted?
-using ValueTypes = boost::mpl::set<Boolean, Integer, Real, String, Table>;
+using ValueTypes = std::tuple<Boolean, Integer, Real, String, Table>;
 using boost::adaptors::indirect;
 
 namespace
@@ -76,6 +77,8 @@ void check_good_type(const Property& p, const InitType& init)
 	BOOST_TEST(!!p);
 	BOOST_TEST(p.is<InitType>());
 	BOOST_TEST(p.as<InitType>() == init);
+	if constexpr (Property::scalar_type<InitType>)
+		BOOST_TEST(p.as_opt<InitType>().value() == init);
 }
 
 template <typename TestType>
@@ -111,7 +114,7 @@ void check(InitType&& init1, InitType&& init2)
 }
 
 template <typename InitType>
-std::enable_if_t<std::is_copy_constructible<InitType>::value>
+std::enable_if_t<std::is_copy_constructible_v<InitType>>
 check(const InitType& init)
 {
 	check(init, init);
@@ -126,6 +129,12 @@ BOOST_AUTO_TEST_CASE(test_empty_value)
 	const Property v{ std::make_unique<PropertyErrorHandler>(), "testkey"s };
 	BOOST_TEST(!static_cast<bool>(v));
 	BOOST_TEST(!v);
+	
+	using Scalar = std::tuple<Boolean, Integer, Real, String>;
+	boost::mp11::tuple_for_each(Scalar(), [&v](auto x)
+	{
+			BOOST_TEST(!v.as_opt<decltype(x)>());
+	});
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_empty_value_fail, T, ValueTypes)

@@ -87,7 +87,7 @@ struct Property::Priv
 	}
 
 	template <typename T>
-	auto get(string_view expected_type) const -> const T&
+	auto get(string_view expected_type) const -> std::conditional_t<light_type<T>, T, const T&>
 	{
 		auto* v = std::get_if<T>(&val);
 		if (BOOST_UNLIKELY(!v)) {
@@ -169,9 +169,14 @@ auto Property::key() const noexcept -> const String&
 	return p->k;
 }
 
-auto Property::get_error_handler() const -> const ErrorHandler&
+auto Property::get_error_handler() const noexcept -> const ErrorHandler&
 {
 	return *p->eh;
+}
+
+auto Property::never_called() -> void
+{
+	throw std::logic_error{ "Property::never_called: unexpected call" };
 }
 
 template <>
@@ -205,19 +210,19 @@ auto Property::is<Table>() const noexcept -> bool
 }
 
 template <>
-auto Property::as<Boolean>() const -> const Boolean&
+auto Property::as<Boolean>() const -> Boolean
 {
 	return p->get<Boolean>("boolean"sv);
 }
 
 template <>
-auto Property::as<Integer>() const -> const Integer&
+auto Property::as<Integer>() const -> Integer
 {
 	return p->get<Integer>("integer"sv);
 }
 
 template <>
-auto Property::as<Real>() const -> const Real&
+auto Property::as<Real>() const -> Real
 {
 	return p->get<RoughReal>("real"sv).val;
 }

@@ -3,13 +3,13 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 //TODO visit(Property)
-//TODO Property::as() -> std::optional?
 //TODO merge tables
 
 namespace config
@@ -55,6 +55,24 @@ public:
 	struct EmptyType {};
 	static constexpr EmptyType empty{};
 
+	template <typename T, typename... Ts>
+	static constexpr bool one_of = std::disjunction_v<std::is_same<T, Ts>...>;
+	
+	template <typename T>
+	static constexpr bool supported_type = one_of<T, Boolean, Integer, Real, String, Table>;
+	
+	template <typename T>
+	static constexpr bool light_type = one_of<T, Boolean, Integer, Real>;
+	
+	template <typename T>
+	static constexpr bool heavy_type = one_of<T, String, Table>;
+	
+	template <typename T>
+	static constexpr bool scalar_type = one_of<T, Boolean, Integer, Real, String>;
+	
+	template <typename T>
+	static constexpr bool complex_type = one_of<T, Table>;
+	
 	Property(std::unique_ptr<const ErrorHandler> eh,
 		std::string key, EmptyType = empty);
 	Property(std::unique_ptr<const ErrorHandler> eh,
@@ -84,22 +102,26 @@ public:
 
 	template <typename T>
 	[[nodiscard]] auto is() const noexcept -> bool;
+	
+	template <typename T>
+	auto as() const -> std::enable_if_t<light_type<T>, T>;
+	template <typename T>
+	auto as() const -> std::enable_if_t<heavy_type<T>, const T&>;
 
 	template <typename T>
-	std::enable_if_t<
-		   std::is_same_v<T, Boolean>
-		|| std::is_same_v<T, Integer>
-		|| std::is_same_v<T, Real>
-		|| std::is_same_v<T, String>
-		|| std::is_same_v<T, Table>
-		, const T&> as() const;
+	auto as_opt() const -> std::enable_if_t<scalar_type<T>, std::optional<T>>;
 
-	auto get_error_handler() const -> const ErrorHandler&;
+	template <typename T>
+	auto get_or(T default_value) const -> std::enable_if_t<scalar_type<T>, T>;
+	
+	auto get_error_handler() const noexcept -> const ErrorHandler&;
 
 	friend auto operator==(const Property& lhs, const Property& rhs) noexcept -> bool;
 	friend auto operator!=(const Property& lhs, const Property& rhs) noexcept -> bool;
 
 private:
+	[[noreturn]] static auto never_called() -> void;
+
 	struct Priv;
 	Priv* p;
 };
@@ -149,20 +171,11 @@ private:
 	friend class const_iterator;
 };
 
-template <>
-auto Property::is<Boolean>() const noexcept -> bool;
-
-template <>
-auto Property::is<Integer>() const noexcept -> bool;
-
-template <>
-auto Property::is<Real>() const noexcept -> bool;
-
-template <>
-auto Property::is<String>() const noexcept -> bool;
-
-template <>
-auto Property::is<Table>() const noexcept -> bool;
+template <> auto Property::is<Boolean>() const noexcept -> bool;
+template <> auto Property::is<Integer>() const noexcept -> bool;
+template <> auto Property::is<Real>() const noexcept -> bool;
+template <> auto Property::is<String>() const noexcept -> bool;
+template <> auto Property::is<Table>() const noexcept -> bool;
 
 template <typename T>
 auto Property::is() const noexcept -> bool
@@ -170,8 +183,39 @@ auto Property::is() const noexcept -> bool
 	return false;
 }
 
+template <typename T>
+auto Property::as() const -> std::enable_if_t<light_type<T>, T>
+{
+	never_called();
+}
+
+template <typename T>
+auto Property::as() const -> std::enable_if_t<heavy_type<T>, const T&>
+{
+	never_called();
+}
+
+template <typename T>
+auto Property::as_opt() const -> std::enable_if_t<scalar_type<T>, std::optional<T>>
+{
+	return has_value() ? std::optional<T>{ as<T>() } : std::optional<T>{};
+}
+
+template <typename T>
+auto Property::get_or(T default_value) const -> std::enable_if_t<scalar_type<T>, T>
+{
+	return has_value() ? as<T>(): default_value;
+}
+
+template <> auto Property::as<Boolean>() const -> Boolean;
+template <> auto Property::as<Integer>() const -> Integer;
+template <> auto Property::as<Real>() const -> Real;
+template <> auto Property::as<String>() const -> const String&;
+template <> auto Property::as<Table>() const -> const Table&;
+
+
 inline Property::Property(std::unique_ptr<const ErrorHandler> eh,
-	std::string key, const char* val) :
+                          std::string key, const char* val) :
 	Property{ move(eh), move(key), String{ val } }
 {
 }
