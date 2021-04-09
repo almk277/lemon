@@ -1,4 +1,5 @@
 #include "test_config.hpp"
+#include "visitor.hpp"
 #include <boost/mp11/tuple.hpp>
 #include <boost/range/adaptor/indirected.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -34,24 +35,19 @@ auto config::operator<<(std::ostream& stream, const Property& p) -> std::ostream
 	stream << std::boolalpha;
 
 	stream << "property{\"" << p.key() << "\" -> ";
-	if (!p)
-		stream << "empty";
-	else if (p.is<Boolean>())
-		stream << "boolean: " << p.as<Boolean>();
-	else if (p.is<Integer>())
-		stream << "integer: " << p.as<Integer>();
-	else if (p.is<Real>())
-		stream << "real: " << p.as<Real>();
-	else if (p.is<String>())
-		stream << "string: \"" << p.as<String>() << "\"";
-	else if (p.is<Table>())
-		stream << "table: " << p.as<Table>();
-	else
-		throw std::logic_error
-			{ "operator<<(std::ostream &stream, const property &v): unknown type" };
-	stream << "}";
 
-	return stream;
+	if (p)
+		Visit<Boolean, Integer, Real, String, Table>{}(p, Visitor{
+			[&stream](Boolean v) { stream << "boolean: " << v; },
+			[&stream](Integer v) { stream << "integer: " << v; },
+			[&stream](Real v) { stream << "real: " << v; },
+			[&stream](const String& v) { stream << "string: \"" << v << "\""; },
+			[&stream](const Table& v) { stream << "table: " << v; },
+		});
+	else
+		stream << "empty";
+
+	return stream << "}";
 }
 
 auto config::operator<<(std::ostream& stream, const Property::EmptyType&) -> std::ostream&
@@ -310,6 +306,42 @@ BOOST_AUTO_TEST_CASE(test_nested_table_unknown_key)
 	CHECK_THROW("k1", t.throw_on_unknown_key());
 	static_cast<void>(t["k0"].as<Table>()["k1"]);
 	BOOST_CHECK_NO_THROW(t.throw_on_unknown_key());
+}
+
+BOOST_AUTO_TEST_CASE(test_visit_int)
+{
+	enum Type
+	{
+		boolean,
+		integer,
+		real,
+		string,
+		table,
+	};
+
+	auto p = prop("k", 12);
+	struct Vis
+	{
+		auto operator()(bool) { return boolean; }
+		auto operator()(int) { return integer; }
+		auto operator()(double) { return real; }
+		auto operator()(string_view) { return string; }
+		auto operator()(const Table&) { return table; }
+	} v;
+
+	BOOST_TEST((Visit<Boolean, Integer, Real, String, Table>()(p, v)) == integer);
+	BOOST_TEST((Visit<Integer, Real, Table>()(p, v)) == integer);
+	BOOST_TEST((Visit<Integer>()(p, v)) == integer);
+
+	auto make_predicate = [](string_view expected)
+	{
+		return [expected](const BadValue& exc)
+		{
+			return exc.key() == "k" && exc.obtained() == "integer" && exc.expected() == expected;
+		};
+	};
+	BOOST_CHECK_EXCEPTION((Visit<Boolean, Real, String>()(p, v)), BadValue, make_predicate("[boolean, real, string]"));
+	BOOST_CHECK_EXCEPTION((Visit<Real, Table>()(p, v)), BadValue, make_predicate("[real, table]"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

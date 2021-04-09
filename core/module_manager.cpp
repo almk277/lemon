@@ -4,6 +4,7 @@
 #include "logger_imp.hpp"
 #include "module.hpp"
 #include "module_provider.hpp"
+#include "visitor.hpp"
 #include <boost/range/algorithm/find_if.hpp>
 #include <algorithm>
 #include <set>
@@ -40,9 +41,9 @@ ModuleManager::ModuleManager(const std::vector<ModuleProvider*>& providers, cons
 	verify(all_modules);
 
 	if (config)
-		load_from_config(all_modules, *config);
+		load_from_config(move(all_modules), *config);
 	else
-		load_all(all_modules);
+		load_all(move(all_modules));
 }
 
 auto ModuleManager::add(std::unique_ptr<Module> module, const config::Table* config) -> void
@@ -78,9 +79,17 @@ auto ModuleManager::handler_count() const noexcept -> int
 	return static_cast<int>(handlers.size());
 }
 
-auto ModuleManager::load_from_config(ModuleList& all_modules, const config::Table& config) -> void
+auto ModuleManager::load_all(ModuleList all_modules) -> void
 {
-	auto enable = [this, &all_modules](string_view name, const config::Table* config)
+	for (auto& m : all_modules)
+		add(move(m), nullptr);
+}
+
+auto ModuleManager::load_from_config(ModuleList all_modules, const config::Table& config) -> void
+{
+	using namespace config;
+
+	auto enable = [this, &all_modules](string_view name, const Table* m_config)
 	{
 		auto m_it = boost::find_if(all_modules, [name](auto& m)
 		{
@@ -90,29 +99,25 @@ auto ModuleManager::load_from_config(ModuleList& all_modules, const config::Tabl
 			throw std::runtime_error{ "no such module: " + std::string(name) };
 		auto m = move(*m_it);
 		all_modules.erase(m_it);
-		add(move(m), config);
+		add(move(m), m_config);
 	};
-
+	
 	//TODO per-server configuration
-	for (auto& m_prop : config.get_all("module"))
-		if (m_prop->is<config::String>()) {
-			auto& name = m_prop->as<config::String>();
-			enable(name, nullptr);
-		}
-		else if (m_prop->is<config::Table>()) {
-			auto& m = m_prop->as<config::Table>();
-			auto& name = m["name"].as<config::String>();
-			auto enabled = m["enabled"].get_or(true);
-			if (enabled)
-				enable(name, &m);
-			else
-				lg.debug("module ", name, ": disabled");
-		}
-		//TODO else throw error
-}
-
-auto ModuleManager::load_all(ModuleList& all_modules) -> void
-{
-	for (auto& m : all_modules)
-		add(move(m), nullptr);
+	for (auto m_prop : config.get_all("module")) {
+		Visit<String, Table>{}(*m_prop, Visitor{
+			[enable](const std::string& name)
+			{
+				enable(name, nullptr);
+			},
+			[this, enable](const Table& m)
+			{
+				auto& name = m["name"].as<String>();
+				auto enabled = m["enabled"].get_or(true);
+				if (enabled)
+					enable(name, &m);
+				else
+					lg.debug("module ", name, ": disabled");
+			},
+		});
+	}
 }

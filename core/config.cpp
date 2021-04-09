@@ -33,7 +33,12 @@ auto operator==(RoughReal lhs, RoughReal rhs) noexcept
 {
 	return std::abs(lhs.val - rhs.val) > REAL_EPS;
 }
+}
 
+template <> inline auto Property::type_to_string<RoughReal>() -> std::string { return "real"; }
+
+namespace
+{
 using ValueTuple = std::pair<Property, bool>;
 
 struct KeyComparator
@@ -58,7 +63,9 @@ BadKey::BadKey(const std::string& key, const std::string& msg):
 
 BadValue::BadValue(const std::string& key, const std::string& expected, const std::string& obtained,
 	const std::string& msg):
-	BadKey{ key, msg }
+	BadKey{ key, msg },
+	exp{ expected },
+	obt{ obtained }
 {
 }
 
@@ -77,26 +84,31 @@ struct Property::Priv
 	auto type_string() const
 	{
 		return visit(Visitor{
-			[](EmptyValue) { return "empty"; },
-			[](Boolean) { return "boolean"; },
-			[](Integer) { return "integer"; },
-			[](RoughReal) { return "real"; },
-			[](const String&) { return "string"; },
-			[](const Table&) { return "table"; },
+			[](EmptyValue) { return std::string{"empty"}; },
+			[](Boolean) { return type_to_string<Boolean>(); },
+			[](Integer) { return type_to_string<Integer>(); },
+			[](RoughReal) { return type_to_string<Real>(); },
+			[](const String&) { return type_to_string<String>(); },
+			[](const Table&) { return type_to_string<Table>(); },
 			}, val);
 	}
 
+	[[noreturn]] auto raise_type_error(const std::string& expected) const
+	{
+		auto obtained = type_string();
+		auto msg = "expected: " + expected + ", but got: " + obtained;
+		throw BadValue{ k, expected, obtained, eh->value_error(msg) };
+	}
+	
 	template <typename T>
-	auto get(string_view expected_type) const -> std::conditional_t<light_type<T>, T, const T&>
+	auto get() const -> std::conditional_t<light_type<T>, T, const T&>
 	{
 		auto* v = std::get_if<T>(&val);
 		if (BOOST_UNLIKELY(!v)) {
 			if (is<EmptyValue>())
 				throw BadKey{ k, eh->key_error("not found") };
-			auto expected = std::string{ expected_type };
-			auto obtained = type_string();
-			auto msg = "expected: " + expected + ", but got: " + obtained;
-			throw BadValue{ k, expected, obtained, eh->value_error(msg) };
+			auto expected = type_to_string<T>();
+			raise_type_error(expected);
 		}
 
 		return *v;
@@ -176,7 +188,12 @@ auto Property::get_error_handler() const noexcept -> const ErrorHandler&
 
 auto Property::never_called() -> void
 {
-	throw std::logic_error{ "Property::never_called: unexpected call" };
+	std::abort();
+}
+
+auto Property::raise_type_error(const std::string& expected) const -> void
+{
+	p->raise_type_error(expected);
 }
 
 template <>
@@ -212,31 +229,31 @@ auto Property::is<Table>() const noexcept -> bool
 template <>
 auto Property::as<Boolean>() const -> Boolean
 {
-	return p->get<Boolean>("boolean"sv);
+	return p->get<Boolean>();
 }
 
 template <>
 auto Property::as<Integer>() const -> Integer
 {
-	return p->get<Integer>("integer"sv);
+	return p->get<Integer>();
 }
 
 template <>
 auto Property::as<Real>() const -> Real
 {
-	return p->get<RoughReal>("real"sv).val;
+	return p->get<RoughReal>().val;
 }
 
 template <>
 auto Property::as<String>() const -> const String&
 {
-	return p->get<String>("string"sv);
+	return p->get<String>();
 }
 
 template <>
 auto Property::as<Table>() const -> const Table&
 {
-	return p->get<Table>("table"sv);
+	return p->get<Table>();
 }
 
 struct Table::Priv

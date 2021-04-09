@@ -9,7 +9,6 @@
 #include <type_traits>
 #include <vector>
 
-//TODO visit(Property)
 //TODO merge tables
 
 namespace config
@@ -34,6 +33,11 @@ class BadValue : public BadKey
 public:
 	BadValue(const std::string& key, const std::string& expected, const std::string& obtained,
 		const std::string& msg);
+	auto expected() const noexcept -> const std::string& { return exp; }
+	auto obtained() const noexcept -> const std::string& { return obt; }
+private:
+	const std::string exp;
+	const std::string obt;
 };
 
 using Boolean = bool;
@@ -121,6 +125,33 @@ public:
 
 private:
 	[[noreturn]] static auto never_called() -> void;
+	[[noreturn]] auto raise_type_error(const std::string& expected) const -> void;
+	
+	template <typename T>
+	static auto type_to_string() -> std::string;
+
+	template <typename T, typename... Ts>
+	struct TypeList
+	{
+		auto to_string() const
+		{
+			return "[" + (type_to_string<T>() + ... + (", " + type_to_string<Ts>())) + "]";
+		}
+	};
+	
+	template <typename Visitor, typename AllTypes, typename T, typename... Ts>
+	auto visit_impl(Visitor&& visitor) const
+	{
+		if (is<T>())
+			return visitor(as<T>());
+
+		if constexpr (sizeof...(Ts) != 0)
+			return visit_impl<Visitor, AllTypes, Ts...>(std::forward<Visitor>(visitor));
+		else
+			raise_type_error(AllTypes{}.to_string());
+	}
+	
+	template <typename... Ts> friend struct Visit;
 
 	struct Priv;
 	Priv* p;
@@ -195,6 +226,12 @@ auto Property::as() const -> std::enable_if_t<heavy_type<T>, const T&>
 	never_called();
 }
 
+template <> auto Property::as<Boolean>() const -> Boolean;
+template <> auto Property::as<Integer>() const -> Integer;
+template <> auto Property::as<Real>() const -> Real;
+template <> auto Property::as<String>() const -> const String&;
+template <> auto Property::as<Table>() const -> const Table&;
+
 template <typename T>
 auto Property::as_opt() const -> std::enable_if_t<scalar_type<T>, std::optional<T>>
 {
@@ -207,12 +244,11 @@ auto Property::get_or(T default_value) const -> std::enable_if_t<scalar_type<T>,
 	return has_value() ? as<T>(): default_value;
 }
 
-template <> auto Property::as<Boolean>() const -> Boolean;
-template <> auto Property::as<Integer>() const -> Integer;
-template <> auto Property::as<Real>() const -> Real;
-template <> auto Property::as<String>() const -> const String&;
-template <> auto Property::as<Table>() const -> const Table&;
-
+template <> inline auto Property::type_to_string<Boolean>() -> std::string { return "boolean"; }
+template <> inline auto Property::type_to_string<Integer>() -> std::string { return "integer"; }
+template <> inline auto Property::type_to_string<Real>() -> std::string { return "real"; }
+template <> inline auto Property::type_to_string<String>() -> std::string { return "string"; }
+template <> inline auto Property::type_to_string<Table>() -> std::string { return "table"; }
 
 inline Property::Property(std::unique_ptr<const ErrorHandler> eh,
                           std::string key, const char* val) :
@@ -260,5 +296,21 @@ public:
 private:
 	struct Priv;
 	Priv* p;
+};
+
+template <typename... Ts>
+struct Visit
+{
+	static_assert((Property::supported_type<Ts> && ...),
+		"config::Visit: unsupported Property value type provided");
+	
+	template <typename Visitor>
+	auto operator()(const Property& prop, Visitor&& visitor) const
+	{
+		static_assert((std::is_invocable_v<Visitor, Ts> && ...),
+			"config::Visit::operator(): provided type not handled by visitor");
+
+		return prop.visit_impl<Visitor, Property::TypeList<Ts...>, Ts...>(std::forward<Visitor>(visitor));
+	}
 };
 }

@@ -22,9 +22,9 @@ public:
 private:
 	using ModuleList = std::vector<std::unique_ptr<Module>>;
 
-	auto load_from_config(ModuleList& all_modules, const config::Table& config) -> void;
-	auto load_all(ModuleList& all_modules) -> void;
-	
+	auto load_all(ModuleList all_modules) -> void;
+	auto load_from_config(ModuleList all_modules, const config::Table& config) -> void;
+
 	GlobalLogger& lg;
 	ModuleList modules;
 	std::map<string_view, std::shared_ptr<BaseRequestHandler>> handlers;
