@@ -35,7 +35,7 @@ auto operator==(RoughReal lhs, RoughReal rhs) noexcept
 }
 }
 
-template <> inline auto Property::type_to_string<RoughReal>() -> std::string { return "real"; }
+template <> inline auto Property::type_to_string<RoughReal>() noexcept -> std::string { return "real"; }
 
 namespace
 {
@@ -71,10 +71,17 @@ BadValue::BadValue(const std::string& key, const std::string& expected, const st
 
 struct Property::Priv
 {
-	const String k;
+	const std::string k;
 	const std::variant<EmptyValue, Boolean, Integer, RoughReal, String, Table> val;
 	const std::unique_ptr<const ErrorHandler> eh;
 
+	Priv(std::string key, std::variant<EmptyValue, Boolean, Integer, RoughReal, String, Table> value,
+		std::unique_ptr<const ErrorHandler> eh) noexcept :
+		k{ move(key) },
+		val{ move(value) },
+		eh{ move(eh) }
+	{}
+	
 	template <typename T>
 	auto is() const noexcept
 	{
@@ -122,48 +129,38 @@ struct Property::Priv
 
 Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, EmptyType) :
-	p{ new Priv{ move(key), {}, move(eh) } }
+	p{ std::make_shared<Priv>(move(key), EmptyValue{}, move(eh)) }
 {
 }
 
 Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, Boolean val) :
-	p{ new Priv{ move(key), val, move(eh) } }
+	p{ std::make_shared<Priv>(move(key), val, move(eh)) }
 {
 }
 
 Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, Integer val) :
-	p{ new Priv{ move(key), val, move(eh) } }
+	p{ std::make_shared<Priv>(move(key), val, move(eh)) }
 {
 }
 
 Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, Real val) :
-	p{ new Priv{ move(key), RoughReal{val}, move(eh) } }
+	p{ std::make_shared<Priv>(move(key), RoughReal{val}, move(eh)) }
 {
 }
 
 Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, String val) :
-	p{ new Priv{ move(key), std::move(val), move(eh) } }
+	p{ std::make_shared<Priv>(move(key), std::move(val), move(eh)) }
 {
 }
 
 Property::Property(std::unique_ptr<const ErrorHandler> eh,
 	std::string key, Table val) :
-	p{ new Priv{ move(key), std::move(val), move(eh) } }
+	p{ std::make_shared<Priv>(move(key), std::move(val), move(eh)) }
 {
-}
-
-Property::Property(Property&& rhs) noexcept :
-	p{ std::exchange(rhs.p, nullptr) }
-{
-}
-
-Property::~Property()
-{
-	delete p;
 }
 
 Property::operator bool() const noexcept
@@ -258,11 +255,11 @@ auto Property::as<Table>() const -> const Table&
 
 struct Table::Priv
 {
+	explicit Priv(std::unique_ptr<ErrorHandler> eh) noexcept: eh{ move(eh) } {}
+	
 	const std::unique_ptr<ErrorHandler> eh;
 	std::vector<ValueTuple> map;
 	std::vector<Property> empty_vals;
-
-	explicit Priv(std::unique_ptr<ErrorHandler> eh): eh(move(eh)) {}
 
 	auto empty_value(string_view key) -> const Property&
 	{
@@ -272,19 +269,15 @@ struct Table::Priv
 };
 
 Table::Table(std::unique_ptr<ErrorHandler> eh):
-	p{ new Priv{ move(eh) } }
+	p{ std::make_unique<Priv>(move(eh)) }
 {
 }
 
-Table::Table(Table&& rhs) noexcept:
-	p{ std::exchange(rhs.p, nullptr) }
-{
-}
+Table::Table(Table&&) noexcept = default;
 
-Table::~Table()
-{
-	delete p;
-}
+Table::~Table() = default;
+
+auto Table::operator=(Table&&) noexcept -> Table& = default;
 
 auto Table::add(Property val) -> Table&
 {
@@ -374,52 +367,45 @@ auto Table::throw_on_unknown_key() const -> void
 
 struct Table::const_iterator::Priv
 {
-	decltype(Table::Priv::map)::const_iterator it;
+	using Iterator = decltype(Table::Priv::map)::const_iterator;
+	
+	Priv() = default;
+	Priv(Iterator it): it{ it } {}
+	
+	Iterator it;
 };
 
 Table::const_iterator::const_iterator() :
-	p{ new Priv{} }
+	p{ std::make_unique<Priv>() }
 {
 }
 
 Table::const_iterator::const_iterator(const Table* tbl, begin_tag) :
-	p{ new Priv{ tbl->p->map.begin() } }
+	p{ std::make_unique<Priv>(tbl->p->map.begin()) }
 {
 }
 
 Table::const_iterator::const_iterator(const Table* tbl, end_tag) :
-	p{ new Priv{ tbl->p->map.end() } }
+	p{ std::make_unique<Priv>(tbl->p->map.end()) }
 {
 }
 
 Table::const_iterator::const_iterator(const const_iterator& rhs) :
-	p{ new Priv{ *rhs.p } }
+	p{ std::make_unique<Priv>(*rhs.p) }
 {
 }
 
-Table::const_iterator::const_iterator(const_iterator&& rhs) noexcept :
-	p{ std::exchange(rhs.p, nullptr) }
-{
-}
+Table::const_iterator::const_iterator(const_iterator&& rhs) noexcept = default;
 
-Table::const_iterator::~const_iterator()
-{
-	delete p;
-}
+Table::const_iterator::~const_iterator() = default;
 
 auto Table::const_iterator::operator=(const const_iterator& rhs) -> const_iterator&
 {
-	delete p;
-	p = new Priv{ *rhs.p };
+	p = std::make_unique<Priv>(*rhs.p);
 	return *this;
 }
 
-auto Table::const_iterator::operator=(const_iterator&& rhs) noexcept -> const_iterator&
-{
-	delete p;
-	p = std::exchange(rhs.p, nullptr);
-	return *this;
-}
+auto Table::const_iterator::operator=(const_iterator&& rhs) noexcept -> const_iterator& = default;
 
 auto Table::const_iterator::operator*() const -> reference
 {

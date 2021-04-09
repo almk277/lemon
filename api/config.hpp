@@ -91,12 +91,12 @@ public:
 		std::string key, String val);
 	Property(std::unique_ptr<const ErrorHandler> eh,
 		std::string key, Table val);
-	Property(const Property& rhs) = delete;
-	Property(Property&& rhs) noexcept;
-	~Property();
+	Property(const Property& rhs) = default;
+	Property(Property&& rhs) = default;
+	~Property() = default;
 
-	auto operator=(const Property& rhs) -> Property& = delete;
-	auto operator=(Property&& rhs) -> Property& = delete;
+	auto operator=(const Property& rhs) -> Property& = default;
+	auto operator=(Property&& rhs) -> Property& = default;
 
 	[[nodiscard]] auto has_value() const noexcept -> bool;
 	explicit operator bool() const noexcept;
@@ -128,7 +128,7 @@ private:
 	[[noreturn]] auto raise_type_error(const std::string& expected) const -> void;
 	
 	template <typename T>
-	static auto type_to_string() -> std::string;
+	static auto type_to_string() noexcept -> std::string;
 
 	template <typename T, typename... Ts>
 	struct TypeList
@@ -154,7 +154,7 @@ private:
 	template <typename... Ts> friend struct Visit;
 
 	struct Priv;
-	Priv* p;
+	std::shared_ptr<Priv> p;
 };
 
 class Table
@@ -175,7 +175,7 @@ public:
 	~Table();
 
 	auto operator=(const Table&) -> Table& = delete;
-	auto operator=(Table&&) -> Table& = delete;
+	auto operator=(Table&&) noexcept -> Table&;
 
 	auto add(Property val) -> Table&;
 
@@ -198,7 +198,7 @@ public:
 
 private:
 	struct Priv;
-	Priv* p;
+	std::unique_ptr<Priv> p;
 	friend class const_iterator;
 };
 
@@ -244,11 +244,11 @@ auto Property::get_or(T default_value) const -> std::enable_if_t<scalar_type<T>,
 	return has_value() ? as<T>(): default_value;
 }
 
-template <> inline auto Property::type_to_string<Boolean>() -> std::string { return "boolean"; }
-template <> inline auto Property::type_to_string<Integer>() -> std::string { return "integer"; }
-template <> inline auto Property::type_to_string<Real>() -> std::string { return "real"; }
-template <> inline auto Property::type_to_string<String>() -> std::string { return "string"; }
-template <> inline auto Property::type_to_string<Table>() -> std::string { return "table"; }
+template <> inline auto Property::type_to_string<Boolean>() noexcept -> std::string { return "boolean"; }
+template <> inline auto Property::type_to_string<Integer>() noexcept -> std::string { return "integer"; }
+template <> inline auto Property::type_to_string<Real>() noexcept -> std::string { return "real"; }
+template <> inline auto Property::type_to_string<String>() noexcept -> std::string { return "string"; }
+template <> inline auto Property::type_to_string<Table>() noexcept -> std::string { return "table"; }
 
 inline Property::Property(std::unique_ptr<const ErrorHandler> eh,
                           std::string key, const char* val) :
@@ -295,7 +295,7 @@ public:
 
 private:
 	struct Priv;
-	Priv* p;
+	std::unique_ptr<Priv> p;
 };
 
 template <typename... Ts>

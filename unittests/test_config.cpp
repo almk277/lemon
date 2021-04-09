@@ -308,6 +308,20 @@ BOOST_AUTO_TEST_CASE(test_nested_table_unknown_key)
 	BOOST_CHECK_NO_THROW(t.throw_on_unknown_key());
 }
 
+BOOST_AUTO_TEST_CASE(test_property_copy)
+{
+	auto p1 = prop("k", 10);
+	auto p2 = p1;
+	BOOST_TEST(p1.as<int>() == 10);
+	BOOST_TEST(p2.as<int>() == 10);
+	BOOST_TEST(p1 == p2);
+	p1 = prop("m", false);
+	p1 = p2;
+	BOOST_TEST(p1.as<int>() == 10);
+	BOOST_TEST(p2.as<int>() == 10);
+	BOOST_TEST(p1 == p2);
+}
+
 BOOST_AUTO_TEST_CASE(test_visit_int)
 {
 	enum Type
